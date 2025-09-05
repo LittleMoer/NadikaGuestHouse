@@ -65,7 +65,7 @@
             </form>
         </div>
         <div style="overflow-x:auto;margin-top:1rem;">
-            <table border="1" style="min-width:100%;border-radius:0.5rem;box-shadow:0 2px 8px #0001;background:#fff;">
+            <table class=" table-bordered" style="min-width:100%;border-radius:0.5rem;box-shadow:0 2px 8px #0001;background:#fff;">
                 <thead>
                     <tr bgcolor="#FFA800" align="center">
                       <td style="font-weight:bold;font-size:1.1rem;">Tipe Kamar</td>
@@ -82,7 +82,6 @@
                       @foreach ($kamarList as $kamar)
                         <td style="font-weight:bold;font-size:1.1rem;">{{ $kamar->nomor_kamar }}</td>
                       @endforeach
-                      <!-- kolom Total Terisi sudah digabung di atas -->
                     </tr>
                 </thead>
                 <tbody>
@@ -103,14 +102,14 @@
                                 @php
                                     $status = $statusBooking[$tanggal][$kamar->id] ?? 'kosong';
                                     $warna = [
-                                        'kosong' => '#43ea5e',
-                                        'dipesan_langsung' => '#ff0000ff',
-                                        'dipesan_eticket' => '#008cffff',
-                                        'ditempati_langsung' => '#ff0000ff',
-                                        'ditempati_eticket' => '#008cffff',
+                                        'kosong' => '#fff',
+                                        'dipesan_langsung' => '#ff5757ff',
+                                        'dipesan_eticket' => '#59b4ffff',
+                                        'ditempati_langsung' => '#ff5757ff',
+                                        'ditempati_eticket' => '#59b4ffff',
                                     ][$status];
                                     $icon = [
-                                        'kosong' => '&#128716;',
+                                        'kosong' => '',
                                         'dipesan_langsung' => '&#128197;',
                                         'dipesan_eticket' => '&#128197;',
                                         'ditempati_langsung' => '&#128273;',
@@ -133,9 +132,8 @@
                         }
                     @endphp
                     <tr bgcolor="#FFD700" style="text-align:center;font-weight:bold;">
-                        <td>Total Kamar Terisi Bulan Ini</td>
-                        <td colspan="{{ count($kamarList) }}">{{ $totalKamarTerisiBulan }}</td>
-                        <td></td>
+                        <td colspan= 18>Total Kamar Terisi Bulan Ini</td>
+                        <td colspan= 1 >{{ $totalKamarTerisiBulan }}</td>
                     </tr>
                 </tbody>
             </table>
