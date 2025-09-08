@@ -46,28 +46,34 @@
         <div class="sidebar-wrapper scrollbar scrollbar-inner">
           <div class="sidebar-content">
             <ul class="nav nav-secondary">
-              <li class="nav-item active">
+              <li class="nav-item">
                 <a href="/dashboard">
                   <i class="fas fa-home"></i>
                   <p>Dashboard</p>
                 </a>
               </li>
               <li class="nav-item">
-                <a href="/tables">
-                  <i class="fas fa-table"></i>
-                  <p>Tables</p>
-                </a>
-              </li>
-              <li class="nav-item">
-                <a href="/forms">
+                <a href="/booking">
                   <i class="fas fa-pen-square"></i>
-                  <p>Forms</p>
+                  <p>Booking</p>
                 </a>
               </li>
               <li class="nav-item">
-                <a href="/charts">
+                <a href="/penginap">
+                  <i class="fas fa-users"></i>
+                  <p>Penginap</p>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="/kamar">
+                  <i class="fas fa-bed"></i>
+                  <p>Kamar</p>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="/rekap">
                   <i class="far fa-chart-bar"></i>
-                  <p>Charts</p>
+                  <p>Rekap</p>
                 </a>
               </li>
             </ul>
@@ -80,7 +86,9 @@
       
       @yield('dashboard')
       @yield('booking')
-
+      @yield('penginap')
+      @yield('kamar')
+      @yield('rekap')
 
       </div>
     </div>
