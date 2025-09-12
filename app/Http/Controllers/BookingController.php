@@ -70,9 +70,14 @@ class BookingController extends Controller
         // Validasi input
         $request->validate([
             'nama' => 'required|string|max:255',
-            'alamat' => 'required|string|max:500',
-            'no_telepon' => 'required|string|max:15',
             'email' => 'nullable|email|max:255',
+            'no_telepon' => 'required|string|max:15',
+            'alamat' => 'required|string|max:500',
+            'jenis_identitas' => 'nullable|string|max:100',
+            'nomor_identitas' => 'nullable|string|max:100',
+            'tempat_lahir' => 'nullable|string|max:100',
+            'tanggal_lahir' => 'nullable|date',
+            'kewarganegaraan' => 'nullable|string|max:100',
         ]);
 
         // Simpan data pelanggan baru
@@ -81,6 +86,11 @@ class BookingController extends Controller
             'alamat' => $request->alamat,
             'no_telepon' => $request->no_telepon,
             'email' => $request->email,
+            'jenis_identitas' => $request->jenis_identitas,
+            'nomor_identitas' => $request->nomor_identitas,
+            'tempat_lahir' => $request->tempat_lahir,
+            'tanggal_lahir' => $request->tanggal_lahir,
+            'kewarganegaraan' => $request->kewarganegaraan,
         ]);
 
         return redirect()->back()->with('success', 'Pelanggan baru berhasil ditambahkan.');
@@ -89,11 +99,15 @@ class BookingController extends Controller
     {
         // Validasi input
         $request->validate([
-            'id' => 'required|exists:pelanggan,id',
             'nama' => 'required|string|max:255',
-            'alamat' => 'required|string|max:500',
-            'no_telepon' => 'required|string|max:15',
             'email' => 'nullable|email|max:255',
+            'no_telepon' => 'required|string|max:15',
+            'alamat' => 'required|string|max:500',
+            'jenis_identitas' => 'nullable|string|max:100',
+            'nomor_identitas' => 'nullable|string|max:100',
+            'tempat_lahir' => 'nullable|string|max:100',
+            'tanggal_lahir' => 'nullable|date',
+            'kewarganegaraan' => 'nullable|string|max:100',
         ]);
 
         // Update data pelanggan
@@ -103,6 +117,11 @@ class BookingController extends Controller
             'alamat' => $request->alamat,
             'no_telepon' => $request->no_telepon,
             'email' => $request->email,
+            'jenis_identitas' => $request->jenis_identitas,
+            'nomor_identitas' => $request->nomor_identitas,
+            'tempat_lahir' => $request->tempat_lahir,
+            'tanggal_lahir' => $request->tanggal_lahir,
+            'kewarganegaraan' => $request->kewarganegaraan,
         ]);
 
         return redirect()->back()->with('success', 'Data pelanggan berhasil diperbarui.');
