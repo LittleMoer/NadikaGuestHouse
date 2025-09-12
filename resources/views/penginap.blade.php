@@ -2,73 +2,77 @@
 
 @section('penginap')
 <div class="container">
-  <div class="page-inner">
-    <div class="page-header">
-      <h4 class="page-title">Daftar Penginap</h4>
-      <ul class="breadcrumbs">
-        <li class="nav-home">
-          <a href="/dashboard">
-            <i class="icon-home"></i>
-          </a>
-        </li>
-        <li class="separator">
-          <i class="icon-arrow-right"></i>
-        </li>
-        <li class="nav-item">
-          <a href="#">Penginap</a>
-        </li>
-        <li class="separator">
-          <i class="icon-arrow-right"></i>
-        </li>
-      </ul>
-    </div>
-
-    <div class="flex justify-between items-center mb-4">
-      <button type="button" class="btn btn-primary text-white px-4 py-2 rounded shadow hover:bg-blue-700" id="btnTambahPelanggan">
+    <div class="page-inner">
+        <div class="page-header">
+            <h4 class="page-title">Daftar Penginap</h4>
+            <ul class="breadcrumbs">
+                <li class="nav-home">
+                    <a href="/dashboard">
+                        <i class="icon-home"></i>
+                    </a>
+                </li>
+                <li class="separator">
+                    <i class="icon-arrow-right"></i>
+                </li>
+                <li class="nav-item">
+                    <a href="#">Penginap</a>
+                </li>
+                <li class="separator">
+                    <i class="icon-arrow-right"></i>
+                </li>
+            </ul>
+        </div>
+        <!-- isi -->
+    <!-- Header + Button -->
+    <div class="page-header" style="display:flex;justify-content:space-between;align-items:center;gap:16px;">
+      <button type="button" id="btnTambahPelanggan" class="btn btn-primary">
         + Tambah Pelanggan
       </button>
     </div>
 
-    <!-- Modal Card -->
-    <div id="modalPelanggan" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 hidden">
-      <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-6 relative">
-        <button type="button" class="absolute top-2 right-2 text-gray-400 hover:text-red-500 text-2xl font-bold" id="closeModalPelanggan">&times;</button>
-        <h3 class="text-xl font-semibold mb-4">Tambah Penginap Baru</h3>
-        <form action="{{ route('penginap.store') }}" method="POST">
+    <!-- Modal Overlay -->
+    <div id="modalPelanggan" class="modal-overlay" style="display:none;">
+      <div class="modal-card">
+        <button type="button" class="modal-close" id="closeModalPelanggan" aria-label="Tutup">&times;</button>
+        <h3 style="margin-top:0;">Tambah Penginap Baru</h3>
+
+        <form action="{{ route('penginap.create') }}" method="POST">
           @csrf
           <div class="mb-3">
             <label class="block mb-1 font-medium">Nama</label>
-            <input type="text" name="nama" class="form-control w-full border px-3 py-2 rounded" required>
+            <input type="text" name="nama" class="form-control" required>
           </div>
           <div class="mb-3">
             <label class="block mb-1 font-medium">Email</label>
-            <input type="email" name="email" class="form-control w-full border px-3 py-2 rounded" required>
+            <input type="email" name="email" class="form-control" required>
           </div>
           <div class="mb-3">
             <label class="block mb-1 font-medium">Telepon</label>
-            <input type="text" name="telepon" class="form-control w-full border px-3 py-2 rounded" required>
+            <input type="text" name="telepon" class="form-control" required>
           </div>
           <div class="mb-3">
             <label class="block mb-1 font-medium">Alamat</label>
-            <input type="text" name="alamat" class="form-control w-full border px-3 py-2 rounded" required>
+            <input type="text" name="alamat" class="form-control" required>
           </div>
           <div class="mb-3">
             <label class="block mb-1 font-medium">Jenis Identitas</label>
-            <input type="text" name="jenis_identitas" class="form-control w-full border px-3 py-2 rounded" required>
+            <input type="text" name="jenis_identitas" class="form-control" required>
           </div>
           <div class="mb-3">
             <label class="block mb-1 font-medium">Nomor Identitas</label>
-            <input type="text" name="nomor_identitas" class="form-control w-full border px-3 py-2 rounded" required>
+            <input type="text" name="nomor_identitas" class="form-control" required>
           </div>
-          <div class="flex justify-end mt-4">
-            <button type="submit" class="btn btn-success px-4 py-2 rounded text-white">Simpan</button>
+
+          <div style="display:flex;justify-content:flex-end;gap:8px;">
+            <button type="button" class="btn btn-light" id="batalModalPelanggan">Batal</button>
+            <button type="submit" class="btn btn-success">Simpan</button>
           </div>
         </form>
       </div>
     </div>
-    <!-- End Modal Card -->
-
-    <table id="tabel-pelanggan" class="min-w-full border rounded-lg shadow-lg bg-white">
+    <!-- End Modal Overlay -->
+    <!-- Table -->
+         <table id="tabel-pelanggan" class="min-w-full border rounded-lg shadow-lg bg-white">
       <thead class="bg-blue-200">
         <tr>
           <th class="border px-4 py-2">Nama</th>
@@ -102,46 +106,77 @@
       </tbody>
     </table>
     <div class="mt-4 p-3 rounded bg-gray-50">
-      {{ $penginap->links() }}
+      {{ $penginap->onEachSide(1)->links('pagination::bootstrap-5') }}
     </div>
   </div>
-  <!-- DataTables CDN -->
+</div>
+  
+
+  <!-- Minimal styles for modal -->
+  <style>
+    .modal-overlay {
+      position: fixed; inset: 0; z-index: 1050;
+      display: none; align-items: center; justify-content: center;
+      background: rgba(0,0,0,.45);
+      padding: 16px;
+    }
+    .modal-card {
+      width: 100%; max-width: 520px;
+      background: #fff; border-radius: 12px;
+      box-shadow: 0 20px 40px rgba(0,0,0,.2);
+      padding: 20px; position: relative;
+    }
+    .modal-close {
+      position: absolute; top: 8px; right: 12px;
+      border: 0; background: transparent;
+      font-size: 28px; line-height: 1; cursor: pointer; color: #999;
+    }
+    .modal-close:hover { color: #e74c3c; }
+    .form-control {
+      width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 8px;
+    }
+    .mb-3 { margin-bottom: 12px; }
+    .btn { cursor: pointer; }
+  </style>
+
+  <!-- DataTables CDN (kept as in your file) -->
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
   <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
   <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-  <script>
-    $(document).ready(function() {
-      $('#tabel-pelanggan').DataTable({
-        paging: true,
-        searching: true,
-        info: false,
-        lengthChange: false,
-        pageLength: 10,
-        language: {
-          paginate: {
-            previous: 'Sebelumnya',
-            next: 'Berikutnya'
-          },
-          search: 'Cari:',
-          zeroRecords: 'Data tidak ditemukan',
-          infoEmpty: 'Tidak ada data',
-        }
-      });
 
-      // Modal logic
-      $('#btnTambahPelanggan').on('click', function() {
-        $('#modalPelanggan').removeClass('hidden');
-      });
-      $('#closeModalPelanggan').on('click', function() {
-        $('#modalPelanggan').addClass('hidden');
-      });
-      $('#modalPelanggan').on('click', function(e) {
-        if (e.target === this) {
-          $(this).addClass('hidden');
-        }
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      // Initialize DataTables with server-side pagination (disable client paging)
+      if (window.jQuery && $('#tabel-pelanggan').length) {
+        $('#tabel-pelanggan').DataTable({
+          paging: false,
+          searching: true,
+          info: false,
+          lengthChange: false,
+          language: {
+            search: 'Cari:',
+            zeroRecords: 'Data tidak ditemukan',
+            infoEmpty: 'Tidak ada data',
+          }
+        });
+      }
+      const openBtn  = document.getElementById('btnTambahPelanggan');
+      const modal    = document.getElementById('modalPelanggan');
+      const closeBtn = document.getElementById('closeModalPelanggan');
+      const cancelBtn= document.getElementById('batalModalPelanggan');
+
+      function openModal()  { modal.style.display = 'flex'; }
+      function closeModal() { modal.style.display = 'none'; }
+
+      openBtn && openBtn.addEventListener('click', openModal);
+      closeBtn && closeBtn.addEventListener('click', closeModal);
+      cancelBtn && cancelBtn.addEventListener('click', closeModal);
+
+      // Click backdrop to close
+      modal && modal.addEventListener('click', function(e){
+        if (e.target === modal) closeModal();
       });
     });
   </script>
-</div>
 </div>
 @endsection

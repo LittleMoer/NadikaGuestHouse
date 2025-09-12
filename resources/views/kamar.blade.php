@@ -62,26 +62,22 @@
                 @endforeach
             </tbody>
         </table>
-                            <div class="mt-4 p-3 rounded bg-gray-50">
-                                {{ $kamar->links() }}
-                            </div>
+        <div class="mt-4 p-3 rounded bg-gray-50">
+            {{ $kamar->onEachSide(1)->links('pagination::bootstrap-5') }}
+        </div>
         <!-- DataTables CDN -->
         <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
         <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
         <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
         <script>
         $(document).ready(function() {
+            // Disable client-side paging; use Laravel pagination instead
             $('#tabel-kamar').DataTable({
-                paging: true,
+                paging: false,
                 searching: true,
                 info: false,
                 lengthChange: false,
-                pageLength: 10,
                 language: {
-                    paginate: {
-                        previous: 'Sebelumnya',
-                        next: 'Berikutnya'
-                    },
                     search: 'Cari:',
                     zeroRecords: 'Data tidak ditemukan',
                     infoEmpty: 'Tidak ada data',
