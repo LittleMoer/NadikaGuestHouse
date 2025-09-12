@@ -30,8 +30,8 @@
       </button>
     </div>
 
-    <!-- Modal Overlay -->
-    <div id="modalPelanggan" class="modal-overlay" style="display:none;">
+  <!-- Modal Overlay -->
+  <div id="modalPelanggan" class="modal-overlay" aria-hidden="true">
       <div class="modal-card">
         <button type="button" class="modal-close" id="closeModalPelanggan" aria-label="Tutup">&times;</button>
         <h3 style="margin-top:0;">Tambah Penginap Baru</h3>
@@ -62,6 +62,16 @@
             <label class="block mb-1 font-medium">Nomor Identitas</label>
             <input type="text" name="nomor_identitas" class="form-control" required>
           </div>
+          <div class="mb-3">
+            <label class="block mb-1 font-medium">Tempat Lahir</label>
+            <input type="text" name="tempat_lahir" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="block mb-1 font-medium">Tanggal Lahir</label>
+            <input type="date" name="tanggal_lahir" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            
 
           <div style="display:flex;justify-content:flex-end;gap:8px;">
             <button type="button" class="btn btn-light" id="batalModalPelanggan">Batal</button>
@@ -116,16 +126,23 @@
   <style>
     .modal-overlay {
       position: fixed; inset: 0; z-index: 1050;
-      display: none; align-items: center; justify-content: center;
+      display: flex; align-items: center; justify-content: center;
       background: rgba(0,0,0,.45);
       padding: 16px;
+      opacity: 0; visibility: hidden;
+      transition: opacity 200ms ease, visibility 0s linear 200ms;
     }
+    .modal-overlay.show { opacity: 1; visibility: visible; transition: opacity 200ms ease; }
     .modal-card {
       width: 100%; max-width: 520px;
       background: #fff; border-radius: 12px;
       box-shadow: 0 20px 40px rgba(0,0,0,.2);
       padding: 20px; position: relative;
+      transform: translateY(12px) scale(0.98);
+      opacity: 0.95;
+      transition: transform 250ms ease, opacity 200ms ease;
     }
+    .modal-overlay.show .modal-card { transform: translateY(0) scale(1); opacity: 1; }
     .modal-close {
       position: absolute; top: 8px; right: 12px;
       border: 0; background: transparent;
@@ -165,8 +182,8 @@
       const closeBtn = document.getElementById('closeModalPelanggan');
       const cancelBtn= document.getElementById('batalModalPelanggan');
 
-      function openModal()  { modal.style.display = 'flex'; }
-      function closeModal() { modal.style.display = 'none'; }
+  function openModal()  { modal.classList.add('show'); modal.setAttribute('aria-hidden', 'false'); }
+  function closeModal() { modal.classList.remove('show'); modal.setAttribute('aria-hidden', 'true'); }
 
       openBtn && openBtn.addEventListener('click', openModal);
       closeBtn && closeBtn.addEventListener('click', closeModal);
@@ -175,6 +192,11 @@
       // Click backdrop to close
       modal && modal.addEventListener('click', function(e){
         if (e.target === modal) closeModal();
+      });
+
+      // Press Escape to close
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeModal();
       });
     });
   </script>

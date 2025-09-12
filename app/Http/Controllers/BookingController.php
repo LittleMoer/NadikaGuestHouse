@@ -51,17 +51,6 @@ class BookingController extends Controller
     }
     public function penginap()
     {
-        // Demo data: generate 5 random pelanggan jika tabel kosong
-        if (Pelanggan::count() == 0) {
-            for ($i = 1; $i <= 5; $i++) {
-            Pelanggan::create([
-                'nama' => 'Demo Penginap ' . $i,
-                'alamat' => 'Alamat Demo ' . $i,
-                'no_telepon' => '0812345678' . $i,
-                'email' => 'demo' . $i . '@example.com',
-            ]);
-            }
-        }
         $penginap = Pelanggan::paginate(10);
         return view('penginap', compact('penginap'));
     }
