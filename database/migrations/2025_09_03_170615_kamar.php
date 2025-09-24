@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('tipe'); // Tipe kamar (single, double, suite, dll)
             $table->integer('kapasitas')->default(1); // Kapasitas tamu
             $table->decimal('harga', 10, 2); // Harga per malam
-            $table->string('status')->default('tersedia'); // tersedia, terisi, perawatan
+            $table->integer('status')->default(1); // 1: tersedia, 2: terisi, 3: perawatan
             $table->text('deskripsi')->nullable(); // Deskripsi kamar
             $table->timestamps();
         });

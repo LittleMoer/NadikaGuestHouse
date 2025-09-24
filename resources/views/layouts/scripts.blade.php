@@ -1,4 +1,4 @@
-    <!--   Core JS Files   -->
+    <!-- Core JS Files: jQuery, Popper, Bootstrap -->
     <script src="{{ asset('template/assets/js/core/jquery-3.7.1.min.js') }}"></script>
     <script src="{{ asset('template/assets/js/core/popper.min.js') }}"></script>
     <script src="{{ asset('template/assets/js/core/bootstrap.min.js') }}"></script>
@@ -31,5 +31,5 @@
     <!-- Sweet Alert -->
     <script src="{{ asset('template/assets/js/plugin/sweetalert/sweetalert.min.js') }}"></script>
 
-    <!-- Kaiadmin JS -->
+    <!-- Kaiadmin JS (must be last to initialize UI components) -->
     <script src="{{ asset('template/assets/js/kaiadmin.min.js') }}"></script>

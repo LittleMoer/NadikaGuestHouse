@@ -18,7 +18,8 @@ return new class extends Migration
             $table->dateTime('tanggal_checkin'); // Tanggal check-in
             $table->dateTime('tanggal_checkout'); // Tanggal check-out
             $table->integer('jumlah_tamu')->default(1); // Jumlah tamu
-            $table->string('status')->default('dipesan'); // dipesan, checkin, checkout, dibatalkan
+            $table->integer('status')->default(1); // 1: dipesan, 2: checkin, 3: checkout, 4: dibatalkan
+            $table->integer('pemesanan')->default(0); // 1 : pemesanan online, 0 : walk in  
             $table->text('catatan')->nullable(); // Catatan tambahan
             $table->decimal('total_harga', 12, 2)->nullable(); // Total harga
             $table->timestamps();

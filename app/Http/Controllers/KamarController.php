@@ -19,14 +19,16 @@ class KamarController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'nomor_kamar' => 'required|unique:kamar',
             'tipe' => 'required',
             'kapasitas' => 'required|integer|min:1',
             'harga' => 'required|numeric|min:0',
-            'status' => 'required',
+            'status' => 'required|in:1,2,3',
+            'deskripsi' => 'nullable'
         ]);
-        Kamar::create($request->all());
+        $validated['status'] = (int)$validated['status'];
+        Kamar::create($validated);
         return redirect()->route('kamar.index')->with('success', 'Kamar berhasil ditambahkan.');
     }
 
@@ -38,15 +40,21 @@ class KamarController extends Controller
 
     public function update(Request $request, $id)
     {
-        $request->validate([
+        $validator = \Validator::make($request->all(), [
             'nomor_kamar' => 'required|unique:kamar,nomor_kamar,' . $id,
             'tipe' => 'required',
             'kapasitas' => 'required|integer|min:1',
             'harga' => 'required|numeric|min:0',
-            'status' => 'required',
+            'status' => 'required|in:1,2,3',
+            'deskripsi' => 'nullable'
         ]);
+        if ($validator->fails()) {
+            return redirect()->route('kamar.index')->withErrors($validator, 'kamar_edit')->withInput();
+        }
+        $validated = $validator->validated();
         $kamar = Kamar::findOrFail($id);
-        $kamar->update($request->all());
+    $validated['status'] = (int)$validated['status'];
+    $kamar->update($validated + ['deskripsi' => $request->input('deskripsi')]);
         return redirect()->route('kamar.index')->with('success', 'Kamar berhasil diupdate.');
     }
 

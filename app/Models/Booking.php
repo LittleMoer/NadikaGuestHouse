@@ -5,7 +5,7 @@ class Booking extends Model
 {
     protected $table = 'booking';
     protected $fillable = [
-        'pelanggan_id', 'kamar_id', 'tanggal_checkin', 'tanggal_checkout', 'jumlah_tamu', 'status', 'catatan', 'total_harga'
+        'pelanggan_id', 'kamar_id', 'tanggal_checkin', 'tanggal_checkout', 'jumlah_tamu', 'status','pemesanan', 'catatan', 'total_harga'
     ];
     public function pelanggan()
     {

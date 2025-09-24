@@ -3,7 +3,7 @@
 @section('penginap')
 <div class="container">
     <div class="page-inner">
-        <div class="page-header">
+      <div class="page-header">
             <h4 class="page-title">Daftar Penginap</h4>
             <ul class="breadcrumbs">
                 <li class="nav-home">
@@ -24,7 +24,7 @@
         </div>
         <!-- isi -->
     <!-- Header + Button -->
-    <div class="page-header" style="display:flex;justify-content:space-between;align-items:center;gap:16px;">
+    <div class="flex justify-between items-center mb-4">
       <button type="button" id="btnTambahPelanggan" class="btn btn-primary">
         + Tambah Pelanggan
       </button>
@@ -36,31 +36,45 @@
         <button type="button" class="modal-close" id="closeModalPelanggan" aria-label="Tutup">&times;</button>
         <h3 style="margin-top:0;">Tambah Penginap Baru</h3>
 
+        @if ($errors->any())
+          <div class="alert alert-danger" style="margin-bottom:12px;">
+            <ul style="margin:0;padding-left:18px;">
+              @foreach ($errors->all() as $error)
+                <li>{{ $error }}</li>
+              @endforeach
+            </ul>
+          </div>
+        @endif
         <form action="{{ route('penginap.create') }}" method="POST">
           @csrf
           <div class="mb-3">
             <label class="block mb-1 font-medium">Nama</label>
-            <input type="text" name="nama" class="form-control" required>
+            <input type="text" name="nama" class="form-control" value="{{ old('nama') }}" required>
           </div>
           <div class="mb-3">
             <label class="block mb-1 font-medium">Email</label>
-            <input type="email" name="email" class="form-control" required>
+            <input type="email" name="email" class="form-control" value="{{ old('email') }}">
           </div>
           <div class="mb-3">
             <label class="block mb-1 font-medium">Telepon</label>
-            <input type="text" name="telepon" class="form-control" required>
+            <input type="text" name="telepon" class="form-control" value="{{ old('telepon') }}" required>
           </div>
           <div class="mb-3">
             <label class="block mb-1 font-medium">Alamat</label>
-            <input type="text" name="alamat" class="form-control" required>
+            <input type="text" name="alamat" class="form-control" value="{{ old('alamat') }}" required>
           </div>
           <div class="mb-3">
             <label class="block mb-1 font-medium">Jenis Identitas</label>
-            <input type="text" name="jenis_identitas" class="form-control" required>
+            <select name="jenis_identitas" id="jenis_identitas" class="form-control">
+              <option value="" {{ old('jenis_identitas')==='' ? 'selected' : '' }}>Pilih jenis</option>
+              <option value="KTP" {{ old('jenis_identitas')==='KTP' ? 'selected' : '' }}>KTP</option>
+              <option value="SIM" {{ old('jenis_identitas')==='SIM' ? 'selected' : '' }}>SIM</option>
+              <option value="Kartu Pelajar" {{ old('jenis_identitas')==='Kartu Pelajar' ? 'selected' : '' }}>Kartu Pelajar</option>
+            </select>
           </div>
           <div class="mb-3">
             <label class="block mb-1 font-medium">Nomor Identitas</label>
-            <input type="text" name="nomor_identitas" class="form-control" required>
+            <input type="text" name="nomor_identitas" class="form-control" value="{{ old('nomor_identitas') }}">
           </div>
           <div class="mb-3">
             <label class="block mb-1 font-medium">Tempat Lahir</label>
@@ -71,14 +85,16 @@
             <input type="date" name="tanggal_lahir" class="form-control" required>
           </div>
           <div class="mb-3">
-            
-
+            <label class="block mb-1 font-medium">Kewarganegaraan</label>
+            <input type="text" name="kewarganegaraan" class="form-control" required>
+          </div>
           <div style="display:flex;justify-content:flex-end;gap:8px;">
             <button type="button" class="btn btn-light" id="batalModalPelanggan">Batal</button>
             <button type="submit" class="btn btn-success">Simpan</button>
           </div>
         </form>
       </div>
+    </div>
     </div>
     <!-- End Modal Overlay -->
     <!-- Table -->
@@ -104,7 +120,20 @@
           <td class="border px-4 py-2">{{ $p->jenis_identitas }}</td>
           <td class="border px-4 py-2">{{ $p->nomor_identitas }}</td>
           <td class="border px-4 py-2">
-            <a href="{{ route('penginap.edit', $p->id) }}" class="btn btn-warning text-white px-2 py-1 rounded hover:bg-yellow-500">Edit</a>
+            <button
+              type="button"
+              class="btn btn-warning text-white px-2 py-1 rounded hover:bg-yellow-500 btn-edit-pelanggan"
+              data-id="{{ $p->id }}"
+              data-nama="{{ $p->nama }}"
+              data-email="{{ $p->email }}"
+              data-telepon="{{ $p->telepon }}"
+              data-alamat="{{ $p->alamat }}"
+              data-jenis_identitas="{{ $p->jenis_identitas }}"
+              data-nomor_identitas="{{ $p->nomor_identitas }}"
+              data-tempat_lahir="{{ $p->tempat_lahir }}"
+              data-tanggal_lahir="{{ $p->tanggal_lahir }}"
+              data-kewarganegaraan="{{ $p->kewarganegaraan }}"
+            >Edit</button>
             <form action="{{ route('penginap.destroy', $p->id) }}" method="POST" style="display:inline;">
               @csrf
               @method('DELETE')
@@ -156,6 +185,75 @@
     .btn { cursor: pointer; }
   </style>
 
+  <!-- Edit Modal Overlay -->
+  <div id="modalEditPelanggan" class="modal-overlay" aria-hidden="true">
+    <div class="modal-card">
+      <button type="button" class="modal-close" id="closeModalEditPelanggan" aria-label="Tutup">&times;</button>
+      <h3 style="margin-top:0;">Edit Data Penginap</h3>
+
+      @if ($errors->hasBag('edit') && $errors->edit->any())
+        <div class="alert alert-danger" style="margin-bottom:12px;">
+          <ul style="margin:0;padding-left:18px;">
+            @foreach ($errors->edit->all() as $error)
+              <li>{{ $error }}</li>
+            @endforeach
+          </ul>
+        </div>
+      @endif
+
+      <form id="formEditPelanggan" action="{{ url('/penginap') }}/__ID__" method="POST" data-action-base="{{ url('/penginap') }}">
+        @csrf
+        <input type="hidden" name="id" id="edit_id" value="{{ old('id') }}">
+        <div class="mb-3">
+          <label class="block mb-1 font-medium">Nama</label>
+          <input type="text" name="nama" id="edit_nama" class="form-control" value="{{ old('nama') }}" required>
+        </div>
+        <div class="mb-3">
+          <label class="block mb-1 font-medium">Email</label>
+          <input type="email" name="email" id="edit_email" class="form-control" value="{{ old('email') }}">
+        </div>
+        <div class="mb-3">
+          <label class="block mb-1 font-medium">Telepon</label>
+          <input type="text" name="telepon" id="edit_telepon" class="form-control" value="{{ old('telepon') }}" required>
+        </div>
+        <div class="mb-3">
+          <label class="block mb-1 font-medium">Alamat</label>
+          <input type="text" name="alamat" id="edit_alamat" class="form-control" value="{{ old('alamat') }}" required>
+        </div>
+        <div class="mb-3">
+          <label class="block mb-1 font-medium">Jenis Identitas</label>
+          <select name="jenis_identitas" id="edit_jenis_identitas" class="form-control">
+            <option value="" {{ old('jenis_identitas')==='' ? 'selected' : '' }}>Pilih jenis</option>
+            <option value="KTP" {{ old('jenis_identitas')==='KTP' ? 'selected' : '' }}>KTP</option>
+            <option value="SIM" {{ old('jenis_identitas')==='SIM' ? 'selected' : '' }}>SIM</option>
+            <option value="Kartu Pelajar" {{ old('jenis_identitas')==='Kartu Pelajar' ? 'selected' : '' }}>Kartu Pelajar</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="block mb-1 font-medium">Nomor Identitas</label>
+          <input type="text" name="nomor_identitas" id="edit_nomor_identitas" class="form-control" value="{{ old('nomor_identitas') }}">
+        </div>
+        <div class="mb-3">
+          <label class="block mb-1 font-medium">Tempat Lahir</label>
+          <input type="text" name="tempat_lahir" id="edit_tempat_lahir" class="form-control" value="{{ old('tempat_lahir') }}">
+        </div>
+        <div class="mb-3">
+          <label class="block mb-1 font-medium">Tanggal Lahir</label>
+          <input type="date" name="tanggal_lahir" id="edit_tanggal_lahir" class="form-control" value="{{ old('tanggal_lahir') }}">
+        </div>
+        <div class="mb-3">
+          <label class="block mb-1 font-medium">Kewarganegaraan</label>
+          <input type="text" name="kewarganegaraan" id="edit_kewarganegaraan" class="form-control" value="{{ old('kewarganegaraan') }}">
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;gap:8px;">
+          <button type="button" class="btn btn-light" id="batalModalEditPelanggan">Batal</button>
+          <button type="submit" class="btn btn-success">Update</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- DataTables CDN (kept as in your file) -->
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
   <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
@@ -177,13 +275,32 @@
           }
         });
       }
-      const openBtn  = document.getElementById('btnTambahPelanggan');
-      const modal    = document.getElementById('modalPelanggan');
-      const closeBtn = document.getElementById('closeModalPelanggan');
-      const cancelBtn= document.getElementById('batalModalPelanggan');
+  const openBtn  = document.getElementById('btnTambahPelanggan');
+  const modal    = document.getElementById('modalPelanggan');
+  const closeBtn = document.getElementById('closeModalPelanggan');
+  const cancelBtn= document.getElementById('batalModalPelanggan');
+
+  // Edit modal elements
+  const editModal = document.getElementById('modalEditPelanggan');
+  const closeEditBtn = document.getElementById('closeModalEditPelanggan');
+  const cancelEditBtn = document.getElementById('batalModalEditPelanggan');
+  const editForm = document.getElementById('formEditPelanggan');
+  const actionBase = editForm ? editForm.getAttribute('data-action-base') : '';
+  const editId = document.getElementById('edit_id');
+  const editNama = document.getElementById('edit_nama');
+  const editEmail = document.getElementById('edit_email');
+  const editTelepon = document.getElementById('edit_telepon');
+  const editAlamat = document.getElementById('edit_alamat');
+  const editJenis = document.getElementById('edit_jenis_identitas');
+  const editNomorId = document.getElementById('edit_nomor_identitas');
+  const editTempat = document.getElementById('edit_tempat_lahir');
+  const editTanggal = document.getElementById('edit_tanggal_lahir');
+  const editWarga = document.getElementById('edit_kewarganegaraan');
 
   function openModal()  { modal.classList.add('show'); modal.setAttribute('aria-hidden', 'false'); }
   function closeModal() { modal.classList.remove('show'); modal.setAttribute('aria-hidden', 'true'); }
+  function openEditModal() { editModal && (editModal.classList.add('show'), editModal.setAttribute('aria-hidden','false')); }
+  function closeEditModal(){ editModal && (editModal.classList.remove('show'), editModal.setAttribute('aria-hidden','true')); }
 
       openBtn && openBtn.addEventListener('click', openModal);
       closeBtn && closeBtn.addEventListener('click', closeModal);
@@ -193,11 +310,63 @@
       modal && modal.addEventListener('click', function(e){
         if (e.target === modal) closeModal();
       });
+      editModal && editModal.addEventListener('click', function(e){
+        if (e.target === editModal) closeEditModal();
+      });
 
       // Press Escape to close
       document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') closeModal();
+        if (e.key === 'Escape') { closeModal(); closeEditModal(); }
       });
+
+      // Auto open modal if there are validation errors
+      @if ($errors->any())
+        openModal();
+      @endif
+
+      // Wire Edit buttons to open and populate the edit modal
+      const editButtons = document.querySelectorAll('.btn-edit-pelanggan');
+      editButtons.forEach(function(btn){
+        btn.addEventListener('click', function(){
+          if (!editForm) return;
+          const id = this.getAttribute('data-id');
+          editId && (editId.value = id || '');
+          editNama && (editNama.value = this.getAttribute('data-nama') || '');
+          editEmail && (editEmail.value = this.getAttribute('data-email') || '');
+          editTelepon && (editTelepon.value = this.getAttribute('data-telepon') || '');
+          editAlamat && (editAlamat.value = this.getAttribute('data-alamat') || '');
+          const jenisVal = this.getAttribute('data-jenis_identitas') || '';
+          if (editJenis) {
+            editJenis.value = jenisVal;
+          }
+          editNomorId && (editNomorId.value = this.getAttribute('data-nomor_identitas') || '');
+          editTempat && (editTempat.value = this.getAttribute('data-tempat_lahir') || '');
+          editTanggal && (editTanggal.value = this.getAttribute('data-tanggal_lahir') || '');
+          editWarga && (editWarga.value = this.getAttribute('data-kewarganegaraan') || '');
+
+          // Set form action to /penginap/{id}
+          if (actionBase) {
+            editForm.setAttribute('action', actionBase + '/' + id);
+          }
+
+          openEditModal();
+        });
+      });
+
+      // Close buttons for edit modal
+      closeEditBtn && closeEditBtn.addEventListener('click', closeEditModal);
+      cancelEditBtn && cancelEditBtn.addEventListener('click', closeEditModal);
+
+      // Auto open edit modal if there are validation errors in 'edit' bag (server-side)
+      @if ($errors->hasBag('edit') && $errors->edit->any())
+        if (editForm) {
+          const oldId = '{{ old('id') }}';
+          if (oldId) {
+            editForm.setAttribute('action', (actionBase ? actionBase : '{{ url('/penginap') }}') + '/' + oldId);
+          }
+        }
+        openEditModal();
+      @endif
     });
   </script>
 </div>

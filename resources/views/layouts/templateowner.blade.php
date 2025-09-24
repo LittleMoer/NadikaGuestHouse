@@ -4,15 +4,15 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <title>Nadika Guest House</title>
     <meta
-      content="width=device-width, initial-scale=1.0, shrink-to-fit=no"
-      name="viewport"
+    content="width=device-width, initial-scale=1.0, shrink-to-fit=no"
+    name="viewport"
     />
     <link
-      rel="icon"
-      href="{{ asset('template/assets/img/kaiadmin/favicon.ico') }}"
-      type="image/x-icon"
+    rel="icon"
+    href="{{ asset('template/assets/img/kaiadmin/favicon.ico') }}"
+    type="image/x-icon"
     />
-  @include('layouts.style')
+    @include('layouts.style')
   </head>
   <body>
     <div class="wrapper">
@@ -21,7 +21,7 @@
         <div class="sidebar-logo">
           <!-- Logo Header -->
           <div class="logo-header" data-background-color="dark">
-            <a href="index.html" class="logo">
+            <a href="/dashboard" class="logo">
               <img
                 src="{{ asset('template/assets/img/kaiadmin/Nadika Guest House Syariah.svg') }}"
                 alt="navbar brand"
@@ -81,17 +81,17 @@
         </div>
       </div>
       <!-- End Sidebar -->
+      <div class="main-panel">
+        @include('layouts.header')
 
-      @include('layouts.header')
-      
-      @yield('dashboard')
-      @yield('booking')
-      @yield('penginap')
-      @yield('kamar')
-      @yield('rekap')
-
+        @yield('dashboard')
+        @yield('booking')
+        @yield('penginap')
+        @yield('kamar')
+        @yield('rekap')
       </div>
     </div>
+    @include('layouts.scripts')
     @yield('script')
   </body>
 </html>
