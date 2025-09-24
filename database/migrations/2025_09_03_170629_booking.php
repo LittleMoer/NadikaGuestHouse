@@ -13,15 +13,14 @@ return new class extends Migration
     {
         Schema::create('booking', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('pelanggan_id')->constrained('pelanggan')->onDelete('cascade'); // ID pelanggan
-            $table->foreignId('kamar_id')->constrained('kamar')->onDelete('cascade'); // ID kamar
-            $table->dateTime('tanggal_checkin'); // Tanggal check-in
-            $table->dateTime('tanggal_checkout'); // Tanggal check-out
-            $table->integer('jumlah_tamu')->default(1); // Jumlah tamu
-            $table->integer('status')->default(1); // 1: dipesan, 2: checkin, 3: checkout, 4: dibatalkan
-            $table->integer('pemesanan')->default(0); // 1 : pemesanan online, 0 : walk in  
-            $table->text('catatan')->nullable(); // Catatan tambahan
-            $table->decimal('total_harga', 12, 2)->nullable(); // Total harga
+            $table->foreignId('pelanggan_id')->constrained('pelanggan')->onDelete('cascade');
+            $table->dateTime('tanggal_checkin');
+            $table->dateTime('tanggal_checkout');
+            $table->integer('jumlah_tamu_total')->default(1); // total tamu (jika melibatkan banyak kamar)
+            $table->integer('status')->default(1); // 1 dipesan,2 checkin,3 checkout,4 dibatalkan
+            $table->integer('pemesanan')->default(0); // 0 walk-in,1 online
+            $table->text('catatan')->nullable();
+            $table->decimal('total_harga',12,2)->default(0);
             $table->timestamps();
         });
     }

@@ -203,31 +203,66 @@
                     @endforelse
                 </div>
                 <div class="divider"></div>
-                <details style="margin-bottom:8px;">
-                    <summary style="cursor:pointer;font-weight:600;font-size:.8rem;">Tambah Pelanggan Baru</summary>
-                    <form id="formCreatePelanggan" style="margin-top:8px;">
-                        @csrf
-                        <div class="form-group">
-                            <label>Nama</label>
-                            <input type="text" name="nama" required />
-                        </div>
-                        <div class="form-group half">
-                            <label>Telepon</label>
-                            <input type="text" name="telepon" required />
-                        </div>
-                        <div class="form-group half">
-                            <label>Email</label>
-                            <input type="email" name="email" />
-                        </div>
-                        <div class="form-group">
-                            <label>Alamat</label>
-                            <textarea name="alamat" rows="2" required></textarea>
-                        </div>
-                        <div class="actions">
-                            <button type="submit" class="btn-sm btn-accent">Simpan Pelanggan</button>
-                        </div>
-                    </form>
-                </details>
+                        <details style="margin-bottom:8px;">
+                            <summary style="cursor:pointer;font-weight:600;font-size:.8rem;">Tambah Pelanggan Baru</summary>
+                            <form id="formCreatePelanggan" style="margin-top:8px;">
+                                @csrf
+                                <div class="flex-row" style="gap:.85rem;">
+                                    <div class="form-group half">
+                                        <label>Nama</label>
+                                        <input type="text" name="nama" required />
+                                    </div>
+                                    <div class="form-group half">
+                                        <label>Telepon</label>
+                                        <input type="text" name="telepon" required />
+                                    </div>
+                                    <div class="form-group half">
+                                        <label>Email</label>
+                                        <input type="email" name="email" />
+                                    </div>
+                                    <div class="form-group half">
+                                        <label>Tempat Lahir</label>
+                                        <input type="text" name="tempat_lahir" />
+                                    </div>
+                                    <div class="form-group half">
+                                        <label>Tanggal Lahir</label>
+                                        <input type="date" name="tanggal_lahir" />
+                                    </div>
+                                    <div class="form-group half">
+                                        <label>Kewarganegaraan</label>
+                                        <input type="text" name="kewarganegaraan" />
+                                    </div>
+                                    <div class="form-group half">
+                                        <label>Jenis Identitas</label>
+                                        <select name="jenis_identitas" id="fp_jenis_identitas">
+                                            <option value="">-- Pilih --</option>
+                                            <option value="KTP">KTP</option>
+                                            <option value="SIM">SIM</option>
+                                            <option value="PASPOR">Paspor</option>
+                                            <option value="LAIN">Lainnya</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group half d-none" id="wrap_jenis_identitas_lain">
+                                        <label>Isi Jenis Lain</label>
+                                        <input type="text" name="jenis_identitas_lain" />
+                                    </div>
+                                    <div class="form-group half">
+                                        <label>Nomor Identitas</label>
+                                        <input type="text" name="nomor_identitas" />
+                                    </div>
+                                    <div class="form-group" style="flex:1 1 100%;">
+                                        <label>Alamat</label>
+                                        <textarea name="alamat" rows="2" required></textarea>
+                                    </div>
+                                    <div class="form-group" style="flex:1 1 100%;margin-top:-4px;">
+                                        <small style="font-size:.65rem;color:#666;display:block;">Kolom opsional boleh dikosongkan jika tidak tersedia.</small>
+                                    </div>
+                                </div>
+                                <div class="actions">
+                                    <button type="submit" class="btn-sm btn-accent">Simpan Pelanggan</button>
+                                </div>
+                            </form>
+                        </details>
                 <div class="actions">
                     <button class="btn-sm btn-neutral" data-close>Batal</button>
                     <button id="btnLanjutBooking" class="btn-sm btn-primary2" disabled>Lanjut Booking</button>
@@ -241,7 +276,16 @@
                 <form id="formQuickBooking" method="POST" action="{{ route('booking.store') }}">
                     @csrf
                     <input type="hidden" name="pelanggan_id" id="qb_pelanggan_id" />
-                    <input type="hidden" name="kamar_id" id="qb_kamar_id" />
+                    <div class="form-group" style="flex:1 1 100%;">
+                        <label>Pilih Kamar (Multi)</label>
+                        <select name="kamar_ids[]" id="qb_kamar_ids" multiple size="6" required style="width:100%;border:1px solid #d0d7de;border-radius:8px;padding:6px 8px;font-size:.8rem;">
+                            @php $allKamarForQuick = \App\Models\Kamar::orderBy('tipe')->orderBy('nomor_kamar')->get(); @endphp
+                            @foreach($allKamarForQuick as $km)
+                                <option value="{{ $km->id }}">{{ $km->nomor_kamar }} ({{ $km->tipe }}) - Rp{{ number_format($km->harga,0,',','.') }}</option>
+                            @endforeach
+                        </select>
+                        <small style="font-size:.6rem;color:#555;">Gunakan CTRL / SHIFT untuk memilih beberapa kamar.</small>
+                    </div>
                     <div class="flex-row">
                         <div class="form-group half">
                             <label>Tanggal Check-in</label>
@@ -336,13 +380,38 @@
                         .catch(()=> alert('Gagal menambah pelanggan')); // fallback sederhana
                 });
 
+                // Dynamic jenis identitas lainnya
+                const fpJenis = document.getElementById('fp_jenis_identitas');
+                const wrapJenisLain = document.getElementById('wrap_jenis_identitas_lain');
+                if(fpJenis && wrapJenisLain){
+                    fpJenis.addEventListener('change', ()=>{
+                        if(fpJenis.value === 'LAIN'){
+                            wrapJenisLain.classList.remove('d-none');
+                            const inputLain = wrapJenisLain.querySelector('input');
+                            inputLain.required = true;
+                            inputLain.focus();
+                        } else {
+                            wrapJenisLain.classList.add('d-none');
+                            const inputLain = wrapJenisLain.querySelector('input');
+                            inputLain.value='';
+                            inputLain.required = false;
+                        }
+                    });
+                }
+
                 // Lanjut booking setelah pilih pelanggan
                 btnLanjut && btnLanjut.addEventListener('click', function(){
                     if(!selectedCell || !selectedPelangganId) return;
                     closeModal(modalPelanggan);
                     // Prefill form booking
                     document.getElementById('qb_pelanggan_id').value = selectedPelangganId;
-                    document.getElementById('qb_kamar_id').value = selectedCell.dataset.kamarId;
+                    // Preselect kamar yg diklik
+                    const selectMulti = document.getElementById('qb_kamar_ids');
+                    if(selectMulti){
+                        [...selectMulti.options].forEach(o=> o.selected = false);
+                        const opt = [...selectMulti.options].find(o=> o.value == selectedCell.dataset.kamarId);
+                        if(opt) opt.selected = true;
+                    }
                     const tgl = selectedCell.dataset.tanggal;
                     document.getElementById('qb_checkin').value = tgl;
                     // Default checkout +1 hari

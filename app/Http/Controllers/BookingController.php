@@ -1,7 +1,9 @@
 <?php
 
 namespace App\Http\Controllers;
-use App\Models\Booking;
+use App\Models\Booking; // legacy (masih ada untuk kompatibilitas sementara)
+use App\Models\BookingOrder;
+use App\Models\BookingOrderItem;
 use App\Models\Pelanggan;
 use App\Models\Kamar;
 use Illuminate\Http\Request;
@@ -16,33 +18,61 @@ class BookingController extends Controller
         $start = Carbon::parse($tanggal)->startOfDay();
         $end = Carbon::parse($tanggal)->endOfDay();
 
-        // Ambil kamar beserta booking yang overlap hari itu
-        $kamar = Kamar::with(['bookings' => function($q) use ($start,$end){
-            $q->where(function($qq) use ($start,$end){
-                $qq->whereBetween('tanggal_checkin', [$start,$end])
-                   ->orWhereBetween('tanggal_checkout', [$start,$end])
-                   ->orWhere(function($qx) use ($start,$end){
-                       $qx->where('tanggal_checkin','<=',$start)
+        $kamarAll = Kamar::orderBy('tipe')->orderBy('nomor_kamar')->get();
+
+        // Ambil order aktif (status 1/2) yang overlap tanggal tersebut beserta items & pelanggan
+        $activeOrders = BookingOrder::with(['pelanggan','items.kamar'])
+            ->whereIn('status',[1,2])
+            ->where(function($q) use ($start,$end){
+                $q->whereBetween('tanggal_checkin', [$start,$end])
+                  ->orWhereBetween('tanggal_checkout', [$start,$end])
+                  ->orWhere(function($qq) use ($start,$end){
+                      $qq->where('tanggal_checkin','<=',$start)
                           ->where('tanggal_checkout','>=',$end);
-                   });
-            })->orderBy('tanggal_checkin');
-        }, 'bookings.pelanggan'])->orderBy('tipe')->orderBy('nomor_kamar')->get();
+                  });
+            })
+            ->get();
 
-        $rooms = $kamar->map(function($room){
-            $active = $room->bookings->first();
-            return [ 'room' => $room, 'activeBooking' => $active ];
+        // Pemetaan kamar_id -> order aktif (ambil prioritas status checkin > dipesan)
+        $kamarToOrder = [];
+        foreach($activeOrders as $order){
+            foreach($order->items as $item){
+                $existing = $kamarToOrder[$item->kamar_id] ?? null;
+                if(!$existing){
+                    $kamarToOrder[$item->kamar_id] = $order;
+                } else {
+                    // Prioritaskan status 2 (checkin)
+                    if($existing->status != 2 && $order->status == 2){
+                        $kamarToOrder[$item->kamar_id] = $order;
+                    }
+                }
+            }
+        }
+
+        $rooms = $kamarAll->map(function($room) use ($kamarToOrder){
+            $activeOrder = $kamarToOrder[$room->id] ?? null;
+            // Samakan interface dengan view (activeBooking)
+            $activeBooking = null;
+            if($activeOrder){
+                // Bungkus agar property serupa dengan model Booking lama dipakai view
+                $activeBooking = $activeOrder; // memiliki: status, tanggal_checkin, tanggal_checkout, pelanggan, pemesanan, total_harga
+            }
+            return ['room'=>$room,'activeBooking'=>$activeBooking];
         });
-
-        $groupedKamar = $rooms->groupBy(fn($item) => $item['room']->tipe ?? 'Lain');
+        $groupedKamar = $rooms->groupBy(fn($item)=> $item['room']->tipe ?? 'Lain');
 
         $pelangganList = Pelanggan::orderBy('nama')->get();
-        // Kamar tersedia = tidak punya booking aktif overlapping & status bukan 'terisi'
-        $availableKamar = $kamar->filter(function($k) use ($rooms){
-            $active = $k->bookings->first();
-            return !$active || ($active->status >= 3); // 3=checkout,4=dibatalkan dianggap free
-        })->values();
 
-        return view('booking', compact('groupedKamar','tanggal','pelangganList','availableKamar'));
+        // Kamar tersedia: tidak ada order aktif untuk kamar itu
+        $occupiedIds = array_keys($kamarToOrder);
+        $availableKamar = $kamarAll->filter(fn($k)=> !in_array($k->id,$occupiedIds))->values();
+
+        return view('booking', [
+            'groupedKamar'=>$groupedKamar,
+            'tanggal'=>$tanggal,
+            'pelangganList'=>$pelangganList,
+            'availableKamar'=>$availableKamar,
+        ]);
     }
 
     /**
@@ -52,11 +82,12 @@ class BookingController extends Controller
     {
         $validator = \Validator::make($request->all(), [
             'pelanggan_id'      => 'required|exists:pelanggan,id',
-            'kamar_id'          => 'required|exists:kamar,id',
+            'kamar_ids'         => 'required|array|min:1',
+            'kamar_ids.*'       => 'exists:kamar,id',
             'tanggal_checkin'   => 'required|date|before:tanggal_checkout',
             'tanggal_checkout'  => 'required|date|after:tanggal_checkin',
             'jumlah_tamu'       => 'required|integer|min:1',
-            'pemesanan'         => 'required|in:0,1', // 0 walk-in, 1 online
+            'pemesanan'         => 'required|in:0,1',
             'catatan'           => 'nullable|string',
         ]);
         if ($validator->fails()) {
@@ -66,53 +97,73 @@ class BookingController extends Controller
         }
         $data = $validator->validated();
 
-        $kamar = Kamar::findOrFail($data['kamar_id']);
-
-        // Cek overlapping booking untuk kamar yang sama (status aktif 1=dipesan,2=checkin)
-        $overlap = Booking::where('kamar_id', $kamar->id)
-            ->whereIn('status', [1,2])
-            ->where(function($q) use ($data){
-                $start = Carbon::parse($data['tanggal_checkin']);
-                $end = Carbon::parse($data['tanggal_checkout']);
-                $q->whereBetween('tanggal_checkin', [$start,$end])
-                  ->orWhereBetween('tanggal_checkout', [$start,$end])
-                  ->orWhere(function($qq) use ($start,$end){
-                      $qq->where('tanggal_checkin','<=',$start)
-                         ->where('tanggal_checkout','>=',$end);
-                  });
-            })->exists();
-        if ($overlap) {
+        $kamarList = Kamar::whereIn('id',$data['kamar_ids'])->get();
+        if($kamarList->count() !== count($data['kamar_ids'])){
             return redirect()->route('booking.index')
-                ->withErrors(['kamar_id' => 'Kamar sudah dibooking pada rentang waktu tersebut'], 'booking_create')
+                ->withErrors(['kamar_ids' => 'Data kamar tidak valid'], 'booking_create')
                 ->withInput();
         }
 
-        $start = Carbon::parse($data['tanggal_checkin']);
-        $end = Carbon::parse($data['tanggal_checkout']);
-        $days = max($start->diffInDays($end), 1);
-        $total = $days * (int)$kamar->harga;
-
-        // status awal: walk-in (pemesanan=0) langsung checkin (2); online (1) = dipesan (1)
-        $status = $data['pemesanan'] == 0 ? 2 : 1;
-
-        $booking = Booking::create([
-            'pelanggan_id'      => $data['pelanggan_id'],
-            'kamar_id'          => $kamar->id,
-            'tanggal_checkin'   => $start,
-            'tanggal_checkout'  => $end,
-            'jumlah_tamu'       => $data['jumlah_tamu'],
-            'status'            => $status,
-            'pemesanan'         => (int)$data['pemesanan'],
-            'catatan'           => $data['catatan'] ?? null,
-            'total_harga'       => $total,
-        ]);
-
-        if ($status === 2) { // checkin
-            $kamar->update(['status' => 'terisi']);
+        // Cek overlap per kamar terhadap order aktif (status 1/2)
+        $startCheck = Carbon::parse($data['tanggal_checkin']);
+        $endCheck = Carbon::parse($data['tanggal_checkout']);
+        foreach($kamarList as $k){
+            $conflict = BookingOrderItem::where('kamar_id',$k->id)
+                ->whereHas('order', function($q) use ($startCheck,$endCheck){
+                    $q->whereIn('status',[1,2])
+                      ->where(function($qq) use ($startCheck,$endCheck){
+                          $qq->whereBetween('tanggal_checkin', [$startCheck,$endCheck])
+                             ->orWhereBetween('tanggal_checkout', [$startCheck,$endCheck])
+                             ->orWhere(function($qx) use ($startCheck,$endCheck){
+                                 $qx->where('tanggal_checkin','<=',$startCheck)
+                                    ->where('tanggal_checkout','>=',$endCheck);
+                             });
+                      });
+                })
+                ->exists();
+            if($conflict){
+                return redirect()->route('booking.index')
+                    ->withErrors(['kamar_ids' => 'Kamar '.$k->nomor_kamar.' sudah dibooking pada rentang waktu tersebut'], 'booking_create')
+                    ->withInput();
+            }
         }
 
-        return redirect()->route('booking.index', ['tanggal' => $start->format('Y-m-d')])
-            ->with('success', 'Booking berhasil dibuat.');
+        $start = $startCheck; $end = $endCheck;
+        $days = max($start->diffInDays($end),1);
+
+        $status = $data['pemesanan'] == 0 ? 2 : 1; // walk-in -> langsung checkin
+
+        $totalOrder = 0;
+        foreach($kamarList as $k){
+            $totalOrder += $days * (int)$k->harga;
+        }
+
+        $order = BookingOrder::create([
+            'pelanggan_id' => $data['pelanggan_id'],
+            'tanggal_checkin' => $start,
+            'tanggal_checkout' => $end,
+            'jumlah_tamu_total' => $data['jumlah_tamu'],
+            'status' => $status,
+            'pemesanan' => (int)$data['pemesanan'],
+            'catatan' => $data['catatan'] ?? null,
+            'total_harga' => $totalOrder,
+        ]);
+
+        foreach($kamarList as $k){
+            BookingOrderItem::create([
+                'booking_order_id' => $order->id,
+                'kamar_id' => $k->id,
+                'malam' => $days,
+                'harga_per_malam' => (int)$k->harga,
+                'subtotal' => $days * (int)$k->harga,
+            ]);
+            if($status === 2){
+                $k->update(['status'=>2]);
+            }
+        }
+
+        return redirect()->route('booking.index', ['tanggal'=>$start->format('Y-m-d')])
+            ->with('success','Booking multi-kamar berhasil dibuat.');
     }
 
     /**
@@ -120,7 +171,8 @@ class BookingController extends Controller
      */
     public function updateStatus(Request $request, $id)
     {
-        $booking = Booking::with('kamar')->findOrFail($id);
+    // Sekarang status mengacu ke BookingOrder
+    $booking = BookingOrder::with('items.kamar')->findOrFail($id);
         $action = $request->get('action');
         $allowed = ['checkin','checkout','cancel'];
         if (!in_array($action, $allowed)) {
@@ -130,17 +182,17 @@ class BookingController extends Controller
             case 'checkin':
                 if ($booking->status != 1) return redirect()->back()->with('error','Tidak dapat check-in');
                 $booking->status = 2;
-                $booking->kamar?->update(['status' => 'terisi']);
+                foreach($booking->items as $it){ $it->kamar?->update(['status'=>2]); }
                 break;
             case 'checkout':
                 if ($booking->status != 2) return redirect()->back()->with('error','Tidak dapat check-out');
                 $booking->status = 3;
-                $booking->kamar?->update(['status' => 'tersedia']);
+                foreach($booking->items as $it){ $it->kamar?->update(['status'=>1]); }
                 break;
             case 'cancel':
                 if (!in_array($booking->status, [1])) return redirect()->back()->with('error','Tidak dapat membatalkan');
                 $booking->status = 4;
-                $booking->kamar?->update(['status' => 'tersedia']);
+                foreach($booking->items as $it){ $it->kamar?->update(['status'=>1]); }
                 break;
         }
         $booking->save();

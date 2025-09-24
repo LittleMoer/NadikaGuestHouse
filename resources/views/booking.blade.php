@@ -77,9 +77,9 @@
                         @forelse($flatten as $wrapper)
                             @php
                                 $room = $wrapper['room'];
-                                $booking = $wrapper['activeBooking'];
+                                $order = $wrapper['activeBooking']; // sekarang BookingOrder
                                 $statusMap = [1=>'dipesan',2=>'checkin',3=>'checkout',4=>'dibatalkan'];
-                                $statusKey = $statusMap[$booking->status] ?? 'tersedia';
+                                $statusKey = $order ? ($statusMap[$order->status] ?? 'tersedia') : 'tersedia';
                                 $labelMap = [
                                   'tersedia'=>'Tersedia','dipesan'=>'Dipesan','checkin'=>'Check-In','checkout'=>'Checkout','dibatalkan'=>'Dibatalkan'
                                 ];
@@ -87,41 +87,41 @@
                                   'tersedia'=>'bg-success','dipesan'=>'bg-warning text-dark','checkin'=>'bg-info text-dark','checkout'=>'bg-secondary','dibatalkan'=>'bg-dark'
                                 ][$statusKey] ?? 'bg-light';
                             @endphp
-                            <tr data-row-status="{{ $labelMap[$statusKey] }}" @if($booking) data-booking-id="{{ $booking->id }}" data-booking-status="{{ $labelMap[$statusKey] }}" data-booking-nama="{{ $booking->pelanggan?->nama ?? 'Tamu' }}" data-booking-checkin="{{ \Carbon\Carbon::parse($booking->tanggal_checkin)->format('d/m/Y H:i') }}" data-booking-checkout="{{ \Carbon\Carbon::parse($booking->tanggal_checkout)->format('d/m/Y H:i') }}" data-booking-metode="{{ $booking->pemesanan==0?'Walk-In':'Online' }}" data-booking-total="{{ number_format($booking->total_harga,0,',','.') }}" @endif>
+                            <tr data-row-status="{{ $labelMap[$statusKey] }}" @if($order) data-booking-id="{{ $order->id }}" data-booking-status="{{ $labelMap[$statusKey] }}" data-booking-nama="{{ $order->pelanggan?->nama ?? 'Tamu' }}" data-booking-checkin="{{ \Carbon\Carbon::parse($order->tanggal_checkin)->format('d/m/Y H:i') }}" data-booking-checkout="{{ \Carbon\Carbon::parse($order->tanggal_checkout)->format('d/m/Y H:i') }}" data-booking-metode="{{ $order->pemesanan==0?'Walk-In':'Online' }}" data-booking-total="{{ number_format($order->total_harga,0,',','.') }}" @endif>
                                 <td class="border px-3 py-2">{{ $room->nomor_kamar }}</td>
                                 <td class="border px-3 py-2">{{ $room->tipe }}</td>
                                 <td class="border px-3 py-2 text-center">{{ $room->kapasitas }}</td>
                                 <td class="border px-3 py-2"><span class="badge {{ $badgeColor }}">{{ $labelMap[$statusKey] }}</span></td>
                                 <td class="border px-3 py-2" style="min-width:160px;">
-                                    @if($booking)
-                                        <strong>{{ $booking->pelanggan?->nama ?? 'Tamu' }}</strong><br>
-                                        <span class="text-muted" style="font-size:.75rem;">{{ \Carbon\Carbon::parse($booking->tanggal_checkin)->format('d M H:i') }} - {{ \Carbon\Carbon::parse($booking->tanggal_checkout)->format('d M H:i') }}</span>
+                                    @if($order)
+                                        <strong>{{ $order->pelanggan?->nama ?? 'Tamu' }}</strong><br>
+                                        <span class="text-muted" style="font-size:.75rem;">{{ \Carbon\Carbon::parse($order->tanggal_checkin)->format('d M H:i') }} - {{ \Carbon\Carbon::parse($order->tanggal_checkout)->format('d M H:i') }}</span>
                                     @else
                                         <em style="color:#999;font-size:.8rem;">(kosong)</em>
                                     @endif
                                 </td>
-                                <td class="border px-3 py-2">{{ $booking ? \Carbon\Carbon::parse($booking->tanggal_checkin)->format('d/m/Y H:i') : '-' }}</td>
-                                <td class="border px-3 py-2">{{ $booking ? \Carbon\Carbon::parse($booking->tanggal_checkout)->format('d/m/Y H:i') : '-' }}</td>
-                                <td class="border px-3 py-2">{{ $booking ? ($booking->pemesanan==0?'Walk-In':'Online') : '-' }}</td>
-                                <td class="border px-3 py-2 text-end">{{ $booking ? number_format($booking->total_harga,0,',','.') : '-' }}</td>
+                                <td class="border px-3 py-2">{{ $order ? \Carbon\Carbon::parse($order->tanggal_checkin)->format('d/m/Y H:i') : '-' }}</td>
+                                <td class="border px-3 py-2">{{ $order ? \Carbon\Carbon::parse($order->tanggal_checkout)->format('d/m/Y H:i') : '-' }}</td>
+                                <td class="border px-3 py-2">{{ $order ? ($order->pemesanan==0?'Walk-In':'Online') : '-' }}</td>
+                                <td class="border px-3 py-2 text-end">{{ $order ? number_format($order->total_harga,0,',','.') : '-' }}</td>
                                 <td class="border px-3 py-2" style="min-width:140px;">
-                                    @if(!$booking)
+                                    @if(!$order)
                                         <button data-room="{{ $room->id }}" class="btn btn-sm btn-success btn-open-create">Booking</button>
                                     @else
                                         @if($statusKey==='dipesan')
-                                            <form class="form-status-action d-inline" data-action-type="checkin" action="{{ route('booking.status', $booking->id) }}" method="POST" style="display:inline;">
+                                            <form class="form-status-action d-inline" data-action-type="checkin" action="{{ route('booking.status', $order->id) }}" method="POST" style="display:inline;">
                                                 @csrf
                                                 <input type="hidden" name="action" value="checkin">
                                                 <button class="btn btn-sm btn-info">Check-In</button>
                                             </form>
-                                            <form class="form-status-action d-inline" data-action-type="cancel" action="{{ route('booking.status', $booking->id) }}" method="POST" style="display:inline;">
+                                            <form class="form-status-action d-inline" data-action-type="cancel" action="{{ route('booking.status', $order->id) }}" method="POST" style="display:inline;">
                                                 @csrf
                                                 <input type="hidden" name="action" value="cancel">
                                                 <button class="btn btn-sm btn-danger">Batal</button>
                                             </form>
                                             <button type="button" class="btn btn-sm btn-secondary btn-detail">Detail</button>
                                         @elseif($statusKey==='checkin')
-                                            <form class="form-status-action d-inline" data-action-type="checkout" action="{{ route('booking.status', $booking->id) }}" method="POST" style="display:inline;">
+                                            <form class="form-status-action d-inline" data-action-type="checkout" action="{{ route('booking.status', $order->id) }}" method="POST" style="display:inline;">
                                                 @csrf
                                                 <input type="hidden" name="action" value="checkout">
                                                 <button class="btn btn-sm btn-success">Checkout</button>
@@ -194,8 +194,13 @@
                         document.querySelectorAll('.btn-open-create').forEach(btn=>{
                             btn.addEventListener('click', function(){
                                 const roomId = this.getAttribute('data-room');
-                                const selectKamar = document.querySelector('#modalCreateBooking select[name="kamar_id"]');
-                                if (selectKamar) selectKamar.value = roomId;
+                                const selectKamarMulti = document.querySelector('#modalCreateBooking select[name="kamar_ids[]"]');
+                                if (selectKamarMulti){
+                                    // Clear existing selection
+                                    [...selectKamarMulti.options].forEach(o=> o.selected = false);
+                                    const opt = [...selectKamarMulti.options].find(o=> o.value == roomId);
+                                    if(opt) opt.selected = true;
+                                }
                                 const openBtn = document.getElementById('btnOpenBookingModal');
                                 if(openBtn){ openBtn.click(); }
                             });
@@ -313,13 +318,18 @@
                                             </select>
                                         </div>
                                         <div class="col-md-6 mb-3">
-                                            <label class="form-label">Kamar</label>
-                                            <select name="kamar_id" class="form-control" required>
-                                                <option value="">-- Pilih Kamar --</option>
+                                            <label class="form-label">Pilih Kamar (Multi)</label>
+                                            <select name="kamar_ids[]" class="form-control" multiple size="6" required>
                                                 @foreach($availableKamar as $k)
-                                                    <option value="{{ $k->id }}" {{ old('kamar_id')==$k->id ? 'selected' : '' }}>{{ $k->nomor_kamar }} ({{ $k->tipe }})</option>
+                                                    <option value="{{ $k->id }}" {{ (collect(old('kamar_ids')))->contains($k->id) ? 'selected' : '' }}>
+                                                        {{ $k->nomor_kamar }} ({{ $k->tipe }}) - Rp{{ number_format($k->harga,0,',','.') }}/mlm
+                                                    </option>
                                                 @endforeach
                                             </select>
+                                            <small style="font-size:.7rem;color:#555;">Tahan CTRL / SHIFT untuk memilih lebih dari satu.</small>
+                                            @error('kamar_ids','booking_create')
+                                                <div class="text-danger" style="font-size:.7rem;">{{ $message }}</div>
+                                            @enderror
                                         </div>
                                         <div class="col-md-6 mb-3">
                                             <label class="form-label">Check-In</label>
