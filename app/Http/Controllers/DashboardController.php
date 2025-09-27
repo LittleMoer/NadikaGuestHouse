@@ -44,14 +44,17 @@ class DashboardController extends Controller
             })
             ->get();
 
-        // Flatten items with reference to parent order status & dates
+        // Flatten items with reference to parent order status & dates + meta from payment_status+pemesanan
         $items = [];
         foreach($activeOrders as $order){
+            $meta = $order->status_meta; // unified
             foreach($order->items as $it){
                 $items[] = [
                     'kamar_id' => $it->kamar_id,
                     'status' => $order->status, // 1/2
                     'booking_order_id' => $order->id,
+                    // status_code removed
+                    'meta' => $meta,
                     'checkin' => Carbon::parse($order->tanggal_checkin)->startOfDay(),
                     'checkout' => Carbon::parse($order->tanggal_checkout)->startOfDay(),
                 ];
@@ -74,22 +77,34 @@ class DashboardController extends Controller
             foreach ($kamarList as $kamar) {
                 $status = 'kosong';
                 $bookingIdForCell = null;
+                $selectedMeta = null; // channel/payment/color
                 if(isset($itemsByKamar[$kamar->id])){
                     foreach($itemsByKamar[$kamar->id] as $row){
                         if($carbonDate->gte($row['checkin']) && $carbonDate->lt($row['checkout'])){
                             if($row['status'] == 2){
                                 $status = 'ditempati';
                                 $bookingIdForCell = $row['booking_order_id'];
+                                $selectedMeta = $row['meta'];
                                 $totalKamarTerisiBulan++;
                                 break; // prioritas checkin
                             } elseif($row['status'] == 1 && $status !== 'ditempati') {
                                 $status = 'dipesan';
                                 $bookingIdForCell = $row['booking_order_id'];
+                                $selectedMeta = $row['meta'];
                             }
                         }
                     }
                 }
-                $statusBooking[$tgl][$kamar->id] = ['status'=>$status,'booking_id'=>$bookingIdForCell];
+                $statusBooking[$tgl][$kamar->id] = [
+                    'status'=>$status,
+                    'booking_id'=>$bookingIdForCell,
+                    // status_code removed
+                    'channel'=>$selectedMeta['channel'] ?? null,
+                    'payment'=>$selectedMeta['payment'] ?? null,
+                    'background'=>$selectedMeta['background'] ?? null,
+                    'text_color'=>$selectedMeta['text_color'] ?? null,
+                    'occ' => $status==='ditempati' ? 'occupied' : ($status==='dipesan' ? 'booked' : 'empty'),
+                ];
             }
         }
 

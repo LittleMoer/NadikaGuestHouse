@@ -9,7 +9,12 @@ class BookingOrder extends Model
     // Menggunakan tabel 'booking' sebagai header multi-kamar
     protected $table = 'booking';
     protected $fillable = [
-        'pelanggan_id','tanggal_checkin','tanggal_checkout','status','pemesanan','catatan','total_harga','jumlah_tamu_total'
+        'pelanggan_id','tanggal_checkin','tanggal_checkout','status','payment_status','pemesanan','catatan','total_harga','jumlah_tamu_total','total_cafe','dp_percentage'
+    ];
+
+    protected $casts = [
+        'tanggal_checkin' => 'datetime',
+        'tanggal_checkout' => 'datetime',
     ];
 
     public function pelanggan(): BelongsTo
@@ -20,5 +25,64 @@ class BookingOrder extends Model
     public function items(): HasMany
     {
         return $this->hasMany(BookingOrderItem::class,'booking_order_id');
+    }
+
+    public function cafeOrders(): HasMany
+    {
+        return $this->hasMany(CafeOrder::class,'booking_id');
+    }
+
+    /**
+     * Scope: only bookings that are currently checked-in (active for addons like Cafe orders)
+     */
+    public function scopeActiveCheckin($query)
+    {
+        return $query->where('status', 2);
+    }
+
+    /**
+     * Display meta based on payment_status (dp/lunas), pemesanan (0/1), and status lifecycle (1..4)
+     * - status: 1=dipesan, 2=checkin, 3=checkout, 4=dibatalkan
+     * - pemesanan: 0=walkin, 1=online (traveloka)
+     * - payment_status: 'dp' or 'lunas'
+     */
+    public function getStatusMetaAttribute(): array
+    {
+        $isCancel = ((int)$this->status) === 4;
+        $pay = $this->payment_status === 'lunas' ? 'lunas' : 'dp';
+        $channel = $isCancel ? 'cancel' : (((int)$this->pemesanan) === 0 ? 'walkin' : 'traveloka');
+        $bgMap = [
+            'walkin'=>'#dc3545',
+            'agent1'=>'#6f42c1',
+            'agent2'=>'#198754',
+            'traveloka'=>'#0d6efd',
+            'cancel'=>'#555'
+        ];
+        $textColor = $pay==='dp'? '#faed00':'#ffffff';
+        $label = $this->buildStatusLabelFromParts($pay, $channel, $isCancel);
+        return [
+            'code'=>null, // legacy removed
+            'payment'=>$pay,
+            'channel'=>$channel,
+            'background'=>$bgMap[$channel] ?? '#999',
+            'text_color'=>$textColor,
+            'is_cancel'=>$isCancel,
+            'label'=>$label
+        ];
+    }
+
+    private function buildStatusLabelFromParts(string $payment, string $channel, bool $isCancel): string
+    {
+        if($isCancel) return 'Dibatalkan';
+        $payLabel = $payment==='lunas' ? 'Lunas' : 'DP';
+        $channelLabelMap = [
+            'walkin'=>'Walk-In',
+            'traveloka'=>'Traveloka',
+            'agent1'=>'Agent 1',
+            'agent2'=>'Agent 2',
+            'cancel'=>'-'
+        ];
+        $ch = $channelLabelMap[$channel] ?? ucfirst($channel);
+        return $payLabel.' '.$ch;
     }
 }

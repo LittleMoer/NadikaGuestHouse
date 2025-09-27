@@ -7,6 +7,7 @@
     content="width=device-width, initial-scale=1.0, shrink-to-fit=no"
     name="viewport"
     />
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <link
     rel="icon"
     href="{{ asset('template/assets/img/kaiadmin/favicon.ico') }}"
@@ -71,6 +72,18 @@
                 </a>
               </li>
               <li class="nav-item">
+                <a href="/cafe">
+                  <i class="fas fa-coffee"></i>
+                  <p>Cafe</p>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="/cafeorders">
+                  <i class="fas fa-receipt"></i>
+                  <p>Cafe Orders</p>
+                </a>
+              </li>
+              <li class="nav-item">
                 <a href="/rekap">
                   <i class="far fa-chart-bar"></i>
                   <p>Rekap</p>
@@ -89,6 +102,8 @@
         @yield('penginap')
         @yield('kamar')
         @yield('rekap')
+        @yield('cafe')
+        @yield('cafeorders')
       </div>
     </div>
     @include('layouts.scripts')

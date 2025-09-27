@@ -47,9 +47,7 @@
             .swatch-ditempati {background:#ff6b6b;}
           .sticky-header thead th {position:sticky;top:0;z-index:5;}
           /* Hover focus */
-          tbody tr:hover td {background:#4d7fff;}
-          tbody tr:hover td.status-ditempati {background:#4d7fff;}
-          tbody tr:hover td.status-dipesan {background:#4d7fff;}
+          tbody tr:hover td.status-cell {outline:2px solid #333; outline-offset:-2px;}
           /* Responsive tweak */
           @media (max-width:900px){
             .status-cell {min-width:40px;font-size:.9rem;}
@@ -82,11 +80,16 @@
             </form>
         </div>
 
-        <div class="legend">
-          <div class="legend-item"><span class="legend-swatch swatch-kosong"></span> Kosong</div>
-          <div class="legend-item"><span class="legend-swatch swatch-dipesan"></span> Dipesan (Belum Check-in)</div>
-          <div class="legend-item"><span class="legend-swatch swatch-ditempati"></span> Ditempati</div>
-        </div>
+                <div class="legend">
+                    <div class="legend-item"><span class="legend-swatch swatch-kosong" style="background:#fff;"></span> Kosong</div>
+                    <div class="legend-item"><span class="legend-swatch" style="background:#dc3545;"></span> Walk-In (Channel)</div>
+                    <div class="legend-item"><span class="legend-swatch" style="background:#6f42c1;"></span> Agent 1</div>
+                    <div class="legend-item"><span class="legend-swatch" style="background:#198754;"></span> Agent 2</div>
+                    <div class="legend-item"><span class="legend-swatch" style="background:#0d6efd;"></span> Traveloka</div>
+                    <div class="legend-item"><span class="legend-swatch" style="background:#555;"></span> Dibatalkan</div>
+                      <div class="legend-item"><span class="legend-swatch" style="background:#faed00;"></span> Tulisan Kuning = DP</div>
+                    <div class="legend-item"><span class="legend-swatch" style="background:#ffffff;border:1px solid #ccc;"></span> Tulisan Putih + Glow = Lunas</div>
+                </div>
 
         <div class="dash-table-wrapper">
             <table class="dash-table sticky-header">
@@ -130,13 +133,23 @@
                                         $bookingId = $cell['booking_id'];
                                         if ($status === 'ditempati') $totalTerisi++;
                                         $display = $bookingId ? $bookingId : '';
+                                        $bg = $cell['background'] ?? null; $txt = $cell['text_color'] ?? null;
+                                        $style = '';
+                                        if($bookingId && $bg){ $style .= 'background:'.$bg.';'; }
+                                        if($bookingId && $txt){ $style .= 'color:'.$txt.';'; }
+                                        if($bookingId && ($cell['payment'] ?? '')==='lunas'){ $style .= 'text-shadow:0 0 3px rgba(0,0,0,.55);'; }
+                                        // differentiate booked (dp) vs occupied maybe border
+                                        if($status==='dipesan'){ $style .= 'border:2px solid #fff8d1;'; }
                                     @endphp
                                     <td class="status-cell status-{{ $status }} dash-booking-cell" 
                                         data-tanggal="{{ $tanggal }}" 
                                         data-kamar-id="{{ $kamar->id }}" 
                                         data-status="{{ $status }}" 
                                         data-booking-id="{{ $bookingId ?? '' }}" 
-                                        title="{{ $bookingId ? 'Booking ID: '.$bookingId : 'Klik untuk buat booking' }}">
+                                        data-channel="{{ $cell['channel'] ?? '' }}"
+                                        data-payment="{{ $cell['payment'] ?? '' }}"
+                                        style="{{ $style }}"
+                                        title="{{ $bookingId ? ('Booking ID: '.$bookingId) : 'Klik untuk buat booking' }}">
                                         {{ $display }}
                                     </td>
                                 @endforeach
@@ -288,12 +301,12 @@
                     </div>
                     <div class="flex-row">
                         <div class="form-group half">
-                            <label>Tanggal Check-in</label>
-                            <input type="date" name="tanggal_checkin" id="qb_checkin" required />
+                            <label>Tanggal & Waktu Check-in</label>
+                            <input type="datetime-local" name="tanggal_checkin" id="qb_checkin" required />
                         </div>
                         <div class="form-group half">
-                            <label>Tanggal Check-out</label>
-                            <input type="date" name="tanggal_checkout" id="qb_checkout" required />
+                            <label>Tanggal & Waktu Check-out</label>
+                            <input type="datetime-local" name="tanggal_checkout" id="qb_checkout" required />
                         </div>
                         <div class="form-group half">
                             <label>Jumlah Tamu</label>
@@ -305,6 +318,26 @@
                                 <option value="0">Walk-in</option>
                                 <option value="1">Online</option>
                             </select>
+                        </div>
+                        <div class="form-group half">
+                            <label>Status</label>
+                            <select name="status">
+                                <option value="1">Dipesan</option>
+                                <option value="2">Check-In</option>
+                                <option value="3">Check-Out</option>
+                                <option value="4">Dibatalkan</option>
+                            </select>
+                        </div>
+                        <div class="form-group half">
+                            <label>Status Pembayaran</label>
+                            <select name="payment_status">
+                                <option value="dp" selected>DP</option>
+                                <option value="lunas">Lunas</option>
+                            </select>
+                        </div>
+                        <div class="form-group half">
+                            <label>DP (%)</label>
+                            <input type="number" name="dp_percentage" min="0" max="100" step="1" placeholder="0-100" />
                         </div>
                         <div class="form-group" style="flex:1 1 100%;">
                             <label>Catatan</label>
@@ -321,6 +354,21 @@
         </div>
         <script>
             (function(){
+                // Payment coloring
+                function applyPaymentColor(cell){
+                    const pay = cell.getAttribute('data-payment');
+                    if(!pay) return; // skip if no payment info
+                    if(pay==='dp'){
+                        cell.style.color = '#faed00';
+                        cell.style.fontWeight = '700';
+                    } else if(pay==='lunas') {
+                        cell.style.color = '#ffffff';
+                        cell.style.fontWeight = '700';
+                        cell.style.textShadow = '0 0 3px rgba(0,0,0,.6)';
+                    }
+                }
+                document.querySelectorAll('.dash-booking-cell[data-booking-id]')
+                    .forEach(c=> applyPaymentColor(c));
                 const cellSelector = '.dash-booking-cell';
                 let selectedCell = null; let selectedPelangganId = null;
                 const modalPelanggan = document.getElementById('modalSelectPelanggan');
@@ -413,12 +461,17 @@
                         if(opt) opt.selected = true;
                     }
                     const tgl = selectedCell.dataset.tanggal;
-                    document.getElementById('qb_checkin').value = tgl;
-                    // Default checkout +1 hari
-                    const dt = new Date(tgl + 'T00:00:00');
-                    dt.setDate(dt.getDate()+1);
-                    const out = dt.toISOString().slice(0,10);
-                    document.getElementById('qb_checkout').value = out;
+                    // default check-in 14:00
+                    const ci = new Date(tgl + 'T14:00:00');
+                    // default check-out +1 day 12:00
+                    const co = new Date(tgl + 'T12:00:00');
+                    co.setDate(co.getDate()+1);
+                    const toLocalDT = (d)=>{
+                        const pad=n=> n.toString().padStart(2,'0');
+                        return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                    };
+                    document.getElementById('qb_checkin').value = toLocalDT(ci);
+                    document.getElementById('qb_checkout').value = toLocalDT(co);
                     openModal(modalBooking);
                 });
             })();
