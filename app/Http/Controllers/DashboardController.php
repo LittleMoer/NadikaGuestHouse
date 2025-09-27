@@ -88,6 +88,8 @@ class DashboardController extends Controller
             $carbonDate = Carbon::parse($tgl);
             foreach ($kamarList as $kamar) {
                 $segments = [];
+                $slotMorning = [];
+                $slotAfternoon = [];
                 $isOccupied = false;
                 if(isset($itemsByKamar[$kamar->id])){
                     foreach($itemsByKamar[$kamar->id] as $row){
@@ -95,6 +97,7 @@ class DashboardController extends Controller
                             // Hitung porsi (fraction) dari hari ini yang ditempati oleh segmen ini
                             $dayStart = $carbonDate->copy()->startOfDay();
                             $dayEnd = $dayStart->copy()->addDay();
+                            $noon = $dayStart->copy()->addHours(12);
                             $segStart = $row['checkin_at']->greaterThan($dayStart) ? $row['checkin_at'] : $dayStart;
                             $segEnd = $row['checkout_at']->lessThan($dayEnd) ? $row['checkout_at'] : $dayEnd;
                             $duration = max(0, $segEnd->diffInSeconds($segStart));
@@ -111,6 +114,25 @@ class DashboardController extends Controller
                                 'checkout_at' => $row['checkout_at'],
                                 'fraction' => $fraction,
                             ];
+
+                            // Slot pagi/siang hanya jika segmen sepenuhnya berada di slot tsb.
+                            if ($segEnd->lte($noon) && $segEnd->gt($segStart)) {
+                                $slotMorning[] = [
+                                    'booking_order_id' => $row['booking_order_id'],
+                                    'status' => $row['status'],
+                                    'payment' => $row['meta']['payment'] ?? null,
+                                    'background' => $row['meta']['background'] ?? null,
+                                    'text_color' => $row['meta']['text_color'] ?? null,
+                                ];
+                            } elseif ($segStart->gte($noon) && $segEnd->gt($segStart)) {
+                                $slotAfternoon[] = [
+                                    'booking_order_id' => $row['booking_order_id'],
+                                    'status' => $row['status'],
+                                    'payment' => $row['meta']['payment'] ?? null,
+                                    'background' => $row['meta']['background'] ?? null,
+                                    'text_color' => $row['meta']['text_color'] ?? null,
+                                ];
+                            }
                             if($row['status'] == 2) $isOccupied = true;
                         }
                     }
@@ -124,6 +146,8 @@ class DashboardController extends Controller
                 $statusBooking[$tgl][$kamar->id] = [
                     'segments' => $segments,
                     'occ' => $isOccupied ? 'occupied' : (count($segments) ? 'booked' : 'empty'),
+                    'slot_morning' => $slotMorning,
+                    'slot_afternoon' => $slotAfternoon,
                 ];
                 if($isOccupied) $totalKamarTerisiBulan++;
             }

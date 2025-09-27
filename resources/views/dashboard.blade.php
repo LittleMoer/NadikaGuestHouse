@@ -53,6 +53,11 @@
             .status-cell {min-width:40px;font-size:.9rem;}
             table.dash-table tbody td {padding:.4rem .35rem;}
           }
+                    /* Half-day split (two stacked halves) */
+                    .half-split{display:flex;flex-direction:column;height:100%;}
+                    .half-split .half{flex:1 1 50%;display:flex;align-items:center;justify-content:center;font-weight:700;}
+                    .half-split .half + .half{border-top:2px solid #333;}
+                    .half-split .num{font-size:1rem;line-height:1;}
           .cell-stack{display:flex;flex-direction:column;gap:2px;height:100%;}
           .cell-seg{display:flex;align-items:center;justify-content:center;border-radius:4px;padding:1px 1px;font-weight:700;line-height:1;}
           .cell-seg.dp{color:#faed00;}
@@ -149,44 +154,78 @@
                                             if($bookingId && $txt){ $style .= 'color:'.$txt.';'; }
                                             if($bookingId && (($seg['payment'] ?? '')==='lunas')){ $style .= 'text-shadow:0 0 3px rgba(0,0,0,.55);'; }
                                             if($status==='dipesan'){ $style .= 'border:2px solid #fff8d1;'; }
+                                            $isPartial = $seg && (($seg['fraction'] ?? 1) > 0 && ($seg['fraction'] ?? 1) < 1);
                                         @endphp
-                                        <td class="status-cell status-{{ $status }} dash-booking-cell"
-                                            data-tanggal="{{ $tanggal }}"
-                                            data-kamar-id="{{ $kamar->id }}"
-                                            data-status="{{ $status }}"
-                                            data-booking-id="{{ $bookingId ?? '' }}"
-                                            data-channel="{{ $seg['channel'] ?? '' }}"
-                                            data-payment="{{ $seg['payment'] ?? '' }}"
-                                            style="{{ $style }}"
-                                            title="{{ $bookingId ? ('Booking ID: '.$bookingId) : 'Klik untuk buat booking' }}">
-                                            {{ $bookingId ? $bookingId : '' }}
-                                        </td>
+                                        @if($seg && $isPartial)
+                                            <td class="status-cell dash-booking-cell"
+                                                data-tanggal="{{ $tanggal }}"
+                                                data-kamar-id="{{ $kamar->id }}"
+                                                data-booking-id="{{ $bookingId ?? '' }}"
+                                                title="Booking ID: {{ $bookingId }}">
+                                                <div class="half-split">
+                                                    <div class="half" style="background: {{ $bg ?? '#ffe9a6' }}; color: {{ $txt ?? '#222' }};">
+                                                        <span class="num">{{ $seg['status'] ?? '' }}</span>
+                                                    </div>
+                                                    <div class="half" style="background: #ffffff;"></div>
+                                                </div>
+                                            </td>
+                                        @else
+                                            <td class="status-cell status-{{ $status }} dash-booking-cell"
+                                                data-tanggal="{{ $tanggal }}"
+                                                data-kamar-id="{{ $kamar->id }}"
+                                                data-status="{{ $status }}"
+                                                data-booking-id="{{ $bookingId ?? '' }}"
+                                                data-channel="{{ $seg['channel'] ?? '' }}"
+                                                data-payment="{{ $seg['payment'] ?? '' }}"
+                                                style="{{ $style }}"
+                                                title="{{ $bookingId ? ('Booking ID: '.$bookingId) : 'Klik untuk buat booking' }}">
+                                                {{ $bookingId ? $bookingId : '' }}
+                                            </td>
+                                        @endif
                                     @else
                                         @php
-                                            // Normalize fractions to fill the cell height; fallback to equal parts
-                                            $sum = 0;
-                                            foreach($segments as $s){ $sum += ($s['fraction'] ?? 0); }
-                                            if($sum <= 0){ $sum = count($segments); $equal = true; } else { $equal = false; }
+                                            // If exactly 2 segments, show simple half split; otherwise show compact stacked as fallback
+                                            $exactTwo = count($segments) === 2;
                                         @endphp
-                                        <td class="status-cell has-multi"
-                                            data-tanggal="{{ $tanggal }}"
-                                            data-kamar-id="{{ $kamar->id }}"
-                                            data-status="multi"
-                                            title="Beberapa booking di hari ini">
-                                            <div class="cell-stack">
-                                                @foreach ($segments as $seg)
-                                                    @php
-                                                        $clsPay = ($seg['payment']==='lunas') ? 'lunas' : 'dp';
-                                                        $heightPct = $equal ? (100 / count($segments)) : (max(8, round((($seg['fraction'] ?? 0) / $sum) * 100)));
-                                                        $style = 'height:'.$heightPct.'%;';
-                                                        if(!empty($seg['background'])){ $style .= 'background:'.$seg['background'].';'; }
-                                                    @endphp
-                                                    <div class="cell-seg {{ $clsPay }}" data-booking-id="{{ $seg['booking_order_id'] }}" style="{{ $style }}" title="Booking ID: {{ $seg['booking_order_id'] }}">
-                                                        {{ $seg['booking_order_id'] }}
+                                        @if($exactTwo)
+                                            @php
+                                                // order by checkin within day to assign top/bottom
+                                                $ordered = $segments;
+                                                usort($ordered, function($a,$b){ return ($a['checkin_at'] <=> $b['checkin_at']); });
+                                                $top = $ordered[0];
+                                                $bot = $ordered[1];
+                                            @endphp
+                                            <td class="status-cell dash-booking-cell" data-tanggal="{{ $tanggal }}" data-kamar-id="{{ $kamar->id }}" title="Beberapa booking (2)">
+                                                <div class="half-split">
+                                                        <div class="half {{ (($top['payment'] ?? '')==='lunas') ? 'pay-lunas' : 'pay-dp' }}" style="background: {{ $top['background'] ?? '#ffe9a6' }};">
+                                                        <span class="num">{{ $top['status'] ?? '' }}</span>
                                                     </div>
-                                                @endforeach
-                                            </div>
-                                        </td>
+                                                        <div class="half {{ (($bot['payment'] ?? '')==='lunas') ? 'pay-lunas' : 'pay-dp' }}" style="background: {{ $bot['background'] ?? '#ffe9a6' }};">
+                                                        <span class="num">{{ $bot['status'] ?? '' }}</span>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        @else
+                                            @php
+                                                // compact stacked fallback for >2 segments
+                                                $sum = 0; foreach($segments as $s){ $sum += ($s['fraction'] ?? 0); }
+                                                if($sum <= 0){ $sum = count($segments); $equal = true; } else { $equal = false; }
+                                            @endphp
+                                            <td class="status-cell has-multi" data-tanggal="{{ $tanggal }}" data-kamar-id="{{ $kamar->id }}" data-status="multi" title="Beberapa booking di hari ini">
+                                                <div class="cell-stack">
+                                                    @foreach ($segments as $seg)
+                                                        @php
+                                                            $heightPct = $equal ? (100 / count($segments)) : (max(8, round((($seg['fraction'] ?? 0) / $sum) * 100)));
+                                                            $style = 'height:'.$heightPct.'%;';
+                                                            if(!empty($seg['background'])){ $style .= 'background:'.$seg['background'].';'; }
+                                                        @endphp
+                                                        <div class="cell-seg" data-booking-id="{{ $seg['booking_order_id'] }}" style="{{ $style }}" title="Booking ID: {{ $seg['booking_order_id'] }}">
+                                                            {{ $seg['status'] ?? '' }}
+                                                        </div>
+                                                    @endforeach
+                                                </div>
+                                            </td>
+                                        @endif
                                     @endif
                                 @endforeach
                             @endforeach

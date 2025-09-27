@@ -6,6 +6,7 @@ use App\Http\Controllers\BookingController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\KamarController;
 use App\Http\Controllers\CafeController;
+use App\Http\Controllers\SlotDemoController;
 
 Route::get('/', function () {
     return view('login');
@@ -46,3 +47,6 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+// Demo route for booking slots (open route for quick preview)
+Route::get('/slots-demo', [SlotDemoController::class, 'index'])->name('slots.demo');
