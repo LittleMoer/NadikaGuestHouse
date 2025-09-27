@@ -15,8 +15,8 @@
         <div class="card">
             <div class="card-body">
                 <div class="table-responsive">
-                    <table class="table table-sm table-hover mb-0">
-                        <thead class="table-light"><tr><th>ID</th><th>Booking</th><th>Pelanggan</th><th>Total</th><th>Item</th><th>Waktu</th></tr></thead>
+                    <table id="cafe-orders-table" class="table table-sm table-hover mb-0">
+                        <thead class="table-light"><tr><th>ID</th><th>Booking</th><th>Pelanggan</th><th>Total</th><th>Item</th><th>Waktu</th><th>Aksi</th></tr></thead>
                         <tbody>
                             @foreach($orders as $o)
                                 <tr>
@@ -30,14 +30,37 @@
                                         @endforeach
                                     </td>
                                     <td>{{ $o->created_at->format('d/m/Y H:i') }}</td>
+                                    <td>
+                                        <form action="{{ route('cafe.order.destroy', $o->id) }}" method="POST" onsubmit="return confirm('Hapus order cafe ini? Stok akan dikembalikan.');">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button class="btn btn-outline-danger btn-sm">Hapus</button>
+                                        </form>
+                                    </td>
                                 </tr>
                             @endforeach
                         </tbody>
                     </table>
                 </div>
-                <div class="mt-2">{{ $orders->links() }}</div>
+                
             </div>
         </div>
     </div>
 </div>
+@section('script')
+<script>
+    document.addEventListener('DOMContentLoaded', function(){
+        if(window.jQuery && jQuery.fn.DataTable){
+            jQuery('#cafe-orders-table').DataTable({
+                pageLength: 10,
+                lengthMenu: [[10,25,50,-1],[10,25,50,'Semua']],
+                order: [[0,'desc']],
+                columnDefs: [
+                    { targets: [4,6], orderable: false } // Item & Aksi tidak perlu sorting
+                ]
+            });
+        }
+    });
+</script>
+@endsection
 @endsection

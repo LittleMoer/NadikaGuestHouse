@@ -63,10 +63,10 @@ class BookingController extends Controller
 
         $pelangganList = Pelanggan::orderBy('nama')->get();
 
-        // Paginated orders (no filters)
+        // Client-side pagination via DataTables in the view
         $orders = BookingOrder::with(['pelanggan','items.kamar'])
             ->orderByDesc('tanggal_checkin')
-            ->paginate(15);
+            ->get();
 
         return view('booking', [
             'orders'=>$orders,

@@ -74,9 +74,7 @@
                 </tbody>
             </table>
         </div>
-        <div class="d-flex justify-content-end mb-4">
-            {{ $orders->links() }}
-        </div>
+        
 
         <!-- Detail Modal (Enhanced unified) -->
         
@@ -217,6 +215,17 @@
         <!-- Unified Scripts (Refactored) -->
         <script>
         document.addEventListener('DOMContentLoaded', function(){
+            // Enable client-side pagination with DataTables if available
+            if(window.jQuery && jQuery.fn.DataTable){
+                jQuery('#tabel-booking').DataTable({
+                    pageLength: 10,
+                    lengthMenu: [[10,25,50,-1],[10,25,50,'Semua']],
+                    order: [[0,'desc']],
+                    columnDefs: [
+                        { targets: [10], orderable: false } // Aksi kolom tidak perlu sorting
+                    ]
+                });
+            }
             // ================== UTIL ==================
             const FMT = new Intl.NumberFormat('id-ID');
             const qs = sel=> document.querySelector(sel);

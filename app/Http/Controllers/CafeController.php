@@ -135,8 +135,40 @@ class CafeController extends Controller
 
     public function ordersList(Request $request)
     {
-        $orders = CafeOrder::with(['booking.pelanggan','items.product'])->latest()->paginate(25);
-    // View daftar orders menggunakan resources/views/cafeorders.blade.php
-    return view('cafeorders', compact('orders'));
+        // Client-side pagination with DataTables on the view
+        $orders = CafeOrder::with(['booking.pelanggan','items.product'])->latest()->get();
+        return view('cafeorders', compact('orders'));
+    }
+
+    /**
+     * Batalkan (hapus) 1 cafe order: kembalikan stok produk, kurangi total_cafe pada booking, lalu hapus order & items.
+     */
+    public function destroyOrder(Request $request, $id)
+    {
+        $order = CafeOrder::with(['items','booking'])->findOrFail($id);
+        DB::transaction(function() use ($order){
+            // Kembalikan stok untuk setiap item
+            foreach($order->items as $it){
+                $prod = CafeProduct::find($it->cafe_product_id);
+                if($prod){ $prod->stok += (int)$it->qty; $prod->save(); }
+                // Opsional: catat movement balik (in) karena pembatalan order
+                CafeStockMovement::create([
+                    'cafe_product_id'=>$it->cafe_product_id,
+                    'tipe'=>'in',
+                    'qty'=>$it->qty,
+                    'keterangan'=>'Undo order cafe #'.$order->id
+                ]);
+            }
+            // Kurangi total_cafe pada booking
+            if($order->booking){
+                $order->booking->total_cafe = max(0, (float)($order->booking->total_cafe ?? 0) - (float)$order->total);
+                $order->booking->save();
+            }
+            // Hapus items lalu order
+            $order->items()->delete();
+            $order->delete();
+        });
+        if($request->wantsJson()) return response()->json(['success'=>true]);
+        return redirect()->route('cafe.orders')->with('success','Order cafe dihapus dan stok dikembalikan');
     }
 }

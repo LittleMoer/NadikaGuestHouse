@@ -29,6 +29,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/cafe/products', [CafeController::class,'storeProduct'])->name('cafe.product.store');
     Route::post('/cafe/products/{id}/adjust', [CafeController::class,'adjustStock'])->name('cafe.product.adjust');
     Route::post('/cafe/orders', [CafeController::class,'storeOrder'])->name('cafe.order.store');
+    Route::delete('/cafe/orders/{id}', [CafeController::class,'destroyOrder'])->name('cafe.order.destroy');
     // Ganti route list orders ke /cafeorders agar sesuai dengan view yang tersedia
     Route::get('/cafeorders', [CafeController::class,'ordersList'])->name('cafe.orders');
     Route::get('/penginap', function () {return view('penginap');});
