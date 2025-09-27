@@ -31,9 +31,10 @@ class DashboardController extends Controller
             return $group->sortBy('nomor_kamar')->values();
         });
 
-        // Ambil booking orders aktif (status 1=dipesan,2=checkin) beserta items yang overlap bulan ini
+        // Ambil semua booking yang overlapped dengan bulan ini (status 1..4)
+        // Tujuan: menampilkan SEMUA data booking pada tabel dashboard bulan terkait
         $activeOrders = BookingOrder::with(['items' => function($q){ $q->with('kamar'); }, 'pelanggan'])
-            ->whereIn('status',[1,2])
+            ->whereIn('status',[1,2,3,4])
             ->where(function($q) use ($start,$end){
                 $q->whereBetween('tanggal_checkin', [$start,$end])
                   ->orWhereBetween('tanggal_checkout', [$start,$end])
@@ -48,15 +49,26 @@ class DashboardController extends Controller
         $items = [];
         foreach($activeOrders as $order){
             $meta = $order->status_meta; // unified
+            // Normalize to day-level range. If check-in and check-out are the same calendar day,
+            // extend checkout to next day's 00:00 so the day is included in [checkin, checkout).
+            $ciDay = Carbon::parse($order->tanggal_checkin)->startOfDay();
+            $coDay = Carbon::parse($order->tanggal_checkout)->startOfDay();
+            if ($coDay->equalTo($ciDay)) {
+                $coDay = $coDay->copy()->addDay();
+            }
+            $ciAt = Carbon::parse($order->tanggal_checkin);
+            $coAt = Carbon::parse($order->tanggal_checkout);
             foreach($order->items as $it){
                 $items[] = [
                     'kamar_id' => $it->kamar_id,
-                    'status' => $order->status, // 1/2
+                    'status' => $order->status, // 1..4
                     'booking_order_id' => $order->id,
                     // status_code removed
                     'meta' => $meta,
-                    'checkin' => Carbon::parse($order->tanggal_checkin)->startOfDay(),
-                    'checkout' => Carbon::parse($order->tanggal_checkout)->startOfDay(),
+                    'checkin' => $ciDay,
+                    'checkout' => $coDay,
+                    'checkin_at' => $ciAt,
+                    'checkout_at' => $coAt,
                 ];
             }
         }
@@ -75,36 +87,45 @@ class DashboardController extends Controller
         foreach ($tanggalList as $tgl) {
             $carbonDate = Carbon::parse($tgl);
             foreach ($kamarList as $kamar) {
-                $status = 'kosong';
-                $bookingIdForCell = null;
-                $selectedMeta = null; // channel/payment/color
+                $segments = [];
+                $isOccupied = false;
                 if(isset($itemsByKamar[$kamar->id])){
                     foreach($itemsByKamar[$kamar->id] as $row){
                         if($carbonDate->gte($row['checkin']) && $carbonDate->lt($row['checkout'])){
-                            if($row['status'] == 2){
-                                $status = 'ditempati';
-                                $bookingIdForCell = $row['booking_order_id'];
-                                $selectedMeta = $row['meta'];
-                                $totalKamarTerisiBulan++;
-                                break; // prioritas checkin
-                            } elseif($row['status'] == 1 && $status !== 'ditempati') {
-                                $status = 'dipesan';
-                                $bookingIdForCell = $row['booking_order_id'];
-                                $selectedMeta = $row['meta'];
-                            }
+                            // Hitung porsi (fraction) dari hari ini yang ditempati oleh segmen ini
+                            $dayStart = $carbonDate->copy()->startOfDay();
+                            $dayEnd = $dayStart->copy()->addDay();
+                            $segStart = $row['checkin_at']->greaterThan($dayStart) ? $row['checkin_at'] : $dayStart;
+                            $segEnd = $row['checkout_at']->lessThan($dayEnd) ? $row['checkout_at'] : $dayEnd;
+                            $duration = max(0, $segEnd->diffInSeconds($segStart));
+                            $fraction = $duration > 0 ? min(1, $duration / 86400) : 0;
+
+                            $segments[] = [
+                                'booking_order_id' => $row['booking_order_id'],
+                                'status' => $row['status'], // 1..4
+                                'payment' => $row['meta']['payment'] ?? null,
+                                'channel' => $row['meta']['channel'] ?? null,
+                                'background' => $row['meta']['background'] ?? null,
+                                'text_color' => $row['meta']['text_color'] ?? null,
+                                'checkin_at' => $row['checkin_at'],
+                                'checkout_at' => $row['checkout_at'],
+                                'fraction' => $fraction,
+                            ];
+                            if($row['status'] == 2) $isOccupied = true;
                         }
                     }
                 }
+                // Urutkan segmen berdasarkan waktu check-in aktual (terlebih dahulu tampil di atas)
+                usort($segments, function($a,$b){
+                    if($a['checkin_at'] == $b['checkin_at']) return 0;
+                    return ($a['checkin_at'] < $b['checkin_at']) ? -1 : 1;
+                });
+
                 $statusBooking[$tgl][$kamar->id] = [
-                    'status'=>$status,
-                    'booking_id'=>$bookingIdForCell,
-                    // status_code removed
-                    'channel'=>$selectedMeta['channel'] ?? null,
-                    'payment'=>$selectedMeta['payment'] ?? null,
-                    'background'=>$selectedMeta['background'] ?? null,
-                    'text_color'=>$selectedMeta['text_color'] ?? null,
-                    'occ' => $status==='ditempati' ? 'occupied' : ($status==='dipesan' ? 'booked' : 'empty'),
+                    'segments' => $segments,
+                    'occ' => $isOccupied ? 'occupied' : (count($segments) ? 'booked' : 'empty'),
                 ];
+                if($isOccupied) $totalKamarTerisiBulan++;
             }
         }
 

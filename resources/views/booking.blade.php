@@ -158,7 +158,9 @@
                                     <label class="form-label" style="font-size:.7rem;font-weight:600;">Metode</label>
                                     <select name="pemesanan" id="edit_pemesanan" class="form-select form-select-sm" required>
                                         <option value="0">Walk-In</option>
-                                        <option value="1">Online</option>
+                                        <option value="1">Online (Traveloka)</option>
+                                        <option value="2">Agent 1</option>
+                                        <option value="3">Agent 2</option>
                                     </select>
                                 </div>
                                 <div class="col-md-6">
@@ -556,7 +558,9 @@
                             <label class="form-label">Jenis Pemesanan</label>
                             <select name="pemesanan" class="form-control" required>
                                 <option value="0" {{ old('pemesanan')==='0' ? 'selected' : '' }}>Walk-In</option>
-                                <option value="1" {{ old('pemesanan')==='1' ? 'selected' : '' }}>Online</option>
+                                <option value="1" {{ old('pemesanan')==='1' ? 'selected' : '' }}>Online (Traveloka)</option>
+                                <option value="2" {{ old('pemesanan')==='2' ? 'selected' : '' }}>Agent 1</option>
+                                <option value="3" {{ old('pemesanan')==='3' ? 'selected' : '' }}>Agent 2</option>
                             </select>
                         </div>
                         <div class="col-md-4 mb-3">

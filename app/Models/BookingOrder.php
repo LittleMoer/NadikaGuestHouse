@@ -50,7 +50,14 @@ class BookingOrder extends Model
     {
         $isCancel = ((int)$this->status) === 4;
         $pay = $this->payment_status === 'lunas' ? 'lunas' : 'dp';
-        $channel = $isCancel ? 'cancel' : (((int)$this->pemesanan) === 0 ? 'walkin' : 'traveloka');
+        // Map pemesanan to channel: 0=walkin, 1=traveloka(online), 2=agent1, 3=agent2
+        $channel = 'walkin';
+        if($isCancel){
+            $channel = 'cancel';
+        } else {
+            $map = [0=>'walkin', 1=>'traveloka', 2=>'agent1', 3=>'agent2'];
+            $channel = $map[(int)$this->pemesanan] ?? 'traveloka';
+        }
         $bgMap = [
             'walkin'=>'#dc3545',
             'agent1'=>'#6f42c1',

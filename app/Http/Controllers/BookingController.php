@@ -87,7 +87,7 @@ class BookingController extends Controller
             'tanggal_checkin'   => 'required|date|before:tanggal_checkout',
             'tanggal_checkout'  => 'required|date|after:tanggal_checkin',
             'jumlah_tamu'       => 'required|integer|min:1',
-            'pemesanan'         => 'required|in:0,1',
+            'pemesanan'         => 'required|in:0,1,2,3',
             // lifecycle status is integer (1..4). Optional for create; we'll set based on pemesanan by default
             'status'            => 'nullable|integer|in:1,2,3,4',
             'payment_status'    => 'nullable|in:dp,lunas',
@@ -336,7 +336,7 @@ class BookingController extends Controller
         $data = $request->validate([
             'tanggal_checkin'=>'required|date|before:tanggal_checkout',
             'tanggal_checkout'=>'required|date|after:tanggal_checkin',
-            'pemesanan'=>'required|in:0,1',
+            'pemesanan'=>'required|in:0,1,2,3',
             'jumlah_tamu_total'=>'nullable|integer|min:1',
             'pelanggan_id'=>'nullable|exists:pelanggan,id',
             'catatan'=>'nullable|string',

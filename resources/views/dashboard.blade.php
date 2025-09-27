@@ -53,6 +53,12 @@
             .status-cell {min-width:40px;font-size:.9rem;}
             table.dash-table tbody td {padding:.4rem .35rem;}
           }
+          .cell-stack{display:flex;flex-direction:column;gap:2px;height:100%;}
+          .cell-seg{display:flex;align-items:center;justify-content:center;border-radius:4px;padding:1px 1px;font-weight:700;line-height:1;}
+          .cell-seg.dp{color:#faed00;}
+          .cell-seg.lunas{color:#fff;text-shadow:0 0 3px rgba(0,0,0,.55);} 
+          .cell-seg.cancel{opacity:.7;}
+          .status-cell.has-multi{padding:.2rem .25rem;}
         </style>
         {{-- DEMO BLOCK COMMENTED OUT. Data kini berasal dari DashboardController --}}
         {{--
@@ -128,30 +134,60 @@
                             @foreach ($loopJenis as $jenis)
                                 @foreach (($kamarGrouped[$jenis] ?? collect()) as $kamar)
                                     @php
-                                        $cell = $statusBooking[$tanggal][$kamar->id] ?? ['status'=>'kosong','booking_id'=>null];
-                                        $status = $cell['status'];
-                                        $bookingId = $cell['booking_id'];
-                                        if ($status === 'ditempati') $totalTerisi++;
-                                        $display = $bookingId ? $bookingId : '';
-                                        $bg = $cell['background'] ?? null; $txt = $cell['text_color'] ?? null;
-                                        $style = '';
-                                        if($bookingId && $bg){ $style .= 'background:'.$bg.';'; }
-                                        if($bookingId && $txt){ $style .= 'color:'.$txt.';'; }
-                                        if($bookingId && ($cell['payment'] ?? '')==='lunas'){ $style .= 'text-shadow:0 0 3px rgba(0,0,0,.55);'; }
-                                        // differentiate booked (dp) vs occupied maybe border
-                                        if($status==='dipesan'){ $style .= 'border:2px solid #fff8d1;'; }
+                                        $cell = $statusBooking[$tanggal][$kamar->id] ?? ['segments'=>[], 'occ'=>'empty'];
+                                        if(($cell['occ'] ?? 'empty') === 'occupied') $totalTerisi++;
+                                        $segments = $cell['segments'] ?? [];
                                     @endphp
-                                    <td class="status-cell status-{{ $status }} dash-booking-cell" 
-                                        data-tanggal="{{ $tanggal }}" 
-                                        data-kamar-id="{{ $kamar->id }}" 
-                                        data-status="{{ $status }}" 
-                                        data-booking-id="{{ $bookingId ?? '' }}" 
-                                        data-channel="{{ $cell['channel'] ?? '' }}"
-                                        data-payment="{{ $cell['payment'] ?? '' }}"
-                                        style="{{ $style }}"
-                                        title="{{ $bookingId ? ('Booking ID: '.$bookingId) : 'Klik untuk buat booking' }}">
-                                        {{ $display }}
-                                    </td>
+                                    @if (count($segments) <= 1)
+                                        @php
+                                            $seg = $segments[0] ?? null;
+                                            $status = $seg ? ($seg['status']==2 ? 'ditempati' : 'dipesan') : 'kosong';
+                                            $bookingId = $seg['booking_order_id'] ?? null;
+                                            $bg = $seg['background'] ?? null; $txt = $seg['text_color'] ?? null;
+                                            $style = '';
+                                            if($bookingId && $bg){ $style .= 'background:'.$bg.';'; }
+                                            if($bookingId && $txt){ $style .= 'color:'.$txt.';'; }
+                                            if($bookingId && (($seg['payment'] ?? '')==='lunas')){ $style .= 'text-shadow:0 0 3px rgba(0,0,0,.55);'; }
+                                            if($status==='dipesan'){ $style .= 'border:2px solid #fff8d1;'; }
+                                        @endphp
+                                        <td class="status-cell status-{{ $status }} dash-booking-cell"
+                                            data-tanggal="{{ $tanggal }}"
+                                            data-kamar-id="{{ $kamar->id }}"
+                                            data-status="{{ $status }}"
+                                            data-booking-id="{{ $bookingId ?? '' }}"
+                                            data-channel="{{ $seg['channel'] ?? '' }}"
+                                            data-payment="{{ $seg['payment'] ?? '' }}"
+                                            style="{{ $style }}"
+                                            title="{{ $bookingId ? ('Booking ID: '.$bookingId) : 'Klik untuk buat booking' }}">
+                                            {{ $bookingId ? $bookingId : '' }}
+                                        </td>
+                                    @else
+                                        @php
+                                            // Normalize fractions to fill the cell height; fallback to equal parts
+                                            $sum = 0;
+                                            foreach($segments as $s){ $sum += ($s['fraction'] ?? 0); }
+                                            if($sum <= 0){ $sum = count($segments); $equal = true; } else { $equal = false; }
+                                        @endphp
+                                        <td class="status-cell has-multi"
+                                            data-tanggal="{{ $tanggal }}"
+                                            data-kamar-id="{{ $kamar->id }}"
+                                            data-status="multi"
+                                            title="Beberapa booking di hari ini">
+                                            <div class="cell-stack">
+                                                @foreach ($segments as $seg)
+                                                    @php
+                                                        $clsPay = ($seg['payment']==='lunas') ? 'lunas' : 'dp';
+                                                        $heightPct = $equal ? (100 / count($segments)) : (max(8, round((($seg['fraction'] ?? 0) / $sum) * 100)));
+                                                        $style = 'height:'.$heightPct.'%;';
+                                                        if(!empty($seg['background'])){ $style .= 'background:'.$seg['background'].';'; }
+                                                    @endphp
+                                                    <div class="cell-seg {{ $clsPay }}" data-booking-id="{{ $seg['booking_order_id'] }}" style="{{ $style }}" title="Booking ID: {{ $seg['booking_order_id'] }}">
+                                                        {{ $seg['booking_order_id'] }}
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        </td>
+                                    @endif
                                 @endforeach
                             @endforeach
                             <td class="status-cell total-col">{{ $totalTerisi }}</td>
@@ -317,6 +353,8 @@
                             <select name="pemesanan" required>
                                 <option value="0">Walk-in</option>
                                 <option value="1">Online</option>
+                                <option value="2">Agent 1</option>
+                                <option value="3">Agent 2</option>
                             </select>
                         </div>
                         <div class="form-group half">
@@ -357,7 +395,7 @@
                 // Payment coloring
                 function applyPaymentColor(cell){
                     const pay = cell.getAttribute('data-payment');
-                    if(!pay) return; // skip if no payment info
+                    if(!pay) return;
                     if(pay==='dp'){
                         cell.style.color = '#faed00';
                         cell.style.fontWeight = '700';
@@ -369,7 +407,9 @@
                 }
                 document.querySelectorAll('.dash-booking-cell[data-booking-id]')
                     .forEach(c=> applyPaymentColor(c));
-                const cellSelector = '.dash-booking-cell';
+                const cellSelector = '.dash-booking-cell, .status-cell.has-multi';
+
+                // ===== Restore modal helpers & state =====
                 let selectedCell = null; let selectedPelangganId = null;
                 const modalPelanggan = document.getElementById('modalSelectPelanggan');
                 const modalBooking = document.getElementById('modalCreateBooking');
@@ -380,21 +420,20 @@
                 function openModal(m){ if(!m)return; m.classList.add('show'); m.setAttribute('aria-hidden','false'); }
                 function closeModal(m){ if(!m)return; m.classList.remove('show'); m.setAttribute('aria-hidden','true'); }
                 document.querySelectorAll('[data-close]').forEach(btn=> btn.addEventListener('click', e=>{closeModal(btn.closest('.dash-modal-overlay'));}));
-                [modalPelanggan, modalBooking].forEach(m=> m && m.addEventListener('click', e=> { if(e.target===m) closeModal(m); }));
+                ;[modalPelanggan, modalBooking].forEach(m=> m && m.addEventListener('click', e=> { if(e.target===m) closeModal(m); }));
                 document.addEventListener('keydown', e=> { if(e.key==='Escape'){closeModal(modalPelanggan);closeModal(modalBooking);} });
 
-                // Klik sel tabel
+                // Klik sel / segmen
                 document.querySelectorAll(cellSelector).forEach(td=>{
-                    td.addEventListener('click', function(){
-                        const status = this.dataset.status;
-                        const bookingId = this.dataset.bookingId;
+                    td.addEventListener('click', function(e){
+                        const seg = e.target.closest('.cell-seg');
+                        const bookingId = seg ? seg.dataset.bookingId : this.dataset.bookingId;
                         selectedCell = this;
                         if(bookingId){
-                            // Kalau sudah ada booking -> arahkan ke halaman booking filter hari itu
                             window.location.href = '{{ route('booking.index') }}?tanggal=' + this.dataset.tanggal;
                             return;
                         }
-                        // Kosong: mulai proses booking cepat
+                        // Jika tidak ada bookingId -> proses booking cepat
                         openModal(modalPelanggan);
                     });
                 });
