@@ -503,6 +503,30 @@ class BookingController extends Controller
         ]);
     }
 
+    /** Editable invoice for only room (booking) portion */
+    public function notaBooking(Request $request, $id)
+    {
+        $order = BookingOrder::with(['pelanggan','items.kamar'])->findOrFail($id);
+        return view('nota_booking', ['order'=>$order]);
+    }
+
+    /** Editable invoice for cafe portion linked to a booking */
+    public function notaCafe(Request $request, $id)
+    {
+        $order = BookingOrder::with(['pelanggan','cafeOrders.items.product'])->findOrFail($id);
+        // Flatten cafe items across orders
+        $cafeItems = collect();
+        foreach(($order->cafeOrders ?? []) as $co){
+            foreach(($co->items ?? []) as $it){
+                $cafeItems->push($it);
+            }
+        }
+        return view('nota_cafe', [
+            'order'=>$order,
+            'cafeItems'=>$cafeItems,
+        ]);
+    }
+
     // (CRUD detail methods omitted – using modal-based create/update flows on index)
     public function penginap()
     {

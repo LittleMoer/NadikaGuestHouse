@@ -285,8 +285,10 @@
                 }
                 // Toggle payment only
                 btn(meta.payment==='lunas'?'Set DP':'Set Lunas', meta.payment==='lunas'?'btn-warning':'btn-success', ()=> quickTogglePayment(data.id, meta.payment==='lunas'?'dp':'lunas'));
-                // Print Nota (totals only)
-                btn('Print Nota', 'btn-primary', ()=> { window.open(`{{ url('/booking') }}/${data.id}/nota`, '_blank'); });
+                // Nota editable (booking & cafe) + versi ringkas total
+                btn('Nota Booking (Edit)', 'btn-outline-primary', ()=> { window.open(`{{ url('/booking') }}/${data.id}/nota-booking`, '_blank'); });
+                btn('Nota Cafe (Edit)', 'btn-outline-success', ()=> { window.open(`{{ url('/booking') }}/${data.id}/nota-cafe`, '_blank'); });
+                btn('Print Nota (Ringkas)', 'btn-primary', ()=> { window.open(`{{ url('/booking') }}/${data.id}/nota`, '_blank'); });
             }
             function renderBasic(data){
                 safe(EL.id, data.id); safe(EL.status, data.status_label); safe(EL.nama, data.pelanggan?.nama||'-'); safe(EL.telepon, data.pelanggan?.telepon||'-');
