@@ -1,4 +1,4 @@
-@extends('layouts.templateowner')
+@extends('layouts.app_layout')
 @section('booking')
 <div class="container">
     <div class="page-inner">
@@ -169,7 +169,6 @@
                                         <option value="1">Dipesan</option>
                                         <option value="2">Check-In</option>
                                         <option value="3">Check-Out</option>
-                                        <option value="4">Dibatalkan</option>
                                     </select>
                                 </div>
                                 <div class="col-md-6">

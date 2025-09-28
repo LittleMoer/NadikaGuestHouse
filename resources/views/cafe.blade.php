@@ -1,4 +1,4 @@
-@extends('layouts.templateowner')
+@extends('layouts.app_layout')
 @section('cafe')
 <div class="container">
     <div class="page-inner">

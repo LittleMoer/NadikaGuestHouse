@@ -7,7 +7,7 @@
         <script src="https://cdn.tailwindcss.com"></script>
         <style>
             .bg-gradient {
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                background: linear-gradient(135deg, #f58b8bff 0%, #b92e2eff 100%);
             }
             .glass-effect {
                 backdrop-filter: blur(10px);

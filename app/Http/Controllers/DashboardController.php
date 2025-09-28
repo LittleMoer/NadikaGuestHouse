@@ -149,7 +149,21 @@ class DashboardController extends Controller
                     'slot_morning' => $slotMorning,
                     'slot_afternoon' => $slotAfternoon,
                 ];
-                if($isOccupied) $totalKamarTerisiBulan++;
+                // Monthly total: count as occupied if ANY usage on this day (morning or afternoon slot exists)
+                // or a segment crosses noon (full-day), so half-day and check-out days are included.
+                $dayStart = $carbonDate->copy()->startOfDay();
+                $noon = $dayStart->copy()->addHours(12);
+                $dayEnd = $dayStart->copy()->addDay();
+                $hasMorning = !empty($slotMorning);
+                $hasAfternoon = !empty($slotAfternoon);
+                $coversNoon = false;
+                foreach($segments as $sg){
+                    $s = $sg['checkin_at'] ?? $dayStart; $e = $sg['checkout_at'] ?? $dayEnd;
+                    if($s < $noon && $e > $noon){ $coversNoon = true; break; }
+                }
+                if($coversNoon || $hasMorning || $hasAfternoon){
+                    $totalKamarTerisiBulan++;
+                }
             }
         }
 

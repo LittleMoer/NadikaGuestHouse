@@ -2,24 +2,15 @@
 <html lang="en">
   <head>
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <title>Nadika Guest House</title>
-    <meta
-    content="width=device-width, initial-scale=1.0, shrink-to-fit=no"
-    name="viewport"
-    />
+    <title>Nadika Guest House - Admin</title>
+    <meta content="width=device-width, initial-scale=1.0, shrink-to-fit=no" name="viewport" />
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <link
-    rel="icon"
-    href="{{ asset('template/assets/img/kaiadmin/favicon.ico') }}"
-    type="image/x-icon"
-    />
+    <link rel="icon" href="{{ asset('template/assets/img/kaiadmin/favicon.ico') }}" type="image/x-icon" />
     @include('layouts.style')
   </head>
   <body>
     <div class="wrapper">
-      <!-- Sidebar -->
       @include('layouts.sidebar')
-      <!-- End Sidebar -->
       <div class="main-panel">
         @include('layouts.header')
 
@@ -29,10 +20,9 @@
         @yield('kamar')
         @yield('cafe')
         @yield('cafeorders')
-        @yield('rekap')
       </div>
     </div>
     @include('layouts.scripts')
     @yield('script')
   </body>
-</html>
+  </html>

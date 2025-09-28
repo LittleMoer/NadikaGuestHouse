@@ -6,6 +6,8 @@ use App\Http\Controllers\BookingController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\KamarController;
 use App\Http\Controllers\CafeController;
+use App\Http\Controllers\RekapController;
+use App\Http\Controllers\UsersController;
 use App\Http\Controllers\SlotDemoController;
 
 Route::get('/', function () {
@@ -31,6 +33,13 @@ Route::middleware('auth')->group(function () {
     Route::post('/cafe/products/{id}/adjust', [CafeController::class,'adjustStock'])->name('cafe.product.adjust');
     Route::post('/cafe/orders', [CafeController::class,'storeOrder'])->name('cafe.order.store');
     Route::delete('/cafe/orders/{id}', [CafeController::class,'destroyOrder'])->name('cafe.order.destroy');
+    // Rekap pemasukan bulanan (owner only)
+    Route::middleware('role:owner')->group(function () {
+        Route::get('/rekap', [RekapController::class, 'index'])->name('rekap.index');
+        Route::get('/rekap/print', [RekapController::class, 'print'])->name('rekap.print');
+        // Users management (owner only)
+        Route::resource('users', UsersController::class)->except(['show']);
+    });
     // Ganti route list orders ke /cafeorders agar sesuai dengan view yang tersedia
     Route::get('/cafeorders', [CafeController::class,'ordersList'])->name('cafe.orders');
     Route::get('/penginap', function () {return view('penginap');});

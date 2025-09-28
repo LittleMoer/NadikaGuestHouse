@@ -1,248 +1,248 @@
-@extends('layouts.templateowner')
+@extends('layouts.app_layout')
 
 @section('dashboard')
     <div class="container">
       <div class="page-inner">
-        <div class="page-header">
-          <h1 class="h1 dashboard-title">Dashboard</h1>
-        </div>
-        <div class="page-subtitle">Selamat datang {{ Auth::user()->name }}</div>
-        <style>
-          /* Dashboard Table Cleanup */
-          .dashboard-title {font-size:2rem;font-weight:700;margin:0;}
-          .page-subtitle {font-size:1.05rem;font-weight:500;margin-bottom:1rem;color:#444;}
-          .nav-period {display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.75rem;margin:1.25rem 0 1rem;}
-          .month-switch {display:flex;align-items:center;gap:.5rem;}
-          .btn-period {padding:.5rem 1rem;border-radius:.55rem;background:#0d6efd;color:#fff;font-size:1.05rem;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;line-height:1;}
-          .btn-period:hover {background:#0953bb;color:#fff;text-decoration:none;}
-          .select-period select {border-radius:.55rem;padding:.45rem .9rem;font-size:.95rem;min-width:110px;border:1px solid #d0d7de;background:#fff;}
-          .select-period button {border:none;cursor:pointer;}
-          .select-period button.btn-period {font-size:.95rem;font-weight:600;}
-          .dash-table-wrapper {overflow-x:auto;background:#fff;border:1px solid #e5e7eb;border-radius:.75rem;box-shadow:0 2px 6px #0000000d;padding:1rem;}
-          table.dash-table {border-collapse:separate;border-spacing:0;min-width:100%;border:1px solid #d0d7de;border-radius:.65rem;overflow:hidden;}
-          table.dash-table thead th {background:#ff9d25;color:#1f2328;font-weight:700;font-size:.82rem;padding:.55rem .6rem;text-align:center;vertical-align:middle;white-space:nowrap;}
-          table.dash-table thead th.group-header {background:#ff9d25;color:#1f2328;font-size:.78rem;border-bottom:0;}
-          table.dash-table thead tr.second-header th {background:#ffc44d;color:#333;font-weight:600;font-size:.75rem;border-top:1px solid #e5e7eb;}
-          th.corner-fill {background:#ff9d25;width:88px;border-bottom:0;}
-          th.tanggal-head {background:#ffc44d;font-weight:600;width:88px;}
-          th.total-col-head {background:#0d6efd;color:#fff;font-size:.8rem;}
-          table.dash-table tbody td {padding:.45rem .5rem;font-size:.78rem;text-align:center;border:1px solid #ececec;}
-          table.dash-table th:first-child, table.dash-table td:first-child {position:sticky;left:0;background:#fafafa;z-index:2;}
-          table.dash-table thead th:first-child {z-index:3;}
-          .day-label {display:block;font-weight:600;font-size:.8rem;color:#111;}
-          .day-name {display:block;font-size:.65rem;color:#6a737d;margin-top:.15rem;}
-          .weekend {background:#edf6ff !important;}
-          .status-cell {font-weight:700;font-size:1rem;line-height:1.1;padding:.35rem .25rem;min-width:32px;}
-          .status-kosong {background:#ffffff;}
-          .status-dipesan {background:#fff5b8;} /* softer pale yellow distinct from header */
-          .status-ditempati {background:#ff6b6b;color:#fff;}
-          .status-ditempati svg, .status-ditempati span {color:#fff;}
-          .total-col {background:#0d6efd;color:#fff;font-weight:700;}
-          .total-row td {background:#ffd657;font-weight:700;font-size:.85rem;color:#222;}
-          .legend {display:flex;flex-wrap:wrap;gap:.6rem;margin:.25rem 0 1rem;align-items:center;font-size:.7rem;}
-          .legend-item {display:flex;align-items:center;gap:.3rem;}
-          .legend-swatch {width:18px;height:14px;border-radius:3px;border:1px solid #c3c6d1;box-shadow:0 1px 2px #0001;}
-          .swatch-kosong {background:#fff;}
-          .swatch-dipesan {background:#ffe9a6;}
-            .swatch-ditempati {background:#ff6b6b;}
-          .sticky-header thead th {position:sticky;top:0;z-index:5;}
-          /* Hover focus */
-          tbody tr:hover td.status-cell {outline:2px solid #333; outline-offset:-2px;}
-          /* Responsive tweak */
-          @media (max-width:900px){
-            .status-cell {min-width:40px;font-size:.9rem;}
-            table.dash-table tbody td {padding:.4rem .35rem;}
-          }
-                    /* Half-day split (two stacked halves) */
-                    .half-split{display:flex;flex-direction:column;height:100%;}
-                    .half-split .half{flex:1 1 50%;display:flex;align-items:center;justify-content:center;font-weight:700;}
-                    .half-split .half + .half{border-top:2px solid #333;}
-                    .half-split .num{font-size:1rem;line-height:1;}
-          .cell-stack{display:flex;flex-direction:column;gap:2px;height:100%;}
-          .cell-seg{display:flex;align-items:center;justify-content:center;border-radius:4px;padding:1px 1px;font-weight:700;line-height:1;}
-          .cell-seg.dp{color:#faed00;}
-          .cell-seg.lunas{color:#fff;text-shadow:0 0 3px rgba(0,0,0,.55);} 
-          .cell-seg.cancel{opacity:.7;}
-          .status-cell.has-multi{padding:.2rem .25rem;}
-        </style>
-        {{-- DEMO BLOCK COMMENTED OUT. Data kini berasal dari DashboardController --}}
-        {{--
-            Blok sebelumnya membuat data dummy kamar & booking.
-            Dipertahankan dalam komentar jika sewaktu-waktu diperlukan untuk referensi.
-        --}}
-        <div class="nav-period">
-            <div class="month-switch">
-                <a href="?bulan={{ $prevMonth }}&tahun={{ $prevYear }}" class="btn-period" title="Bulan Sebelumnya">&#8592;</a>
-                <span class="fw-bold" style="font-size:1.05rem;color:#222;font-weight:600;">{{ DateTime::createFromFormat('!m', $bulan)->format('F') }} {{ $tahun }}</span>
-                <a href="?bulan={{ $nextMonth }}&tahun={{ $nextYear }}" class="btn-period" title="Bulan Berikutnya">&#8594;</a>
-            </div>
-            <form method="GET" class="select-period" style="display:flex;gap:.5rem;align-items:center;">
-                <select name="bulan">
-                    @for ($i = 1; $i <= 12; $i++)
-                        <option value="{{ $i }}" {{ $i == $bulan ? 'selected' : '' }}>{{ DateTime::createFromFormat('!m', $i)->format('F') }}</option>
-                    @endfor
-                </select>
-                <select name="tahun">
-                    @for ($y = \Carbon\Carbon::now()->year - 2; $y <= \Carbon\Carbon::now()->year + 2; $y++)
-                        <option value="{{ $y }}" {{ $y == $tahun ? 'selected' : '' }}>{{ $y }}</option>
-                    @endfor
-                </select>
-                <button type="submit" class="btn-period">Tampilkan</button>
-            </form>
-        </div>
-
-                <div class="legend">
-                    <div class="legend-item"><span class="legend-swatch swatch-kosong" style="background:#fff;"></span> Kosong</div>
-                    <div class="legend-item"><span class="legend-swatch" style="background:#dc3545;"></span> Walk-In (Channel)</div>
-                    <div class="legend-item"><span class="legend-swatch" style="background:#6f42c1;"></span> Agent 1</div>
-                    <div class="legend-item"><span class="legend-swatch" style="background:#198754;"></span> Agent 2</div>
-                    <div class="legend-item"><span class="legend-swatch" style="background:#0d6efd;"></span> Traveloka</div>
-                    <div class="legend-item"><span class="legend-swatch" style="background:#555;"></span> Dibatalkan</div>
-                      <div class="legend-item"><span class="legend-swatch" style="background:#faed00;"></span> Tulisan Kuning = DP</div>
-                    <div class="legend-item"><span class="legend-swatch" style="background:#ffffff;border:1px solid #ccc;"></span> Tulisan Putih + Glow = Lunas</div>
-                </div>
-
-        <div class="dash-table-wrapper">
-            <table class="dash-table sticky-header">
-                <thead>
-                    @php $loopJenis = isset($orderedJenisKamar) ? $orderedJenisKamar : $jenisKamar; @endphp
-                    <tr class="first-header">
-                        <th class="group-header">Jenis Kamar</th>
-                        @foreach ($loopJenis as $jenis)
-                            @php $jumlahJenis = isset($kamarGrouped) ? ($kamarGrouped[$jenis]->count() ?? 0) : collect($kamarList)->where('tipe', $jenis)->count(); @endphp
-                            <th class="group-header" colspan="{{ $jumlahJenis }}">{{ $jenis }}</th>
-                        @endforeach
-                        <th class="total-col-head" rowspan="2">Total Terisi</th>
-                    </tr>
-                    <tr class="second-header" >
-                        <th class="tanggal-head" >Tanggal</th>
-                        @foreach ($loopJenis as $jenis)
-                            @foreach (($kamarGrouped[$jenis] ?? collect()) as $kamar)
-                                <th>{{ $kamar->nomor_kamar }}</th>
-                            @endforeach
-                        @endforeach
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach ($tanggalList as $tanggal)
-                        @php 
-                            $carbonDate = \Carbon\Carbon::parse($tanggal);
-                            $isWeekend = $carbonDate->isWeekend();
-                            $dayName = $carbonDate->translatedFormat('l');
-                            $totalTerisi = 0;
+                <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+                    <h1 class="h1 dashboard-title" style="margin:0;">Dashboard</h1>
+                    <div class="dash-month-nav" style="display:flex;align-items:center;gap:8px;">
+                        <a class="btn btn-light" href="{{ route('dashboard.index', ['bulan' => $prevMonth, 'tahun' => $prevYear]) }}" title="Bulan Sebelumnya">&laquo;</a>
+                        @php
+                            $bulanNama = [1=>'Januari',2=>'Februari',3=>'Maret',4=>'April',5=>'Mei',6=>'Juni',7=>'Juli',8=>'Agustus',9=>'September',10=>'Oktober',11=>'November',12=>'Desember'];
                         @endphp
-                        <tr class="day-row {{ $isWeekend ? 'weekend' : '' }}">
-                            <td>
-                                <span class="day-label">{{ $carbonDate->format('d M') }}</span>
-                                <span class="day-name">{{ $dayName }}</span>
-                            </td>
-                            @foreach ($loopJenis as $jenis)
-                                @foreach (($kamarGrouped[$jenis] ?? collect()) as $kamar)
-                                    @php
-                                        $cell = $statusBooking[$tanggal][$kamar->id] ?? ['segments'=>[], 'occ'=>'empty'];
-                                        if(($cell['occ'] ?? 'empty') === 'occupied') $totalTerisi++;
-                                        $segments = $cell['segments'] ?? [];
+                                    <div class="current-month" style="font-weight:800;color:#0f172a;min-width:180px;text-align:center;">
+                                        {{ $bulanNama[(int)$bulan] ?? $bulan }} {{ $tahun }}
+                        </div>
+                        <a class="btn btn-light" href="{{ route('dashboard.index', ['bulan' => $nextMonth, 'tahun' => $nextYear]) }}" title="Bulan Berikutnya">&raquo;</a>
+                    </div>
+                </div>
+        <div class="dash-legend">
+            <div class="legend-title">Keterangan</div>
+            <div class="legend-items">
+                <div class="legend-item"><span class="legend-badge">Pagi</span><span class="legend-text">00:00 – 11:59</span></div>
+                <div class="legend-item"><span class="legend-badge">Siang</span><span class="legend-text">12:00 – 23:59</span></div>
+                <div class="legend-sep"></div>
+                <div class="legend-item"><span class="legend-dot" style="color:#faed00;background:#1f2937;">ID</span><span class="legend-text">DP</span></div>
+                <div class="legend-item"><span class="legend-dot pay-lunas">ID</span><span class="legend-text">Lunas</span></div>
+                <div class="legend-sep"></div>
+                <div class="legend-item"><span class="legend-color swatch-walkin"></span><span class="legend-text">Walk-In</span></div>
+                <div class="legend-item"><span class="legend-color swatch-traveloka"></span><span class="legend-text">Online (Traveloka)</span></div>
+                <div class="legend-item"><span class="legend-color swatch-agent1"></span><span class="legend-text">Agent 1</span></div>
+                <div class="legend-item"><span class="legend-color swatch-agent2"></span><span class="legend-text">Agent 2</span></div>
+                <div class="legend-item"><span class="legend-color swatch-cancel"></span><span class="legend-text">Dibatalkan</span></div>
+                <div class="legend-sep"></div>
+            </div>
+        </div>
+                    @php $loopJenis = isset($orderedJenisKamar) ? $orderedJenisKamar : $jenisKamar; @endphp
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-dashboard ">
+                            <thead>
+                                <tr class="first-header">
+                                    <th class="group-header">Jenis Kamar</th>
+                                    @foreach ($loopJenis as $jenis)
+                                    @php $jumlahJenis = isset($kamarGrouped) ? ($kamarGrouped[$jenis]->count() ?? 0) : collect($kamarList)->where('tipe', $jenis)->count(); @endphp
+                                    <th class="group-header" colspan="{{ $jumlahJenis }}">{{ $jenis }}</th>
+                                    @endforeach
+                                    <th class="total-col-head" rowspan="2" style="font-size:0.85rem; padding:0 8px; white-space:normal; min-width:90px;">
+                                        Total<br>Terisi
+                                    </th>
+                                </tr>
+                                <tr class="second-header">
+                                    <th class="tanggal-head" >kamar</th>
+                                    @foreach ($loopJenis as $jenis)
+                                    @foreach (($kamarGrouped[$jenis] ?? collect()) as $kamar)
+                                    <th style="font-size:0.85rem; padding:0 8px; white-space:normal; min-width:90px;">{{ $kamar->nomor_kamar }}</th>
+                                    @endforeach
+                                    @endforeach
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($tanggalList as $tanggal)
+                                    @php 
+                                        $carbonDate = \Carbon\Carbon::parse($tanggal);
+                                        $isWeekend = $carbonDate->isWeekend();
+                                        $dayName = $carbonDate->translatedFormat('l');
+                                        $totalTerisi = 0;
+                                        $mergedRooms = [];
                                     @endphp
-                                    @if (count($segments) <= 1)
-                                        @php
-                                            $seg = $segments[0] ?? null;
-                                            $status = $seg ? ($seg['status']==2 ? 'ditempati' : 'dipesan') : 'kosong';
-                                            $bookingId = $seg['booking_order_id'] ?? null;
-                                            $bg = $seg['background'] ?? null; $txt = $seg['text_color'] ?? null;
-                                            $style = '';
-                                            if($bookingId && $bg){ $style .= 'background:'.$bg.';'; }
-                                            if($bookingId && $txt){ $style .= 'color:'.$txt.';'; }
-                                            if($bookingId && (($seg['payment'] ?? '')==='lunas')){ $style .= 'text-shadow:0 0 3px rgba(0,0,0,.55);'; }
-                                            if($status==='dipesan'){ $style .= 'border:2px solid #fff8d1;'; }
-                                            $isPartial = $seg && (($seg['fraction'] ?? 1) > 0 && ($seg['fraction'] ?? 1) < 1);
-                                        @endphp
-                                        @if($seg && $isPartial)
-                                            <td class="status-cell dash-booking-cell"
-                                                data-tanggal="{{ $tanggal }}"
-                                                data-kamar-id="{{ $kamar->id }}"
-                                                data-booking-id="{{ $bookingId ?? '' }}"
-                                                title="Booking ID: {{ $bookingId }}">
-                                                <div class="half-split">
-                                                    <div class="half" style="background: {{ $bg ?? '#ffe9a6' }}; color: {{ $txt ?? '#222' }};">
-                                                        <span class="num">{{ $seg['status'] ?? '' }}</span>
-                                                    </div>
-                                                    <div class="half" style="background: #ffffff;"></div>
-                                                </div>
-                                            </td>
-                                        @else
-                                            <td class="status-cell status-{{ $status }} dash-booking-cell"
-                                                data-tanggal="{{ $tanggal }}"
-                                                data-kamar-id="{{ $kamar->id }}"
-                                                data-status="{{ $status }}"
-                                                data-booking-id="{{ $bookingId ?? '' }}"
-                                                data-channel="{{ $seg['channel'] ?? '' }}"
-                                                data-payment="{{ $seg['payment'] ?? '' }}"
-                                                style="{{ $style }}"
-                                                title="{{ $bookingId ? ('Booking ID: '.$bookingId) : 'Klik untuk buat booking' }}">
-                                                {{ $bookingId ? $bookingId : '' }}
-                                            </td>
-                                        @endif
-                                    @else
-                                        @php
-                                            // If exactly 2 segments, show simple half split; otherwise show compact stacked as fallback
-                                            $exactTwo = count($segments) === 2;
-                                        @endphp
-                                        @if($exactTwo)
-                                            @php
-                                                // order by checkin within day to assign top/bottom
-                                                $ordered = $segments;
-                                                usort($ordered, function($a,$b){ return ($a['checkin_at'] <=> $b['checkin_at']); });
-                                                $top = $ordered[0];
-                                                $bot = $ordered[1];
-                                            @endphp
-                                            <td class="status-cell dash-booking-cell" data-tanggal="{{ $tanggal }}" data-kamar-id="{{ $kamar->id }}" title="Beberapa booking (2)">
-                                                <div class="half-split">
-                                                        <div class="half {{ (($top['payment'] ?? '')==='lunas') ? 'pay-lunas' : 'pay-dp' }}" style="background: {{ $top['background'] ?? '#ffe9a6' }};">
-                                                        <span class="num">{{ $top['status'] ?? '' }}</span>
-                                                    </div>
-                                                        <div class="half {{ (($bot['payment'] ?? '')==='lunas') ? 'pay-lunas' : 'pay-dp' }}" style="background: {{ $bot['background'] ?? '#ffe9a6' }};">
-                                                        <span class="num">{{ $bot['status'] ?? '' }}</span>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                        @else
-                                            @php
-                                                // compact stacked fallback for >2 segments
-                                                $sum = 0; foreach($segments as $s){ $sum += ($s['fraction'] ?? 0); }
-                                                if($sum <= 0){ $sum = count($segments); $equal = true; } else { $equal = false; }
-                                            @endphp
-                                            <td class="status-cell has-multi" data-tanggal="{{ $tanggal }}" data-kamar-id="{{ $kamar->id }}" data-status="multi" title="Beberapa booking di hari ini">
-                                                <div class="cell-stack">
-                                                    @foreach ($segments as $seg)
-                                                        @php
-                                                            $heightPct = $equal ? (100 / count($segments)) : (max(8, round((($seg['fraction'] ?? 0) / $sum) * 100)));
-                                                            $style = 'height:'.$heightPct.'%;';
-                                                            if(!empty($seg['background'])){ $style .= 'background:'.$seg['background'].';'; }
-                                                        @endphp
-                                                        <div class="cell-seg" data-booking-id="{{ $seg['booking_order_id'] }}" style="{{ $style }}" title="Booking ID: {{ $seg['booking_order_id'] }}">
-                                                            {{ $seg['status'] ?? '' }}
+                                    <!-- Morning row -->
+                                    <tr class="day-row {{ $isWeekend ? 'weekend' : '' }} morning-row">
+                                        <td rowspan="2" class="tanggal-cell">
+                                            <span class="day-label">{{ $carbonDate->format('d M') }}</span>
+                                            <span class="day-name">{{ $dayName }}</span>
+                                        </td>
+                                        @foreach ($loopJenis as $jenis)
+                                            @foreach (($kamarGrouped[$jenis] ?? collect()) as $kamar)
+                                                @php
+                                                    $cell = $statusBooking[$tanggal][$kamar->id] ?? ['segments'=>[], 'occ'=>'empty'];
+                                                    $segments = $cell['segments'] ?? [];
+                                                    $slotMorning = $cell['slot_morning'] ?? [];
+                                                    $slotAfternoon = $cell['slot_afternoon'] ?? [];
+                                                    $hasMorning = !empty($slotMorning);
+                                                    $hasAfternoon = !empty($slotAfternoon);
+                                                    // Full-day merge only if SAME booking covers both slots, or a single segment crosses noon
+                                                    $coversNoon = false;
+                                                    if(!empty($segments)){
+                                                        $dayStart = \Carbon\Carbon::parse($tanggal.' 00:00:00');
+                                                        $noon = $dayStart->copy()->addHours(12);
+                                                        $dayEnd = $dayStart->copy()->addDay();
+                                                        foreach($segments as $sg){
+                                                            $s = $sg['checkin_at'] ?? $dayStart; $e = $sg['checkout_at'] ?? $dayEnd;
+                                                            if($s->lt($noon) && $e->gt($noon)){ $coversNoon = true; break; }
+                                                        }
+                                                    }
+                                                    $sameOrderBoth = ($hasMorning && $hasAfternoon && (($slotMorning[0]['booking_order_id'] ?? null) === ($slotAfternoon[0]['booking_order_id'] ?? null)));
+                                                    $fullDay = $sameOrderBoth || $coversNoon;
+                                                    // Hitung total terisi harian: full-day ATAU ada segmen pagi/siang
+                                                    if($fullDay || $hasMorning || $hasAfternoon){ $totalTerisi++; }
+                                                @endphp
+                                                @if($fullDay)
+                                                    @php 
+                                                        $seg = $hasMorning ? $slotMorning[0] : ($segments[0] ?? []); 
+                                                        $mergedRooms[$kamar->id] = true; 
+                                                        $payClass = ((($seg['payment'] ?? '')==='lunas') ? 'pay-lunas' : 'pay-dp');
+                                                    @endphp
+                                                    <td class="status-cell dash-booking-cell border-dark" rowspan="2"
+                                                            data-tanggal="{{ $tanggal }}"
+                                                            data-kamar-id="{{ $kamar->id }}"
+                                                            data-booking-id="{{ $seg['booking_order_id'] ?? '' }}"
+                                                            title="Full day"
+                                                            @php
+                                                                $bg = $seg['background'] ?? null; $style='';
+                                                                if($bg){ $style .= 'background:'.$bg.';'; }
+                                                            @endphp
+                                                            style="{{ $style }}">
+                                                        <div class="{{ $payClass }} cell-inner">
+                                                            {{ $seg['booking_order_id'] ?? '' }}
                                                         </div>
-                                                    @endforeach
-                                                </div>
-                                            </td>
-                                        @endif
-                                    @endif
+                                                    </td>
+                                                @else
+                                                    @if($hasMorning)
+                                                        @php $seg = $slotMorning[0]; $payClass = ((($seg['payment'] ?? '')==='lunas') ? 'pay-lunas' : 'pay-dp'); @endphp
+                                                        <td class="status-cell dash-booking-cell border-dark"
+                                                                data-tanggal="{{ $tanggal }}"
+                                                                data-kamar-id="{{ $kamar->id }}"
+                                                                data-booking-id="{{ $seg['booking_order_id'] ?? '' }}"
+                                                                title="Pagi"
+                                                                @php
+                                                                    $bg = $seg['background'] ?? null; $style='';
+                                                                    if($bg){ $style .= 'background:'.$bg.';'; }
+                                                                @endphp
+                                                                style="{{ $style }}">
+                                                            <div class="{{ $payClass }} cell-inner">
+                                                                {{ $seg['booking_order_id'] ?? '' }}
+                                                            </div>
+                                                        </td>
+                                                    @else
+                                                        <td class="status-cell status-kosong dash-booking-cell border-dark"
+                                                                data-tanggal="{{ $tanggal }}"
+                                                                data-kamar-id="{{ $kamar->id }}"
+                                                                data-booking-id=""
+                                                                title="Kosong pagi"></td>
+                                                    @endif
+                                                @endif
+                                            @endforeach
+                                        @endforeach
+                                        <td class="status-cell total-col border-dark">{{ $totalTerisi }}</td>
+                                    </tr>
+                                    <!-- Afternoon row -->
+                                    <tr class="day-row {{ $isWeekend ? 'weekend' : '' }} afternoon-row">
+                                        @foreach ($loopJenis as $jenis)
+                                            @foreach (($kamarGrouped[$jenis] ?? collect()) as $kamar)
+                                                @php
+                                                    $cell = $statusBooking[$tanggal][$kamar->id] ?? ['segments'=>[], 'occ'=>'empty'];
+                                                    $slotAfternoon = $cell['slot_afternoon'] ?? [];
+                                                @endphp
+                                                @if(!empty($mergedRooms[$kamar->id] ?? false))
+                                                    @continue
+                                                @endif
+                                                @if(!empty($slotAfternoon))
+                                                    @php $seg = $slotAfternoon[0]; $payClass = ((($seg['payment'] ?? '')==='lunas') ? 'pay-lunas' : 'pay-dp'); @endphp
+                                                    <td class="status-cell dash-booking-cell border-dark"
+                                                            data-tanggal="{{ $tanggal }}"
+                                                            data-kamar-id="{{ $kamar->id }}"
+                                                            data-booking-id="{{ $seg['booking_order_id'] ?? '' }}"
+                                                            title="Siang"
+                                                            @php
+                                                                $bg = $seg['background'] ?? null; $style='';
+                                                                if($bg){ $style .= 'background:'.$bg.';'; }
+                                                            @endphp
+                                                            style="{{ $style }}">
+                                                        <div class="{{ $payClass }} cell-inner">
+                                                            {{ $seg['booking_order_id'] ?? '' }}
+                                                        </div>
+                                                    </td>
+                                                @else
+                                                    <td class="status-cell status-kosong dash-booking-cell border-dark"
+                                                            data-tanggal="{{ $tanggal }}"
+                                                            data-kamar-id="{{ $kamar->id }}"
+                                                            data-booking-id=""
+                                                            title="Kosong siang"></td>
+                                                @endif
+                                            @endforeach
+                                        @endforeach
+                                        <td class="status-cell total-col border-dark"></td>
+                                    </tr>
                                 @endforeach
-                            @endforeach
-                            <td class="status-cell total-col">{{ $totalTerisi }}</td>
-                        </tr>
-                    @endforeach
-                    <tr class="total-row">
-                        <td colspan="{{ (isset($kamarList)?count($kamarList):0) + 1 }}">Total Kamar Terisi Bulan Ini</td>
-                        <td>{{ $totalKamarTerisiBulan }}</td>
-                    </tr>
-                </tbody>
-            </table>
+                                <tr class="total-row">
+                                    <td colspan="{{ (isset($kamarList)?count($kamarList):0) + 1 }}">Total Kamar Terisi Bulan Ini</td>
+                                    <td>{{ $totalKamarTerisiBulan }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
         </div>
       </div>
     </div>
         {{-- Modals for quick booking creation from dashboard --}}
         <style>
+            /* Dashboard table - refined look */
+            .table-dashboard { width: 100%; border-collapse: separate; border-spacing: 0; font-size: .88rem; table-layout: fixed; border: 2px solid #cbd5e1; }
+            .table-dashboard th, .table-dashboard td { vertical-align: middle; text-align: center; overflow: hidden; text-overflow: ellipsis; }
+            .table-dashboard thead th { background: #fff9db; color:#1f2937; font-weight:700; border-bottom: 3px solid rgba(245, 158, 11, .6); padding: 6px 4px; white-space: nowrap; border-right: 2px solid #f5d98b; }
+            .first-header .group-header { text-transform: uppercase; letter-spacing: .4px; font-size: .7rem; background: #fde68a; color:#7c2d12; border-right: 2px solid #f5d98b; }
+            .second-header th { font-size: .72rem; color:#7a3d00; background: #fff3bf; border-right: 2px solid #f5d98b; }
+            .table-dashboard tbody td { padding: 0; background:#fff; border-right: 2px solid #cbd5e1; border-bottom: 2px solid #cbd5e1; }
+            .table-dashboard tbody td.border-dark { border-right: 2px solid #343a40 !important; border-bottom: 2px solid #343a40 !important; }
+            .table-dashboard tbody tr:last-child td { border-bottom: 2px solid #cbd5e1; }
+            .day-row.morning-row td { box-shadow: none; }
+            .day-row.weekend td { background: #fbfbff; }
+            /* Column sizing */
+            .tanggal-head, .tanggal-cell { width: 130px; }
+            /* Ensure the first header cell ("Jenis Kamar") is a bit wider too */
+            .first-header .group-header:first-child { width: 130px; }
+            .total-col-head, .total-col { width: 96px; }
+            /* Row heights for tidy alignment */
+            .day-row.morning-row td, .day-row.afternoon-row td { height: 40px; }
+            .tanggal-cell { white-space: nowrap; text-align: left !important; padding: 6px 8px !important; border-right: 2px solid #e5e7eb; background: #f9fafb; }
+            .tanggal-cell .day-label { display:block; font-size: .95rem; font-weight: 800; color:#0f172a; line-height: 1.1; }
+            .tanggal-cell .day-name { display:block; font-size:.7rem; color:#64748b; margin-top:2px; }
+            .dash-booking-cell { position: relative; padding: 0; }
+            .dash-booking-cell.status-kosong { background: repeating-linear-gradient(45deg, #f7fafc, #f7fafc 10px, #f1f5f9 10px, #f1f5f9 20px); }
+            .dash-booking-cell:hover { outline: 2px solid rgba(13,110,253,.45); outline-offset: -2px; cursor: pointer; }
+            .cell-inner { width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-weight:700; border-radius: 0; margin: 0; text-shadow: inherit; transition: transform .08s ease-in-out; }
+            .dash-booking-cell:hover .cell-inner { transform: translateY(-1px); }
+            .pay-dp { color:#faed00; text-shadow:0 0 2px rgba(0,0,0,.6); }
+            .pay-lunas { color:#fff; text-shadow:0 0 3px rgba(0,0,0,.6); }
+            .total-col-head { background:#fff7ed !important; color:#7c2d12 !important; border-left: 2px solid #fde68a; }
+            .total-col { background:#fff7ed; color:#7c2d12; font-weight:800; }
+            .table-dashboard tbody tr:hover td { background-color: #fafbfd; }
+            .table-dashboard tbody tr:hover td.tanggal-cell { background-color: #f1f5f9; }
+            /* Legend */
+            .dash-legend { display:flex; align-items:center; gap: 12px; padding: 10px 0 8px; flex-wrap: wrap; }
+            .legend-title { font-weight: 700; color:#334155; margin-right: 6px; }
+            .legend-items { display:flex; align-items:center; gap: 10px; flex-wrap: wrap; }
+            .legend-item { display:flex; align-items:center; gap: 6px; color:#475569; font-size: .84rem; }
+            .legend-badge { background:#e2e8f0; color:#0f172a; font-weight:700; border-radius: 6px; padding: 2px 8px; font-size:.72rem; }
+            .legend-dot { display:inline-flex; align-items:center; justify-content:center; width: 28px; height: 22px; border-radius: 4px; background:#1f2937; color:#fff; font-weight:800; font-size:.72rem; }
+            .legend-note { color:#64748b; font-size:.8rem; }
+            .legend-sep { width:1px; height:18px; background:#e5e7eb; margin: 0 2px; }
+            .legend-color { display:inline-block; width:14px; height:14px; border-radius:3px; box-shadow: 0 0 0 1px rgba(0,0,0,.08) inset; }
+            .swatch-walkin { background:#dc3545; }
+            .swatch-traveloka { background:#0d6efd; }
+            .swatch-agent1 { background:#6f42c1; }
+            .swatch-agent2 { background:#198754; }
+            .swatch-cancel { background:#555; }
             .dash-modal-overlay {position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:1600;opacity:0;visibility:hidden;transition:.25s;}
             .dash-modal-overlay.show {opacity:1;visibility:visible;}
             .dash-modal {background:#fff;border-radius:14px;padding:20px 22px;width:100%;max-width:560px;box-shadow:0 18px 38px -12px rgba(0,0,0,.35);position:relative;transform:translateY(18px);opacity:.9;transition:.35s;}
@@ -402,7 +402,6 @@
                                 <option value="1">Dipesan</option>
                                 <option value="2">Check-In</option>
                                 <option value="3">Check-Out</option>
-                                <option value="4">Dibatalkan</option>
                             </select>
                         </div>
                         <div class="form-group half">

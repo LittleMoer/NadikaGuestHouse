@@ -51,12 +51,32 @@
             <p>Kamar</p>
           </a>
         </li>
+        <li class="nav-item {{ request()->is('cafe*') ? 'active' : '' }}">
+          <a href="/cafe">
+            <i class="fas fa-coffee"></i>
+            <p>Cafe</p>
+          </a>
+        </li>
+        <li class="nav-item {{ request()->is('cafeorders') ? 'active' : '' }}">
+          <a href="/cafeorders">
+            <i class="fas fa-receipt"></i>
+            <p>Orders Cafe</p>
+          </a>
+        </li>
+  @if(auth()->check() && auth()->user()->isOwner())
         <li class="nav-item {{ request()->is('rekap') ? 'active' : '' }}">
           <a href="/rekap">
             <i class="far fa-chart-bar"></i>
             <p>Rekap</p>
           </a>
         </li>
+        <li class="nav-item {{ request()->is('users*') ? 'active' : '' }}">
+          <a href="{{ route('users.index') }}">
+            <i class="fas fa-user-cog"></i>
+            <p>Manajemen Akun</p>
+          </a>
+        </li>
+        @endif
       </ul>
     </div>
   </div>
