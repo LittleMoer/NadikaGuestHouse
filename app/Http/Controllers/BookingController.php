@@ -494,11 +494,16 @@ class BookingController extends Controller
         $order = BookingOrder::with(['pelanggan','items.kamar','cafeOrders.items.product'])->findOrFail($id);
         $roomTotal = (float)($order->total_harga ?? 0);
         $cafeTotal = (float)($order->total_cafe ?? 0);
-        $grand = $roomTotal + $cafeTotal;
+        $diskon = (float)($order->diskon ?? 0);
+        $biayaLain = (float)($order->biaya_lain ?? 0);
+        $subtotal = $roomTotal + $cafeTotal;
+        $grand = $subtotal - $diskon + $biayaLain;
         return view('nota', [
             'order'=>$order,
             'roomTotal'=>$roomTotal,
             'cafeTotal'=>$cafeTotal,
+            'diskon'=>$diskon,
+            'biayaLain'=>$biayaLain,
             'grandTotal'=>$grand,
         ]);
     }
@@ -508,6 +513,13 @@ class BookingController extends Controller
     {
         $order = BookingOrder::with(['pelanggan','items.kamar'])->findOrFail($id);
         return view('nota_booking', ['order'=>$order]);
+    }
+
+    /** Generate printout for guest */
+    public function printout(Request $request, $id)
+    {
+        $order = BookingOrder::with(['pelanggan','items.kamar'])->findOrFail($id);
+        return view('booking_printout', ['order'=>$order]);
     }
 
     /** Editable invoice for cafe portion linked to a booking */

@@ -197,24 +197,28 @@
         {{-- Modals for quick booking creation from dashboard --}}
         <style>
             /* Dashboard table - refined look */
-            .table-dashboard { width: 100%; border-collapse: separate; border-spacing: 0; font-size: .88rem; table-layout: fixed; border: 2px solid #cbd5e1; }
+            .table-dashboard { width: 100%; border-collapse: separate; border-spacing: 0; font-size: .88rem; table-layout: fixed; border: 2px solid #000000; }
             .table-dashboard th, .table-dashboard td { vertical-align: middle; text-align: center; overflow: hidden; text-overflow: ellipsis; }
-            .table-dashboard thead th { background: #fff9db; color:#1f2937; font-weight:700; border-bottom: 3px solid rgba(245, 158, 11, .6); padding: 6px 4px; white-space: nowrap; border-right: 2px solid #f5d98b; }
-            .first-header .group-header { text-transform: uppercase; letter-spacing: .4px; font-size: .7rem; background: #fde68a; color:#7c2d12; border-right: 2px solid #f5d98b; }
-            .second-header th { font-size: .72rem; color:#7a3d00; background: #fff3bf; border-right: 2px solid #f5d98b; }
-            .table-dashboard tbody td { padding: 0; background:#fff; border-right: 2px solid #cbd5e1; border-bottom: 2px solid #cbd5e1; }
-            .table-dashboard tbody td.border-dark { border-right: 2px solid #343a40 !important; border-bottom: 2px solid #343a40 !important; }
-            .table-dashboard tbody tr:last-child td { border-bottom: 2px solid #cbd5e1; }
+            .table-dashboard thead th { background: #fff9db; color:#1f2937; font-weight:700; border-bottom: 3px solid rgba(0, 0, 0, .6); padding: 6px 4px; white-space: nowrap; border-right: 2px solid #000000; border-left: 2px solid #000000; }
+            .table-dashboard thead th:first-child { border: 2px solid #000000; }
+            .first-header .group-header { text-transform: uppercase; letter-spacing: .4px; font-size: .7rem; background: #fde68a; color:#7c2d12; border: 1px solid #000000 !important; }
+            .first-header .group-header:first-child { border: 1px solid #000000 !important; }
+            .second-header th { font-size: .72rem; color:#7a3d00; background: #fff3bf; border: 1px solid #000000 !important; }
+            .second-header th:first-child { border: 1px solid #000000 !important; }
+            .table-dashboard tbody td { padding: 0; background:#fff; border-right: 2px solid #000000; border-bottom: 2px solid #000000; }
+            .table-dashboard tbody td.border-dark { border-right: 2px solid #000000 !important; border-bottom: 2px solid #000000 !important; }
+            .table-dashboard tbody tr:last-child td { border-bottom: 2px solid #000000; }
             .day-row.morning-row td { box-shadow: none; }
             .day-row.weekend td { background: #fbfbff; }
             /* Column sizing */
             .tanggal-head, .tanggal-cell { width: 130px; }
+            .tanggal-head { border: 2px solid #000000 !important; }
             /* Ensure the first header cell ("Jenis Kamar") is a bit wider too */
             .first-header .group-header:first-child { width: 130px; }
             .total-col-head, .total-col { width: 96px; }
             /* Row heights for tidy alignment */
             .day-row.morning-row td, .day-row.afternoon-row td { height: 40px; }
-            .tanggal-cell { white-space: nowrap; text-align: left !important; padding: 6px 8px !important; border-right: 2px solid #e5e7eb; background: #f9fafb; }
+            .tanggal-cell { white-space: nowrap; text-align: left !important; padding: 6px 8px !important;  border: 2px solid #000000; background: #f9fafb; }
             .tanggal-cell .day-label { display:block; font-size: .95rem; font-weight: 800; color:#0f172a; line-height: 1.1; }
             .tanggal-cell .day-name { display:block; font-size:.7rem; color:#64748b; margin-top:2px; }
             .dash-booking-cell { position: relative; padding: 0; }
@@ -224,7 +228,7 @@
             .dash-booking-cell:hover .cell-inner { transform: translateY(-1px); }
             .pay-dp { color:#faed00; text-shadow:0 0 2px rgba(0,0,0,.6); }
             .pay-lunas { color:#fff; text-shadow:0 0 3px rgba(0,0,0,.6); }
-            .total-col-head { background:#fff7ed !important; color:#7c2d12 !important; border-left: 2px solid #fde68a; }
+            .total-col-head { background:#fff7ed !important; color:#7c2d12 !important; border: 1px solid #000000 !important; }
             .total-col { background:#fff7ed; color:#7c2d12; font-weight:800; }
             .table-dashboard tbody tr:hover td { background-color: #fafbfd; }
             .table-dashboard tbody tr:hover td.tanggal-cell { background-color: #f1f5f9; }
@@ -270,6 +274,17 @@
             .mini-badge {background:#0d6efd;color:#fff;font-size:.65rem;padding:2px 6px;border-radius:12px;margin-left:6px;text-transform:uppercase;letter-spacing:.5px;}
             .scroll-area {max-height:240px;overflow:auto;padding-right:4px;}
             .error-text {color:#dc2626;font-size:.7rem;margin-top:2px;}
+            /* Uniform border for each date row */
+            .table-dashboard tbody tr.day-row td {
+                border-top: 1px solid #0066ffff !important;
+                border-bottom: 1px solid #0066ffff !important;
+            }
+            .table-dashboard tbody tr.day-row td:first-child {
+                border-left: 1px solid #0066ffff !important;
+            }
+            .table-dashboard tbody tr.day-row td:last-child {
+                border-right: 1px solid #0066ffff !important;
+            }
         </style>
         <div id="modalSelectPelanggan" class="dash-modal-overlay" aria-hidden="true">
             <div class="dash-modal">

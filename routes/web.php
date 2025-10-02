@@ -24,7 +24,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/booking/{id}/prices', [BookingController::class, 'updatePrices'])->name('booking.prices');
     Route::post('/booking/{id}/payment', [BookingController::class, 'updatePaymentStatus'])->name('booking.payment');
     Route::get('/booking/{id}/nota', [BookingController::class, 'printNota'])->name('booking.nota');
-    Route::get('/booking/{id}/nota-booking', [BookingController::class, 'notaBooking'])->name('booking.nota.booking');
+    Route::get('/booking/{id}/printout', [BookingController::class, 'printout'])->name('booking.printout');
     Route::get('/booking/{id}/nota-cafe', [BookingController::class, 'notaCafe'])->name('booking.nota.cafe');
     Route::delete('/booking/{id}', [BookingController::class, 'destroy'])->name('booking.destroy');
     // Cafe module

@@ -123,15 +123,14 @@
                                 </table>
                             </div>
                         </div>
-                        <div class="mt-3" id="bd_other_orders_wrap" style="display:none;">
-                            <h6 class="mb-1" style="font-size:.75rem;font-weight:700;letter-spacing:.5px;">RIWAYAT LAIN (10 Terbaru)</h6>
-                            <div class="table-responsive" style="max-height:140px;overflow:auto;border:1px solid #eee;">
-                                <table class="table table-sm mb-0" style="font-size:.65rem;">
-                                    <thead class="table-light"><tr><th>ID</th><th>Check-In</th><th>Check-Out</th><th>Status</th><th class="text-end">Total</th></tr></thead>
-                                    <tbody id="bd_other_orders_body"><tr><td colspan="5" class="text-center">-</td></tr></tbody>
+                        <!-- <div class="mt-3">
+                            <h6 class="mb-1" style="font-size:.75rem;font-weight:700;letter-spacing:.5px;">RIWAYAT BOOKING</h6>
+                            <div class="table-responsive" style="max-height:150px;overflow:auto;border:1px solid #eee;">
+                                <table class="table table-sm mb-0" style="font-size:.7rem;">
+                                    <thead class="table-light"><tr><th>Tanggal</th><th>Status</th><th>Pembayaran</th><th>Catatan</th></tr></thead>
+                                    <tbody id="bd_other_orders_body"><tr><td colspan="4" class="text-center">-</td></tr></tbody>
                                 </table>
-                            </div>
-                        </div>
+                            </div> -->
                         <hr class="my-2">
                         <form id="formEditOrder" style="display:none;">
                             @csrf
@@ -295,10 +294,19 @@
                 }
                 // Toggle payment only
                 btn(meta.payment==='lunas'?'Set DP':'Set Lunas', meta.payment==='lunas'?'btn-warning':'btn-success', ()=> quickTogglePayment(data.id, meta.payment==='lunas'?'dp':'lunas'));
-                // Nota editable (booking & cafe) + versi ringkas total
-                btn('Nota Booking (Edit)', 'btn-outline-primary', ()=> { window.open(`{{ url('/booking') }}/${data.id}/nota-booking`, '_blank'); });
-                btn('Nota Cafe (Edit)', 'btn-outline-success', ()=> { window.open(`{{ url('/booking') }}/${data.id}/nota-cafe`, '_blank'); });
-                btn('Print Nota (Ringkas)', 'btn-primary', ()=> { window.open(`{{ url('/booking') }}/${data.id}/nota`, '_blank'); });
+                // Print buttons with direct print dialog
+                btn('Print Out', 'btn-info', ()=> { 
+                    const w = window.open(`{{ url('/booking') }}/${data.id}/printout`, '_blank');
+                    if (w) w.onload = () => w.print();
+                });
+                btn('Print Nota', 'btn-primary', ()=> { 
+                    const w = window.open(`{{ url('/booking') }}/${data.id}/nota`, '_blank');
+                    if (w) w.onload = () => w.print();
+                });
+                btn('Print Nota Cafe', 'btn-success', ()=> { 
+                    const w = window.open(`{{ url('/booking') }}/${data.id}/nota-cafe`, '_blank');
+                    if (w) w.onload = () => w.print();
+                });
             }
             function renderBasic(data){
                 safe(EL.id, data.id); safe(EL.status, data.status_label); safe(EL.nama, data.pelanggan?.nama||'-'); safe(EL.telepon, data.pelanggan?.telepon||'-');
