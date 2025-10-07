@@ -74,7 +74,7 @@
           <div class="card-header">Total & Pembayaran</div>
           <div class="card-body">
             @php
-              $roomTotal = (int)($order->total_harga ?? 0);
+              $roomTotal = (int)($order->items->sum('subtotal') ?? ($order->total_harga ?? 0));
               $cafeTotal = (int)($order->total_cafe ?? 0);
               $diskon    = (int)($order->diskon ?? 0);
               $biayaLain = (int)($order->biaya_tambahan ?? 0);

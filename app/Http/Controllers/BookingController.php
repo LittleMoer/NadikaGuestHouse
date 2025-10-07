@@ -202,12 +202,15 @@ class BookingController extends Controller
         ]);
 
         foreach($kamarList as $k){
+            $subtotal = $days * (int)$k->harga;
+            // Apply half-day adjustment to item subtotal as well when duration <= 6 hours
+            if ($diffHours <= 6) { $subtotal = (int) round($subtotal * 0.5); }
             BookingOrderItem::create([
                 'booking_order_id' => $order->id,
                 'kamar_id' => $k->id,
                 'malam' => $days,
                 'harga_per_malam' => (int)$k->harga,
-                'subtotal' => $days * (int)$k->harga,
+                'subtotal' => $subtotal,
             ]);
             // Room status update removed
         }
@@ -294,6 +297,13 @@ class BookingController extends Controller
         $order = BookingOrder::with(['pelanggan','items.kamar'])->findOrFail($id);
         if($request->wantsJson()){
             $meta = $order->status_meta; // new unified meta
+            // Use authoritative totals from order (already includes discounts/half-day/per-head)
+            $roomTotal = (int)($order->total_harga ?? 0);
+            $cafeTotal = (int)($order->total_cafe ?? 0);
+            $diskon = (int)($order->diskon ?? 0);
+            $biayaTambahan = (int)($order->biaya_tambahan ?? 0);
+            // Avoid double-subtracting discount: total_harga is AFTER discounts
+            $grand = max(0, $roomTotal + $cafeTotal + $biayaTambahan);
             // Riwayat lain pelanggan (maks 10 terbaru) kecuali order ini
             $other = collect();
             if($order->pelanggan_id){
@@ -338,10 +348,11 @@ class BookingController extends Controller
                 'payment_status'=>$order->payment_status,
                 'pemesanan'=>$order->pemesanan,
                 'catatan'=>$order->catatan,
-                'total_harga'=>$order->total_harga,
-                'total_cafe'=>$order->total_cafe ?? 0,
-                'biaya_tambahan'=>$order->biaya_tambahan ?? 0,
-                'grand_total'=>(($order->total_harga) + ($order->total_cafe ?? 0)) - ($order->diskon ?? 0) + ($order->biaya_tambahan ?? 0),
+                'total_harga'=>$roomTotal,
+                'total_cafe'=>$cafeTotal,
+                'biaya_tambahan'=>$biayaTambahan,
+                'diskon'=>$diskon,
+                'grand_total'=>$grand,
                 'total_kamar'=>$order->items->count(),
                 'total_malam'=>$order->items->first()?->malam ?? 0,
                 'items'=>$order->items->map(function($it){
@@ -424,10 +435,14 @@ class BookingController extends Controller
             $it->save();
             $base += $it->subtotal;
         }
-        // Apply automatic half-day adjustment first if duration <= 6 hours
+        // Apply automatic half-day adjustment to both base and each item if duration <= 6 hours
         $diffHours = $end->diffInHours($start);
         if ($diffHours <= 6) {
             $base = (int) round($base * 0.5);
+            foreach($order->items as $it){
+                $it->subtotal = (int) round($it->subtotal * 0.5);
+                $it->save();
+            }
         }
         // Do not apply extra_time multipliers to price; only date adjusted above
         // Per-head

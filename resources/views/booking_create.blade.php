@@ -113,6 +113,37 @@
                         });
                     });
                 });
+
+                // Durasi (Hari) selector -> sets times to slot system
+                (function(){
+                    const sel = document.getElementById('durasi_hari');
+                    if(!sel) return;
+                    const inpIn = document.querySelector('input[name="tanggal_checkin"][type="datetime-local"]');
+                    const inpOut = document.querySelector('input[name="tanggal_checkout"][type="datetime-local"]');
+                    const pad = n => (n<10? '0'+n : ''+n);
+                    const setLocal = (d)=> `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                    sel.addEventListener('change', function(){
+                        if(!inpIn || !inpOut) return;
+                        const val = this.value;
+                        if(!val) return;
+                        const num = parseFloat(val);
+                        const base = inpIn.value ? new Date(inpIn.value) : new Date();
+                        // Normalize start base: for 0.5 day use 06:00; otherwise start at 12:00
+                        let start;
+                        if(num === 0.5){
+                            start = new Date(base.getFullYear(), base.getMonth(), base.getDate(), 6, 0, 0, 0);
+                            var end = new Date(base.getFullYear(), base.getMonth(), base.getDate(), 12, 0, 0, 0);
+                        } else {
+                            start = new Date(base.getFullYear(), base.getMonth(), base.getDate(), 12, 0, 0, 0);
+                            const fullDays = Math.floor(num);
+                            const hasHalf = (num - fullDays) >= 0.5;
+                            const hoursToAdd = fullDays * 24 + (hasHalf ? 6 : 24); // 1 day = +24h; 1.5 day adds +30h total (24 + 6)
+                            var end = new Date(start.getTime() + hoursToAdd * 60 * 60 * 1000);
+                        }
+                        inpIn.value = setLocal(start);
+                        inpOut.value = setLocal(end);
+                    });
+                })();
             });
         </script>
 
@@ -162,6 +193,18 @@
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Check-Out</label>
                             <input type="datetime-local" name="tanggal_checkout" value="{{ old('tanggal_checkout', request('tanggal_checkout')) }}" class="form-control" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Durasi (Hari)</label>
+                            <select id="durasi_hari" class="form-control">
+                                <option value="">- Pilih -</option>
+                                <option value="0.5">0.5 hari (06:00 - 12:00)</option>
+                                <option value="1">1 hari (12:00 - 12:00 esok)</option>
+                                <option value="1.5">1.5 hari (12:00 - 18:00 esok)</option>
+                                <option value="2">2 hari</option>
+                                <option value="3">3 hari</option>
+                            </select>
+                            <small class="text-muted">Waktu otomatis mengikuti slot Pagi 06-12 dan Siang 12-18.</small>
                         </div>
                         <div class="col-md-4 mb-3">
                             <label class="form-label">Jumlah Tamu</label>

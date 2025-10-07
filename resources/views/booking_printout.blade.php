@@ -163,9 +163,10 @@
             })->join(', ') }}
           </div>
         </div>
+        @php $roomTotal = (int) (collect($order->items)->sum('subtotal') ?? ($order->total_harga ?? 0)); @endphp
         <div class="info-row">
           <div class="info-label">Total Harga Booking</div>
-          <div>: Rp {{ number_format($order->total_harga ?? 0, 0, ',', '.') }}</div>
+          <div>: Rp {{ number_format($roomTotal, 0, ',', '.') }}</div>
         </div>
       </div>
     </div>

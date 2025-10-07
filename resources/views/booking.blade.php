@@ -47,8 +47,8 @@
                 <tbody>
                 @forelse($orders as $order)
                     @php $meta = $order->status_meta; $channelLabelMap=['walkin'=>'Walk-In','agent1'=>'Agent 1','agent2'=>'Agent 2','traveloka'=>'Traveloka','cancel'=>'-']; $channelLabel=$channelLabelMap[$meta['channel']] ?? ucfirst($meta['channel']); @endphp
-                    <tr data-booking-id="{{ $order->id }}" data-show-url="{{ route('booking.show',$order->id) }}" data-payment="{{ $meta['payment'] }}" data-channel="{{ $meta['channel'] }}">
-                        <td style="font-weight:700;color:{{ $meta['payment']==='dp'?'#faed00':'#fff' }};text-shadow:{{ $meta['payment']==='lunas'?'0 0 3px rgba(0,0,0,.6)':'none' }}">#{{ $order->order_code }}</td>
+                    <tr data-booking-id="{{ $order->id }}" data-show-url="{{ route('booking.show',$order->id) }}" data-payment="{{ $meta['payment'] }}" data-channel="{{ $meta['channel'] }}" style="background-color:#f5f5f5;color:black">
+                        <td class="id-stroke" style="font-weight:700;color:{{ $meta['payment']==='dp'?'#faed00':'#fff' }};text-shadow:{{ $meta['payment']==='lunas'?'0 0 3px rgba(0,0,0,.6)':'none' }}">#{{ $order->order_code }}</td>
                         <td>
                             <span class="badge" style="background:{{ $meta['background'] }};color:{{ $meta['text_color'] }};min-width:90px;display:inline-block;">{{ $meta['label'] }}</span>
                         </td>
@@ -92,6 +92,8 @@
             #bd_items_body tr:hover{background:#fafafa;}
             #bd_other_orders_body tr:hover{background:#f5f5f5;}
             #bd_other_orders_body tr.history-active{background:#d9edf7 !important;}
+            /* Stroke for ID column text */
+            .id-stroke{ -webkit-text-stroke:1px #000; text-stroke:1px #000; paint-order:stroke fill; }
         </style>
         <div class="modal fade" id="bookingDetailModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-lg modal-dialog-scrollable">
