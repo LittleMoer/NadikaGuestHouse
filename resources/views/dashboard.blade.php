@@ -102,7 +102,7 @@
                                                         $mergedRooms[$kamar->id] = true; 
                                                         $payClass = ((($seg['payment'] ?? '')==='lunas') ? 'pay-lunas' : 'pay-dp');
                                                     @endphp
-                                                    <td class="status-cell dash-booking-cell border-dark" rowspan="2"
+                                                    <td class="status-cell dash-booking-cell border-dark" rowspan="2" data-status="{{ $seg['status'] ?? '' }}"
                                                             data-tanggal="{{ $tanggal }}"
                                                             data-kamar-id="{{ $kamar->id }}"
                                                             data-booking-id="{{ $seg['booking_order_id'] ?? '' }}"
@@ -129,7 +129,7 @@
                                                                     if($bg){ $style .= 'background:'.$bg.';'; }
                                                                 @endphp
                                                                 style="{{ $style }}">
-                                                            <div class="{{ $payClass }} cell-inner">
+                                                            <div class="{{ $payClass }} cell-inner" data-status="{{ $seg['status'] ?? '' }}">
                                                                 {{ $seg['booking_order_id'] ?? '' }}
                                                             </div>
                                                         </td>
@@ -205,11 +205,12 @@
             .first-header .group-header:first-child { border: 1px solid #000000 !important; }
             .second-header th { font-size: .72rem; color:#7a3d00; background: #fff3bf; border: 1px solid #000000 !important; }
             .second-header th:first-child { border: 1px solid #000000 !important; }
-            .table-dashboard tbody td { padding: 0; background:#fff; border-right: 2px solid #000000; border-bottom: 2px solid #000000; }
+            .table-dashboard tbody td { padding: 0; border-right: 2px solid #000000; border-bottom: 2px solid #000000; }
+            .dash-booking-cell:not(.status-kosong) { background: #1f1f1f; }
             .table-dashboard tbody td.border-dark { border-right: 2px solid #000000 !important; border-bottom: 2px solid #000000 !important; }
             .table-dashboard tbody tr:last-child td { border-bottom: 2px solid #000000; }
             .day-row.morning-row td { box-shadow: none; }
-            .day-row.weekend td { background: #fbfbff; }
+            .day-row.weekend .status-kosong { background: #fbfbff; }
             /* Column sizing */
             .tanggal-head, .tanggal-cell { width: 130px; }
             .tanggal-head { border: 2px solid #000000 !important; }
@@ -222,15 +223,36 @@
             .tanggal-cell .day-label { display:block; font-size: .95rem; font-weight: 800; color:#0f172a; line-height: 1.1; }
             .tanggal-cell .day-name { display:block; font-size:.7rem; color:#64748b; margin-top:2px; }
             .dash-booking-cell { position: relative; padding: 0; }
-            .dash-booking-cell.status-kosong { background: repeating-linear-gradient(45deg, #f7fafc, #f7fafc 10px, #f1f5f9 10px, #f1f5f9 20px); }
+            .dash-booking-cell.status-kosong { background: #ffffff; }
             .dash-booking-cell:hover { outline: 2px solid rgba(13,110,253,.45); outline-offset: -2px; cursor: pointer; }
             .cell-inner { width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-weight:700; border-radius: 0; margin: 0; text-shadow: inherit; transition: transform .08s ease-in-out; }
             .dash-booking-cell:hover .cell-inner { transform: translateY(-1px); }
-            .pay-dp { color:#faed00; text-shadow:0 0 2px rgba(0,0,0,.6); }
-            .pay-lunas { color:#fff; text-shadow:0 0 3px rgba(0,0,0,.6); }
+            /* Status colors for booking cells */
+            .dash-booking-cell[data-status='1'] { background: #1f1f1f; }
+            .dash-booking-cell[data-status='1'] .cell-inner { 
+                color: #000000; 
+                text-shadow: 0 0 2px rgba(255,255,255,.8); 
+            } /* Dipesan */
+            
+            .dash-booking-cell[data-status='2'] { background: #1f1f1f; }
+            .dash-booking-cell[data-status='2'] .cell-inner { 
+                color: #faed00; 
+                text-shadow: 0 0 2px rgba(0,0,0,.6); 
+            } /* Check-in */
+            
+            .dash-booking-cell[data-status='3'] { background: #1f1f1f; }
+            .dash-booking-cell[data-status='3'] .cell-inner { 
+                color: #ffffff; 
+                text-shadow: 0 0 2px rgba(0,0,0,.6); 
+            } /* Check-out */
+            
+            /* Override untuk sel kosong */
+            .dash-booking-cell.status-kosong {
+                background: #ffffff;
+            }
             .total-col-head { background:#fff7ed !important; color:#7c2d12 !important; border: 1px solid #000000 !important; }
             .total-col { background:#fff7ed; color:#7c2d12; font-weight:800; }
-            .table-dashboard tbody tr:hover td { background-color: #fafbfd; }
+            .table-dashboard tbody tr:hover td.status-kosong { background-color: #fafbfd; }
             .table-dashboard tbody tr:hover td.tanggal-cell { background-color: #f1f5f9; }
             /* Legend */
             .dash-legend { display:flex; align-items:center; gap: 12px; padding: 10px 0 8px; flex-wrap: wrap; }
@@ -289,23 +311,28 @@
         
         <script>
             (function(){
-                // Click empty/any cell to prefill booking form with kamar & tanggal
-                document.querySelectorAll('.dash-booking-cell').forEach(td=>{
-                    td.addEventListener('click', ()=> {
+                // Handle click on booking cells
+                document.querySelectorAll('.dash-booking-cell').forEach(td => {
+                    td.addEventListener('click', () => {
+                        const bookingId = td.getAttribute('data-booking-id');
                         const kamarId = td.getAttribute('data-kamar-id');
                         const tanggal = td.getAttribute('data-tanggal'); // format YYYY-MM-DD
-                        // Determine slot based on row class (morning/afternoon)
                         const isMorning = td.parentElement?.classList.contains('morning-row');
-                        // Morning: 06:00 - 12:00 (same day)
-                        // Afternoon: 12:00 - 23:59 (same day)
+
+                        // Jika ada booking ID, arahkan ke halaman detail booking
+                        if (bookingId) {
+                            // Format URL untuk booking detail dengan ID yang benar
+                            window.location.href = `{{ url('/booking') }}?booking_id=${bookingId}`;
+                            return;
+                        }
+
+                        // Jika sel kosong, arahkan ke form pembuatan booking baru
                         const checkin = `${tanggal}T${isMorning ? '06:00' : '12:00'}`;
                         const checkout = `${tanggal}T${isMorning ? '12:00' : '23:59'}`;
-
                         const params = new URLSearchParams();
                         if (kamarId) { params.append('kamar_ids[]', kamarId); }
                         params.set('tanggal_checkin', checkin);
                         params.set('tanggal_checkout', checkout);
-                        // optional sensible defaults
                         params.set('pemesanan', '0'); // walk-in
                         params.set('jumlah_tamu', '1');
 

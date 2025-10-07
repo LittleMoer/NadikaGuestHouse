@@ -298,6 +298,12 @@
                 function btn(label, variant, handler){
                     const b=document.createElement('button'); b.type='button'; b.className='btn btn-sm '+variant; b.textContent=label; b.addEventListener('click', handler); EL.actions.appendChild(b);
                 }
+
+                // Add Checkout button if status is 2 (check-in)
+                if (parseInt(data.status) === 2) {
+                    btn('Check-out', 'btn-danger', () => quickUpdateLifecycle(data.id, 3));
+                }
+
                 // Toggle payment only
                 btn(meta.payment==='lunas'?'Set DP':'Set Lunas', meta.payment==='lunas'?'btn-warning':'btn-success', ()=> quickTogglePayment(data.id, meta.payment==='lunas'?'dp':'lunas'));
                 // Print buttons with direct print dialog
@@ -350,7 +356,28 @@
             // ================== FILL DETAIL ==================
             async function showDetail(tr){
                 openModal();
-                try{ const data = await fetchDetail(tr); renderBasic(data); renderItems(data.items); renderHistory(data.other_orders); renderActions(data); attachDynamicHandlers(data, tr); }
+                try{ 
+                    const data = await fetchDetail(tr); 
+                    renderBasic(data); 
+                    renderItems(data.items); 
+                    renderHistory(data.other_orders); 
+                    renderActions(data); 
+                    attachDynamicHandlers(data, tr);
+                    
+                    // Update row display in the table
+                    if(tr && data.status_meta){
+                        // Update status badge in the table
+                        const statusCell = tr.querySelector('td:nth-child(2)');
+                        if(statusCell){
+                            const badge = statusCell.querySelector('.badge');
+                            if(badge){
+                                badge.style.background = data.status_meta.background || '';
+                                badge.style.color = data.status_meta.text_color || '';
+                                badge.textContent = data.status_meta.label || '';
+                            }
+                        }
+                    }
+                }
                 catch(e){ console.error(e); alert('Gagal memuat detail: '+e.message); }
             }
 
@@ -390,7 +417,7 @@
                     })
                     .catch(()=> alert('Gagal koneksi status'));
             }
-            function quickUpdateLifecycle(id, newStatus){
+            async function quickUpdateLifecycle(id, newStatus){
                 const fd = new FormData();
                 fd.append('tanggal_checkin', EL.editCheckin.value || new Date().toISOString());
                 fd.append('tanggal_checkout', EL.editCheckout.value || new Date(Date.now()+86400000).toISOString());
@@ -400,17 +427,52 @@
                 fd.append('status', newStatus);
                 if(document.getElementById('edit_payment_status')?.value){ fd.append('payment_status', document.getElementById('edit_payment_status').value); }
                 if(document.getElementById('edit_dp_percentage')?.value){ fd.append('dp_percentage', document.getElementById('edit_dp_percentage').value); }
-                fetch(`{{ url('/booking') }}/${id}/update`,{
-                        method:'POST',
-                        headers:{
-                            'Accept':'application/json',
-                            'X-Requested-With':'XMLHttpRequest',
+                
+                try {
+                    const response = await fetch(`{{ url('/booking') }}/${id}/update`, {
+                        method: 'POST',
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
                             'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]')?.content || ''
                         },
-                        body:fd
-                    })
-                    .then(r=>r.json()).then(j=>{ if(!j.success){ alert(j.message||'Gagal ubah status'); return; } const row=document.querySelector(`#tabel-booking tbody tr[data-booking-id='${id}']`); if(row){ showDetail(row); } })
-                    .catch(()=> alert('Gagal koneksi status'));
+                        body: fd
+                    });
+
+                    const result = await response.json();
+                    if (!result.success) {
+                        alert(result.message || 'Gagal ubah status');
+                        return;
+                    }
+
+                    // Update dashboard cell if exists
+                    const dashCell = document.querySelector(`.dash-booking-cell[data-booking-id='${id}']`);
+                    if (dashCell) {
+                        dashCell.setAttribute('data-status', newStatus);
+                    }
+
+                    // Update booking table row if exists
+                    const tableRow = document.querySelector(`#tabel-booking tbody tr[data-booking-id='${id}']`);
+                    if (tableRow) {
+                        await showDetail(tableRow);
+
+                        // Close modal after status update if we're in dashboard view
+                        if (window.location.pathname.includes('/dashboard')) {
+                            if (window.bootstrap?.Modal) {
+                                const modal = bootstrap.Modal.getInstance(document.getElementById('bookingDetailModal'));
+                                if (modal) modal.hide();
+                            }
+                        }
+                    }
+
+                    // Refresh page if we're in dashboard view to ensure all states are correct
+                    if (window.location.pathname.includes('/dashboard')) {
+                        window.location.reload();
+                    }
+                } catch (error) {
+                    console.error('Update failed:', error);
+                    alert('Gagal mengupdate status booking');
+                }
             }
 
             function refreshRowFromStatus(row, bookingJson){
