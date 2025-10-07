@@ -91,7 +91,17 @@
                     </div>
                     <div class="mb-3">
                         <label class="block mb-1 font-medium">Tipe</label>
-                        <input type="text" name="tipe" class="form-control" value="{{ old('tipe') }}" required>
+                        <select id="create_tipe_select" class="form-control">
+                            @php $tipeOld = old('tipe'); @endphp
+                            <option value="Standard" {{ ($tipeOld==='Standard') ? 'selected' : '' }}>Standard</option>
+                            <option value="Standard Eco" {{ ($tipeOld==='Standard Eco') ? 'selected' : '' }}>Standard Eco</option>
+                            <option value="Twin" {{ ($tipeOld==='Twin') ? 'selected' : '' }}>Twin</option>
+                            <option value="Deluxe" {{ ($tipeOld==='Deluxe') ? 'selected' : '' }}>Deluxe</option>
+                            <option value="Suite" {{ ($tipeOld==='Suite') ? 'selected' : '' }}>Suite</option>
+                            <option value="LAIN" {{ ($tipeOld && !in_array($tipeOld,['Standard','Standard Eco','Twin','Deluxe','Suite'])) ? 'selected' : '' }}>Lain</option>
+                        </select>
+                        <input type="text" id="create_tipe_lain" class="form-control mt-2" placeholder="Tipe kamar lainnya" value="{{ ( $tipeOld && !in_array($tipeOld,['Standard','Standard Eco','Twin','Deluxe','Suite']) ) ? $tipeOld : '' }}" style="display:none;">
+                        <input type="hidden" name="tipe" id="create_tipe" value="{{ old('tipe','Standard') }}">
                     </div>
                     <div class="mb-3">
                         <label class="block mb-1 font-medium">Kapasitas</label>
@@ -138,7 +148,17 @@
                     </div>
                     <div class="mb-3">
                         <label class="block mb-1 font-medium">Tipe</label>
-                        <input type="text" name="tipe" id="edit_tipe" class="form-control" value="{{ old('tipe') }}" required>
+                        <select id="edit_tipe_select" class="form-control">
+                            @php $tipeOldEdit = old('tipe'); @endphp
+                            <option value="Standard" {{ ($tipeOldEdit==='Standard') ? 'selected' : '' }}>Standard</option>
+                            <option value="Standard Eco" {{ ($tipeOldEdit==='Standard Eco') ? 'selected' : '' }}>Standard Eco</option>
+                            <option value="Twin" {{ ($tipeOldEdit==='Twin') ? 'selected' : '' }}>Twin</option>
+                            <option value="Deluxe" {{ ($tipeOldEdit==='Deluxe') ? 'selected' : '' }}>Deluxe</option>
+                            <option value="Suite" {{ ($tipeOldEdit==='Suite') ? 'selected' : '' }}>Suite</option>
+                            <option value="LAIN" {{ ($tipeOldEdit && !in_array($tipeOldEdit,['Standard','Standard Eco','Twin','Deluxe','Suite'])) ? 'selected' : '' }}>Lain</option>
+                        </select>
+                        <input type="text" id="edit_tipe_lain" class="form-control mt-2" placeholder="Tipe kamar lainnya" value="{{ ($tipeOldEdit && !in_array($tipeOldEdit,['Standard','Standard Eco','Twin','Deluxe','Suite'])) ? $tipeOldEdit : '' }}" style="display:none;">
+                        <input type="hidden" name="tipe" id="edit_tipe" value="{{ old('tipe') }}">
                     </div>
                     <div class="mb-3">
                         <label class="block mb-1 font-medium">Kapasitas</label>
@@ -194,7 +214,9 @@
             const actionBase = form ? form.getAttribute('data-action-base') : '';
             const idInput = document.getElementById('kamar_edit_id');
             const nomorKamar = document.getElementById('edit_nomor_kamar');
-            const tipe = document.getElementById('edit_tipe');
+            const tipeHiddenEdit = document.getElementById('edit_tipe');
+            const tipeSelectEdit = document.getElementById('edit_tipe_select');
+            const tipeLainEdit = document.getElementById('edit_tipe_lain');
             const kapasitas = document.getElementById('edit_kapasitas');
             const harga = document.getElementById('edit_harga');
             const status = document.getElementById('edit_status');
@@ -208,7 +230,17 @@
                     const id = this.getAttribute('data-id');
                     if (idInput) idInput.value = id || '';
                     if (nomorKamar) nomorKamar.value = this.getAttribute('data-nomor_kamar') || '';
-                    if (tipe) tipe.value = this.getAttribute('data-tipe') || '';
+                    // Set tipe to select or custom
+                    const tipeVal = this.getAttribute('data-tipe') || '';
+                    if (['Standard','Standard Eco','Twin','Deluxe','Suite'].includes(tipeVal)){
+                        if (tipeSelectEdit) tipeSelectEdit.value = tipeVal;
+                        if (tipeLainEdit) { tipeLainEdit.style.display='none'; tipeLainEdit.value=''; }
+                        if (tipeHiddenEdit) tipeHiddenEdit.value = tipeVal;
+                    } else {
+                        if (tipeSelectEdit) tipeSelectEdit.value = 'LAIN';
+                        if (tipeLainEdit) { tipeLainEdit.style.display='block'; tipeLainEdit.value = tipeVal; }
+                        if (tipeHiddenEdit) tipeHiddenEdit.value = tipeVal;
+                    }
                     if (kapasitas) kapasitas.value = this.getAttribute('data-kapasitas') || '';
                     if (harga) harga.value = this.getAttribute('data-harga') || '';
                     if (status) status.value = (this.getAttribute('data-status') || '').toString();
@@ -242,6 +274,9 @@
             const openCreateBtn = document.getElementById('btnTambahKamar');
             const closeCreateBtn = document.getElementById('closeModalCreateKamar');
             const cancelCreateBtn = document.getElementById('batalModalCreateKamar');
+            const tipeSelectCreate = document.getElementById('create_tipe_select');
+            const tipeLainCreate = document.getElementById('create_tipe_lain');
+            const tipeHiddenCreate = document.getElementById('create_tipe');
             function openCreate(){ if (createModal) { createModal.classList.add('show'); createModal.setAttribute('aria-hidden','false'); } }
             function closeCreate(){ if (createModal) { createModal.classList.remove('show'); createModal.setAttribute('aria-hidden','true'); } }
             openCreateBtn && openCreateBtn.addEventListener('click', openCreate);
@@ -252,6 +287,40 @@
             @if ($errors->any())
                 openCreate();
             @endif
+
+            // Sync tipe (Create)
+            function syncCreateTipe(){
+                if (!tipeSelectCreate || !tipeHiddenCreate) return;
+                if (tipeSelectCreate.value === 'LAIN'){
+                    if (tipeLainCreate) {
+                        tipeLainCreate.style.display = 'block';
+                        tipeHiddenCreate.value = (tipeLainCreate.value || '').trim();
+                    }
+                } else {
+                    if (tipeLainCreate) { tipeLainCreate.style.display = 'none'; }
+                    tipeHiddenCreate.value = tipeSelectCreate.value;
+                }
+            }
+            tipeSelectCreate && tipeSelectCreate.addEventListener('change', syncCreateTipe);
+            tipeLainCreate && tipeLainCreate.addEventListener('input', syncCreateTipe);
+            // initialize create tipe state
+            syncCreateTipe();
+
+            // Sync tipe (Edit)
+            function syncEditTipe(){
+                if (!tipeSelectEdit || !tipeHiddenEdit) return;
+                if (tipeSelectEdit.value === 'LAIN'){
+                    if (tipeLainEdit) {
+                        tipeLainEdit.style.display = 'block';
+                        tipeHiddenEdit.value = (tipeLainEdit.value || '').trim();
+                    }
+                } else {
+                    if (tipeLainEdit) { tipeLainEdit.style.display = 'none'; }
+                    tipeHiddenEdit.value = tipeSelectEdit.value;
+                }
+            }
+            tipeSelectEdit && tipeSelectEdit.addEventListener('change', syncEditTipe);
+            tipeLainEdit && tipeLainEdit.addEventListener('input', syncEditTipe);
         });
         </script>
         <!-- end isi -->

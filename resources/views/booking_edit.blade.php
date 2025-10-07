@@ -105,19 +105,19 @@
             <div class="col-md-4 mb-3">
               <label class="form-label">Jenis Pemesanan</label>
               <select name="pemesanan" class="form-control" required>
-                <option value="0" {{ old('pemesanan', $order->pemesanan)==='0' || old('pemesanan', $order->pemesanan)==0 ? 'selected' : '' }}>Walk-In</option>
-                <option value="1" {{ old('pemesanan', $order->pemesanan)==='1' || old('pemesanan', $order->pemesanan)==1 ? 'selected' : '' }}>Online (Traveloka)</option>
-                <option value="2" {{ old('pemesanan', $order->pemesanan)==='2' || old('pemesanan', $order->pemesanan)==2 ? 'selected' : '' }}>Agent 1</option>
-                <option value="3" {{ old('pemesanan', $order->pemesanan)==='3' || old('pemesanan', $order->pemesanan)==3 ? 'selected' : '' }}>Agent 2</option>
+                <option value=0 {{ old('pemesanan', $order->pemesanan)==='0' || old('pemesanan', $order->pemesanan)==0 ? 'selected' : '' }}>Walk-In</option>
+                <option value=1 {{ old('pemesanan', $order->pemesanan)==='1' || old('pemesanan', $order->pemesanan)==1 ? 'selected' : '' }}>Online (Traveloka)</option>
+                <option value=2 {{ old('pemesanan', $order->pemesanan)==='2' || old('pemesanan', $order->pemesanan)==2 ? 'selected' : '' }}>Agent 1</option>
+                <option value=3 {{ old('pemesanan', $order->pemesanan)==='3' || old('pemesanan', $order->pemesanan)==3 ? 'selected' : '' }}>Agent 2</option>
               </select>
             </div>
             <div class="col-md-4 mb-3">
               <label class="form-label">Status</label>
               <select name="status" class="form-control">
-                <option value="1" {{ (string)old('status',$order->status)==='1' ? 'selected' : '' }}>Dipesan</option>
-                <option value="2" {{ (string)old('status',$order->status)==='2' ? 'selected' : '' }}>Check-In</option>
-                <option value="3" {{ (string)old('status',$order->status)==='3' ? 'selected' : '' }}>Check-Out</option>
-                <option value="4" {{ (string)old('status',$order->status)==='4' ? 'selected' : '' }}>Dibatalkan</option>
+                <option value=1 {{ (string)old('status',$order->status)==='1' ? 'selected' : '' }}>Dipesan</option>
+                <option value=2 {{ (string)old('status',$order->status)==='2' ? 'selected' : '' }}>Check-In</option>
+                <option value=3 {{ (string)old('status',$order->status)==='3' ? 'selected' : '' }}>Check-Out</option>
+                <option value=4 {{ (string)old('status',$order->status)==='4' ? 'selected' : '' }}>Dibatalkan</option>
               </select>
             </div>
             <div class="col-md-4 mb-3">

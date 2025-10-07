@@ -65,24 +65,40 @@
         <div class="card mb-3">
           <div class="card-header">Total & Pembayaran</div>
           <div class="card-body">
+            @php
+              $roomTotal = (int)($order->total_harga ?? 0);
+              $cafeTotal = (int)($order->total_cafe ?? 0);
+              $diskon    = (int)($order->diskon ?? 0);
+              $biayaLain = (int)($order->biaya_tambahan ?? 0);
+              $grand     = max(0, ($roomTotal + $cafeTotal) - $diskon + $biayaLain);
+              $dp        = (int)($order->dp_amount ?? 0);
+              $sisa      = max(0, $grand - $dp);
+            @endphp
             <div class="d-flex justify-content-between">
               <div><strong>Kamar</strong></div>
-              <div>Rp {{ number_format($order->total_harga,0,',','.') }}</div>
+              <div>Rp {{ number_format($roomTotal,0,',','.') }}</div>
             </div>
             <div class="d-flex justify-content-between">
               <div><strong>Cafe</strong></div>
-              <div>Rp {{ number_format($order->total_cafe ?? 0,0,',','.') }}</div>
+              <div>Rp {{ number_format($cafeTotal,0,',','.') }}</div>
+            </div>
+            <div class="d-flex justify-content-between text-muted">
+              <div>Diskon</div>
+              <div>- Rp {{ number_format($diskon,0,',','.') }}</div>
+            </div>
+            <div class="d-flex justify-content-between text-muted">
+              <div>Biaya Tambahan</div>
+              <div>+ Rp {{ number_format($biayaLain,0,',','.') }}</div>
             </div>
             <hr/>
             <div class="d-flex justify-content-between">
               <div><strong>Grand Total</strong></div>
-              <div>Rp {{ number_format(($order->total_harga)+($order->total_cafe ?? 0),0,',','.') }}</div>
+              <div><strong>Rp {{ number_format($grand,0,',','.') }}</strong></div>
             </div>
             <div class="d-flex justify-content-between mt-1">
               <div>DP</div>
-              <div>Rp {{ number_format($order->dp_amount ?? 0,0,',','.') }}</div>
+              <div>Rp {{ number_format($dp,0,',','.') }}</div>
             </div>
-            @php $sisa = max(0, (int)$order->total_harga + (int)($order->total_cafe ?? 0) - (int)($order->dp_amount ?? 0)); @endphp
             <div class="d-flex justify-content-between">
               <div><strong>Sisa Pembayaran</strong></div>
               <div><strong>Rp {{ number_format($sisa,0,',','.') }}</strong></div>
