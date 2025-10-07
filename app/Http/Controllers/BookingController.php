@@ -445,6 +445,10 @@ class BookingController extends Controller
         if(isset($data['dp_amount'])){ $order->dp_amount = (int)$data['dp_amount']; }
         if(isset($data['payment_status'])){ $order->payment_status = $data['payment_status']; }
         if(isset($data['payment_method'])){ $order->payment_method = strtolower($data['payment_method']); }
+        // Persist lifecycle status if provided (1..4)
+        if(isset($data['status'])){
+            $order->status = (int)$data['status'];
+        }
         // Jika status menjadi checkout (3), paksa pelunasan
         if(isset($data['status']) && (int)$data['status'] === 3){
             $order->payment_status = 'lunas';

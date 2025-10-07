@@ -40,6 +40,13 @@
               <button type="submit" class="btn btn-outline-success" title="Tandai pembayaran sebagai Lunas">Set Lunas</button>
             </form>
             @endif
+            @if((int)$order->status === 2)
+            <form action="{{ route('booking.status', $order->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Checkout booking ini? Pembayaran akan ditandai Lunas.');">
+              @csrf
+              <input type="hidden" name="action" value="checkout" />
+              <button type="submit" class="btn btn-dark" title="Ubah status menjadi Checkout">Checkout</button>
+            </form>
+            @endif
           </div>
         </div>
       </div>

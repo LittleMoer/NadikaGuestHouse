@@ -120,6 +120,7 @@
                                                     @if($hasMorning)
                                                         @php $seg = $slotMorning[0]; $payClass = ((($seg['payment'] ?? '')==='lunas') ? 'pay-lunas' : 'pay-dp'); @endphp
                                                         <td class="status-cell dash-booking-cell border-dark"
+                                                                data-status="{{ $seg['status'] ?? '' }}"
                                                                 data-tanggal="{{ $tanggal }}"
                                                                 data-kamar-id="{{ $kamar->id }}"
                                                                 data-booking-id="{{ $seg['booking_order_id'] ?? '' }}"
@@ -159,6 +160,7 @@
                                                 @if(!empty($slotAfternoon))
                                                     @php $seg = $slotAfternoon[0]; $payClass = ((($seg['payment'] ?? '')==='lunas') ? 'pay-lunas' : 'pay-dp'); @endphp
                                                     <td class="status-cell dash-booking-cell border-dark"
+                                                            data-status="{{ $seg['status'] ?? '' }}"
                                                             data-tanggal="{{ $tanggal }}"
                                                             data-kamar-id="{{ $kamar->id }}"
                                                             data-booking-id="{{ $seg['booking_order_id'] ?? '' }}"
