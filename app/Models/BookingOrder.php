@@ -117,4 +117,15 @@ class BookingOrder extends Model
         $ch = $channelLabelMap[$channel] ?? ucfirst($channel);
         return $payLabel.' '.$ch;
     }
+
+    /**
+     * Computed attribute: order_code in format YYYYMM + zero-padded order id (at least 2 digits)
+     * Example: October 2025 with id=1 => 20251001
+     */
+    public function getOrderCodeAttribute(): string
+    {
+        $ym = $this->tanggal_checkin ? $this->tanggal_checkin->format('Ym') : now()->format('Ym');
+        $idPart = str_pad((string)($this->id ?? 0), 2, '0', STR_PAD_LEFT);
+        return $ym . $idPart;
+    }
 }

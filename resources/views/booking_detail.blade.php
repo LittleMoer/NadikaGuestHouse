@@ -60,6 +60,7 @@
             <dl class="row mb-0">
               <dt class="col-4">ID</dt><dd class="col-8">#{{ $order->id }}</dd>
               <dt class="col-4">Pelanggan</dt><dd class="col-8">{{ $order->pelanggan->nama ?? '-' }} ({{ $order->pelanggan->telepon ?? '-' }})</dd>
+              <dt class="col-4">Tanggal Booking</dt><dd class="col-8">{{ \Carbon\Carbon::parse($order->created_at)->format('d/m/Y H:i') }}</dd>
               <dt class="col-4">Check-In</dt><dd class="col-8">{{ \Carbon\Carbon::parse($order->tanggal_checkin)->format('d/m/Y H:i') }}</dd>
               <dt class="col-4">Check-Out</dt><dd class="col-8">{{ \Carbon\Carbon::parse($order->tanggal_checkout)->format('d/m/Y H:i') }}</dd>
               <dt class="col-4">Jumlah Tamu</dt><dd class="col-8">{{ $order->jumlah_tamu_total ?? '-' }}</dd>
