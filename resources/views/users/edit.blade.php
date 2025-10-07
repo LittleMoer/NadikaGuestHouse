@@ -6,9 +6,9 @@
     <div class="page-header">
       <h3 class="fw-bold mb-3">Edit Akun</h3>
     </div>
+    <a href="{{ route('users.index') }}" class="btn btn-secondary btn-sm">Kembali</a>
     <div class="card">
       <div class="card-body">
-        <a href="{{ route('users.index') }}" class="btn btn-secondary btn-sm">Kembali</a>
         <form action="{{ route('users.update', $user) }}" method="POST">
           @csrf
           @method('PUT')
