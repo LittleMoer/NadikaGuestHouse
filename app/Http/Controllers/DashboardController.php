@@ -53,11 +53,13 @@ class DashboardController extends Controller
             // extend checkout to next day's 00:00 so the day is included in [checkin, checkout).
             $ciDay = Carbon::parse($order->tanggal_checkin)->startOfDay();
             $coDay = Carbon::parse($order->tanggal_checkout)->startOfDay();
-            if ($coDay->equalTo($ciDay)) {
-                $coDay = $coDay->copy()->addDay();
-            }
             $ciAt = Carbon::parse($order->tanggal_checkin);
             $coAt = Carbon::parse($order->tanggal_checkout);
+            // If checkout has any time after 00:00 on its calendar day, include that day
+            // so the morning half-day (e.g., 00:00-12:00) is rendered.
+            if ($coDay->equalTo($ciDay) || $coAt->gt($coDay)) {
+                $coDay = $coDay->copy()->addDay();
+            }
             foreach($order->items as $it){
                 $items[] = [
                     'kamar_id' => $it->kamar_id,
