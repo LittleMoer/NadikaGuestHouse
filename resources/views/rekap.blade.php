@@ -21,6 +21,47 @@
         <label for="tahun" style="display:block;font-size:.8rem;color:#555;">Tahun</label>
         <input id="tahun" type="number" name="tahun" value="{{ $tahun }}" class="form-control" style="min-width:120px;" />
       </div>
+      <div>
+        <label for="payment_method" style="display:block;font-size:.8rem;color:#555;">Metode Bayar</label>
+        @php $pm = strtolower($filter_payment_method ?? request('payment_method','all')); @endphp
+        <select id="payment_method" name="payment_method" class="form-control">
+          <option value="all" {{ ($pm==='all'||$pm==='') ? 'selected' : '' }}>Semua</option>
+          <option value="cash" {{ $pm==='cash' ? 'selected' : '' }}>CASH</option>
+          <option value="transfer" {{ $pm==='transfer' ? 'selected' : '' }}>TRANSFER</option>
+          <option value="qris" {{ $pm==='qris' ? 'selected' : '' }}>QRIS</option>
+          <option value="card" {{ $pm==='card' ? 'selected' : '' }}>CARD</option>
+        </select>
+      </div>
+      <div>
+        <label for="channel" style="display:block;font-size:.8rem;color:#555;">Channel</label>
+        @php $ch = strtolower($filter_channel ?? request('channel','all')); @endphp
+        <select id="channel" name="channel" class="form-control">
+          <option value="all" {{ ($ch==='all'||$ch==='') ? 'selected' : '' }}>Semua</option>
+          <option value="walkin" {{ $ch==='walkin' ? 'selected' : '' }}>Walk-In</option>
+          <option value="traveloka" {{ $ch==='traveloka' ? 'selected' : '' }}>Traveloka</option>
+          <option value="agent1" {{ $ch==='agent1' ? 'selected' : '' }}>Agent 1</option>
+          <option value="agent2" {{ $ch==='agent2' ? 'selected' : '' }}>Agent 2</option>
+        </select>
+      </div>
+      <div>
+        <label for="discount" style="display:block;font-size:.8rem;color:#555;">Diskon</label>
+        @php $ds = strtolower($filter_discount ?? request('discount','all')); @endphp
+        <select id="discount" name="discount" class="form-control">
+          <option value="all" {{ ($ds==='all'||$ds==='') ? 'selected' : '' }}>Semua</option>
+          <option value="with" {{ $ds==='with' ? 'selected' : '' }}>Dengan Diskon</option>
+          <option value="without" {{ $ds==='without' ? 'selected' : '' }}>Tanpa Diskon</option>
+        </select>
+      </div>
+      <div>
+        <label for="payment_status" style="display:block;font-size:.8rem;color:#555;">Status Pembayaran</label>
+        @php $ps = strtolower($filter_payment_status ?? request('payment_status','all')); @endphp
+        <select id="payment_status" name="payment_status" class="form-control">
+          <option value="all" {{ ($ps==='all'||$ps==='') ? 'selected' : '' }}>Semua</option>
+          <option value="dp" {{ $ps==='dp' ? 'selected' : '' }}>DP</option>
+          <option value="lunas" {{ $ps==='lunas' ? 'selected' : '' }}>Lunas</option>
+          <option value="dp_cancel" {{ $ps==='dp_cancel' ? 'selected' : '' }}>DP Batal</option>
+        </select>
+      </div>
       <div style="display:flex;gap:8px;">
         <button type="submit" class="btn btn-primary" style="margin-top:22px;">Tampilkan</button>
         <a class="btn btn-outline-secondary" style="margin-top:22px;" href="{{ route('rekap.print', ['bulan'=> request('bulan',$bulan), 'tahun'=> request('tahun',$tahun)]) }}" target="_blank">Cetak</a>

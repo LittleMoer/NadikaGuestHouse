@@ -18,14 +18,55 @@ class RekapController extends Controller
         $start = Carbon::create($tahun, $bulan, 1)->startOfDay();
         $end = (clone $start)->endOfMonth()->endOfDay();
 
-        // Cash-in log: dp_in, dp_remaining_in, cafe_in (exclude dp_canceled)
-        $entries = \DB::table('cash_ledger as l')
+        // Filters
+        $paymentMethod = $request->get('payment_method'); // null|'cash'|'transfer'|'qris'|'card'
+        $channel = $request->get('channel'); // null|'walkin'|'traveloka'|'agent1'|'agent2'
+        $discount = $request->get('discount'); // null|'with'|'without'
+        $paymentStatus = $request->get('payment_status'); // null|'dp'|'lunas'|'dp_cancel'
+
+        // Base query for entries
+        $entriesQuery = \DB::table('cash_ledger as l')
             ->leftJoin('booking as b', 'b.id', '=', 'l.booking_id')
             ->leftJoin('pelanggan as p', 'p.id', '=', 'b.pelanggan_id')
             ->leftJoin('booking_order_items as boi', 'boi.booking_order_id', '=', 'l.booking_id')
             ->leftJoin('kamar as k', 'k.id', '=', 'boi.kamar_id')
             ->whereBetween('l.created_at', [$start, $end])
-            ->whereIn('l.type', ['dp_in','dp_remaining_in','cafe_in'])
+            ->whereIn('l.type', ['dp_in','dp_remaining_in','cafe_in']);
+
+        // Apply filters
+        if ($paymentMethod && strtolower($paymentMethod) !== 'all') {
+            $entriesQuery->where('b.payment_method', strtolower($paymentMethod));
+        }
+        if ($channel && strtolower($channel) !== 'all') {
+            $map = ['walkin'=>0,'traveloka'=>1,'agent1'=>2,'agent2'=>3];
+            if (isset($map[strtolower($channel)])) {
+                $entriesQuery->where('b.pemesanan', $map[strtolower($channel)]);
+            }
+        }
+        if ($paymentStatus && strtolower($paymentStatus) !== 'all') {
+            $entriesQuery->where('b.payment_status', strtolower($paymentStatus));
+        }
+        if ($discount === 'with') {
+            $entriesQuery->where(function($q){
+                $q->where('b.diskon', '>', 0)
+                  ->orWhere('b.discount_review', true)
+                  ->orWhere('b.discount_follow', true);
+            });
+        } elseif ($discount === 'without') {
+            $entriesQuery->where(function($q){
+                $q->where(function($qq){
+                    $qq->whereNull('b.diskon')->orWhere('b.diskon','=',0);
+                })
+                ->where(function($qq){
+                    $qq->whereNull('b.discount_review')->orWhere('b.discount_review', false);
+                })
+                ->where(function($qq){
+                    $qq->whereNull('b.discount_follow')->orWhere('b.discount_follow', false);
+                });
+            });
+        }
+
+        $entries = (clone $entriesQuery)
             ->orderBy('l.created_at','asc')
             ->groupBy(
                 'l.id','l.booking_id','p.nama','b.payment_method','b.pemesanan','l.type','l.note','l.amount','l.created_at',
@@ -48,10 +89,35 @@ class RekapController extends Controller
             ])
             ->get();
 
-        $cashGrand = (int) \DB::table('cash_ledger')
-            ->whereBetween('created_at', [$start, $end])
-            ->whereIn('type', ['dp_in','dp_remaining_in','cafe_in'])
-            ->sum('amount');
+        // Sum total using a safe query (no item/kamar joins to avoid row multiplication)
+        $sumQuery = \DB::table('cash_ledger as l')
+            ->leftJoin('booking as b', 'b.id', '=', 'l.booking_id')
+            ->whereBetween('l.created_at', [$start, $end])
+            ->whereIn('l.type', ['dp_in','dp_remaining_in','cafe_in']);
+        if ($paymentMethod && strtolower($paymentMethod) !== 'all') {
+            $sumQuery->where('b.payment_method', strtolower($paymentMethod));
+        }
+        if ($channel && strtolower($channel) !== 'all') {
+            $map = ['walkin'=>0,'traveloka'=>1,'agent1'=>2,'agent2'=>3];
+            if (isset($map[strtolower($channel)])) { $sumQuery->where('b.pemesanan', $map[strtolower($channel)]); }
+        }
+        if ($paymentStatus && strtolower($paymentStatus) !== 'all') {
+            $sumQuery->where('b.payment_status', strtolower($paymentStatus));
+        }
+        if ($discount === 'with') {
+            $sumQuery->where(function($q){
+                $q->where('b.diskon', '>', 0)
+                  ->orWhere('b.discount_review', true)
+                  ->orWhere('b.discount_follow', true);
+            });
+        } elseif ($discount === 'without') {
+            $sumQuery->where(function($q){
+                $q->where(function($qq){ $qq->whereNull('b.diskon')->orWhere('b.diskon','=',0); })
+                  ->where(function($qq){ $qq->whereNull('b.discount_review')->orWhere('b.discount_review', false); })
+                  ->where(function($qq){ $qq->whereNull('b.discount_follow')->orWhere('b.discount_follow', false); });
+            });
+        }
+        $cashGrand = (int) $sumQuery->sum('l.amount');
 
         return view('rekap', [
             'bulan' => $bulan,
@@ -60,6 +126,11 @@ class RekapController extends Controller
             'end' => $end,
             'entries' => $entries,
             'cashGrand' => (int)$cashGrand,
+            // expose filters to the view
+            'filter_payment_method' => $paymentMethod,
+            'filter_channel' => $channel,
+            'filter_discount' => $discount,
+            'filter_payment_status' => $paymentStatus,
         ]);
     }
 
