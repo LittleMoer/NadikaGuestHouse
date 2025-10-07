@@ -321,10 +321,9 @@
                         const tanggal = td.getAttribute('data-tanggal'); // format YYYY-MM-DD
                         const isMorning = td.parentElement?.classList.contains('morning-row');
 
-                        // Jika ada booking ID, arahkan ke halaman detail booking
+                        // Jika ada booking ID, arahkan ke halaman detail booking (langsung ke /booking/{id}/detail)
                         if (bookingId) {
-                            // Format URL untuk booking detail dengan ID yang benar
-                            window.location.href = `{{ url('/booking') }}?booking_id=${bookingId}`;
+                            window.location.href = `{{ url('/booking') }}/${bookingId}/detail`;
                             return;
                         }
 
