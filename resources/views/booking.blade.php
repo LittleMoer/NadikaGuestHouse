@@ -67,7 +67,11 @@
                         <td style="min-width:50px;display:flex;justify-content:flex-end;gap:8px;">
                             <a href="{{ route('booking.detail', $order->id) }}" class="btn btn-sm btn-secondary">Detail</a>
                             <a href="{{ route('booking.edit', $order->id) }}" class="btn btn-sm btn-warning text-white">Edit</a>
-                            <a href="{{ route('booking.destroy', $order->id) }}" class="btn btn-sm btn-danger text-white">Hapus</a>
+                            <form action="{{ route('booking.destroy', $order->id) }}" method="POST" style="display:inline" onsubmit="return confirm('Yakin ingin menghapus booking ini?')">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn btn-sm btn-danger text-white">Hapus</button>
+                            </form>
                         </td>
                     </tr>
                 @empty
