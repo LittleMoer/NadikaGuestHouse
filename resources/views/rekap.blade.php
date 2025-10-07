@@ -35,8 +35,12 @@
             <thead class="table-light">
               <tr>
                 <th style="width:50px;">No</th>
-                <th style="width:80px;">ID Booking</th>
+                <th style="width:110px;">ID Booking</th>
                 <th>Nama Penginap</th>
+                <th style="width:150px;">Created (Booking)</th>
+                <th style="width:140px;">Check-In</th>
+                <th style="width:140px;">Check-Out</th>
+                <th style="min-width:120px;">No. Kamar</th>
                 <th style="width:120px;">Metode Bayar</th>
                 <th style="width:120px;">Metode Pesan</th>
                 <th>Keterangan</th>
@@ -54,6 +58,10 @@
                 <td>{{ $i++ }}</td>
                 <td>{{ $e->booking_id ? ('#'.$e->booking_id) : '-' }}</td>
                 <td>{{ $e->pelanggan_nama ?? '-' }}</td>
+                <td>{{ $e->booking_created_at ? \Carbon\Carbon::parse($e->booking_created_at)->format('d/m/Y H:i') : '-' }}</td>
+                <td>{{ $e->tanggal_checkin ? \Carbon\Carbon::parse($e->tanggal_checkin)->format('d/m/Y H:i') : '-' }}</td>
+                <td>{{ $e->tanggal_checkout ? \Carbon\Carbon::parse($e->tanggal_checkout)->format('d/m/Y H:i') : '-' }}</td>
+                <td>{{ $e->room_numbers ?? '-' }}</td>
                 <td>{{ strtoupper($e->payment_method ?? '-') }}</td>
                 <td>{{ $mapPemesanan[$e->pemesanan ?? 0] ?? '-' }}</td>
                 <td>{{ $mapType[$e->type] ?? ucfirst($e->type) }}{{ $e->note ? (' - '.$e->note) : '' }}</td>

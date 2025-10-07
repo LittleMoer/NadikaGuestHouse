@@ -4,7 +4,7 @@
 <div class="container">
   <div class="page-inner">
     <div class="page-header">
-      <h4 class="page-title">Detail Booking #{{ $order->id }}</h4>
+      <h4 class="page-title">Detail Booking #{{ $order->order_code }}</h4>
       <ul class="breadcrumbs">
         <li class="nav-home"><a href="/dashboard"><i class="icon-home"></i></a></li>
         <li class="separator"><i class="icon-arrow-right"></i></li>
@@ -58,7 +58,7 @@
           <div class="card-header">Informasi Utama</div>
           <div class="card-body">
             <dl class="row mb-0">
-              <dt class="col-4">ID</dt><dd class="col-8">#{{ $order->id }}</dd>
+              <dt class="col-4">ID</dt><dd class="col-8">#{{ $order->order_code }}</dd>
               <dt class="col-4">Pelanggan</dt><dd class="col-8">{{ $order->pelanggan->nama ?? '-' }} ({{ $order->pelanggan->telepon ?? '-' }})</dd>
               <dt class="col-4">Tanggal Booking</dt><dd class="col-8">{{ \Carbon\Carbon::parse($order->created_at)->format('d/m/Y H:i') }}</dd>
               <dt class="col-4">Check-In</dt><dd class="col-8">{{ \Carbon\Carbon::parse($order->tanggal_checkin)->format('d/m/Y H:i') }}</dd>
@@ -176,7 +176,7 @@
               @foreach($otherOrders as $o)
                 @php $m=[1=>'Dipesan',2=>'Check-In',3=>'Checkout',4=>'Dibatalkan']; @endphp
                 <tr>
-                  <td>#{{ $o->id }}</td>
+                  <td>#{{ $o->order_code }}</td>
                   <td>{{ \Carbon\Carbon::parse($o->tanggal_checkin)->format('d/m/Y') }}</td>
                   <td>{{ \Carbon\Carbon::parse($o->tanggal_checkout)->format('d/m/Y') }}</td>
                   <td>{{ $m[$o->status] ?? $o->status }}</td>

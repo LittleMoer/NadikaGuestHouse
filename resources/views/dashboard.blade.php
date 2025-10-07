@@ -113,7 +113,7 @@
                                                             @endphp
                                                             style="{{ $style }}">
                                                         <div class="{{ $payClass }} cell-inner">
-                                                            {{ $seg['booking_code'] ?? ($seg['booking_order_id'] ?? '') }}
+                                                            {{ $seg['booking_order_id'] ?? '' }}
                                                         </div>
                                                     </td>
                                                 @else
@@ -131,7 +131,7 @@
                                                                 @endphp
                                                                 style="{{ $style }}">
                                                             <div class="{{ $payClass }} cell-inner" data-status="{{ $seg['status'] ?? '' }}">
-                                                                {{ $seg['booking_code'] ?? ($seg['booking_order_id'] ?? '') }}
+                                                                {{ $seg['booking_order_id'] ?? '' }}
                                                             </div>
                                                         </td>
                                                     @else

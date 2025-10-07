@@ -22,9 +22,15 @@ class RekapController extends Controller
         $entries = \DB::table('cash_ledger as l')
             ->leftJoin('booking as b', 'b.id', '=', 'l.booking_id')
             ->leftJoin('pelanggan as p', 'p.id', '=', 'b.pelanggan_id')
+            ->leftJoin('booking_order_items as boi', 'boi.booking_order_id', '=', 'l.booking_id')
+            ->leftJoin('kamar as k', 'k.id', '=', 'boi.kamar_id')
             ->whereBetween('l.created_at', [$start, $end])
             ->whereIn('l.type', ['dp_in','dp_remaining_in','cafe_in'])
             ->orderBy('l.created_at','asc')
+            ->groupBy(
+                'l.id','l.booking_id','p.nama','b.payment_method','b.pemesanan','l.type','l.note','l.amount','l.created_at',
+                'b.created_at','b.tanggal_checkin','b.tanggal_checkout'
+            )
             ->select([
                 'l.id as ledger_id',
                 'l.booking_id',
@@ -34,7 +40,11 @@ class RekapController extends Controller
                 'l.type',
                 'l.note',
                 'l.amount',
-                'l.created_at'
+                'l.created_at',
+                'b.created_at as booking_created_at',
+                'b.tanggal_checkin',
+                'b.tanggal_checkout',
+                \DB::raw("GROUP_CONCAT(DISTINCT k.nomor_kamar ORDER BY k.nomor_kamar SEPARATOR ', ') as room_numbers")
             ])
             ->get();
 
