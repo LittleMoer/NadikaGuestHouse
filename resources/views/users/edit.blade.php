@@ -41,7 +41,7 @@
             </div>
           </div>
           <div class="mt-3">
-            <a href="{{ route('users.index') }}" class="btn btn-secondary btn-sm">Kembali</a>
+            <a href="{{ route('users.index') }}" class="btn btn-secondary">Kembali</a>
             <button type="submit" class="btn btn-primary">Simpan</button>
           </div>
         </form>
