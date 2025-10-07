@@ -6,7 +6,6 @@
     <div class="page-header">
       <h3 class="fw-bold mb-3">Edit Akun</h3>
     </div>
-    <a href="{{ route('users.index') }}" class="btn btn-secondary btn-sm">Kembali</a>
     <div class="card">
       <div class="card-body">
         <form action="{{ route('users.update', $user) }}" method="POST">
@@ -42,6 +41,7 @@
             </div>
           </div>
           <div class="mt-3">
+            <a href="{{ route('users.index') }}" class="btn btn-secondary btn-sm">Kembali</a>
             <button type="submit" class="btn btn-primary">Simpan</button>
           </div>
         </form>
