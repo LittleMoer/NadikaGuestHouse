@@ -56,8 +56,16 @@ class DashboardController extends Controller
             $ciAt = Carbon::parse($order->tanggal_checkin);
             $coAt = Carbon::parse($order->tanggal_checkout);
             // If checkout has any time after 00:00 on its calendar day, include that day
-            // so the morning half-day (e.g., 00:00-12:00) is rendered.
-            if ($coDay->equalTo($ciDay) || $coAt->gt($coDay)) {
+            // so the morning half-day (e.g., 06:00-12:00) can be rendered.
+            // EXCEPTION: exact noon-to-noon (12:00 → next day 12:00) should NOT include checkout day.
+            $includeCheckoutDay = false;
+            if ($coDay->equalTo($ciDay)) {
+                $includeCheckoutDay = true;
+            } elseif ($coAt->gt($coDay)) {
+                $isNoonToNoon = ($ciAt->format('H:i') === '12:00') && $coAt->equalTo($coDay->copy()->addHours(12));
+                $includeCheckoutDay = !$isNoonToNoon;
+            }
+            if ($includeCheckoutDay) {
                 $coDay = $coDay->copy()->addDay();
             }
             foreach($order->items as $it){
@@ -100,7 +108,10 @@ class DashboardController extends Controller
                             // Hitung porsi (fraction) dari hari ini yang ditempati oleh segmen ini
                             $dayStart = $carbonDate->copy()->startOfDay();
                             $dayEnd = $dayStart->copy()->addDay();
-                            $noon = $dayStart->copy()->addHours(12);
+                            $morningStart = $dayStart->copy()->addHours(6);
+                            $morningEnd = $dayStart->copy()->addHours(12);
+                            $afternoonStart = $dayStart->copy()->addHours(12);
+                            $afternoonEnd = $dayStart->copy()->addHours(18);
                             $segStart = $row['checkin_at']->greaterThan($dayStart) ? $row['checkin_at'] : $dayStart;
                             $segEnd = $row['checkout_at']->lessThan($dayEnd) ? $row['checkout_at'] : $dayEnd;
                             $duration = max(0, $segEnd->diffInSeconds($segStart));
@@ -119,8 +130,11 @@ class DashboardController extends Controller
                                 'fraction' => $fraction,
                             ];
 
-                            // Slot pagi/siang hanya jika segmen sepenuhnya berada di slot tsb.
-                            if ($segEnd->lte($noon) && $segEnd->gt($segStart)) {
+                            // Special case: 12:00 today -> >= 12:00 next day should paint FULL day on this date
+                            $rawIn = $row['checkin_at'];
+                            $rawOut = $row['checkout_at'];
+                            $noonToNextDayOrMore = ($rawIn->equalTo($afternoonStart) && $rawOut->gte($afternoonStart->copy()->addDay()));
+                            if ($noonToNextDayOrMore) {
                                 $slotMorning[] = [
                                     'booking_order_id' => $row['booking_order_id'],
                                     'booking_code' => $row['order_code'] ?? null,
@@ -129,7 +143,6 @@ class DashboardController extends Controller
                                     'background' => $row['meta']['background'] ?? null,
                                     'text_color' => $row['meta']['text_color'] ?? null,
                                 ];
-                            } elseif ($segStart->gte($noon) && $segEnd->gt($segStart)) {
                                 $slotAfternoon[] = [
                                     'booking_order_id' => $row['booking_order_id'],
                                     'booking_code' => $row['order_code'] ?? null,
@@ -138,6 +151,30 @@ class DashboardController extends Controller
                                     'background' => $row['meta']['background'] ?? null,
                                     'text_color' => $row['meta']['text_color'] ?? null,
                                 ];
+                            } else {
+                                // Overlap-based marking
+                                if ($segEnd > $morningStart && $segStart < $morningEnd) {
+                                    $slotMorning[] = [
+                                        'booking_order_id' => $row['booking_order_id'],
+                                        'booking_code' => $row['order_code'] ?? null,
+                                        'status' => $row['status'],
+                                        'payment' => $row['meta']['payment'] ?? null,
+                                        'background' => $row['meta']['background'] ?? null,
+                                        'text_color' => $row['meta']['text_color'] ?? null,
+                                    ];
+                                }
+                                // Suppress next-day afternoon for pattern: 12:00 day-1 -> 18:00 this day
+                                $suppressThisAfternoon = ($rawIn->equalTo($dayStart->copy()->subDay()->addHours(12)) && $rawOut->equalTo($afternoonEnd));
+                                if ($segEnd > $afternoonStart && $segStart < $afternoonEnd && !$suppressThisAfternoon) {
+                                    $slotAfternoon[] = [
+                                        'booking_order_id' => $row['booking_order_id'],
+                                        'booking_code' => $row['order_code'] ?? null,
+                                        'status' => $row['status'],
+                                        'payment' => $row['meta']['payment'] ?? null,
+                                        'background' => $row['meta']['background'] ?? null,
+                                        'text_color' => $row['meta']['text_color'] ?? null,
+                                    ];
+                                }
                             }
                             if($row['status'] == 2) $isOccupied = true;
                         }
