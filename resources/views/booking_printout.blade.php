@@ -153,6 +153,20 @@
           <div class="info-label">Tipe Kamar</div>
           <div>: {{ collect($order->items)->map(function($item) { return $item->kamar->tipe ?? '-'; })->unique()->join(', ') }}</div>
         </div>
+        <div class="info-row">
+          <div class="info-label">Jenis Kamar Disewa</div>
+          <div>:
+            {{ collect($order->items)->map(function($it){
+                $no = $it->kamar?->nomor_kamar ?? '-';
+                $tipe = $it->kamar?->tipe ?? '-';
+                return $no.' ('.$tipe.')';
+            })->join(', ') }}
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label">Total Harga Booking</div>
+          <div>: Rp {{ number_format($order->total_harga ?? 0, 0, ',', '.') }}</div>
+        </div>
       </div>
     </div>
 
@@ -168,19 +182,6 @@
         <li>Mohon jaga ketenangan dan tidak membuat gaduh.</li>
         <li>Guest house berhak membatalkan reservasi jika tamu melanggar ketentuan.</li>
       </ul>
-    </div>
-
-    <div class="signature">
-      <div class="sign-box">
-        <div>Guest House</div>
-        <div class="sign-line"></div>
-        <div>{{ auth()->user()->name ?? 'Staff' }}</div>
-      </div>
-      <div class="sign-box">
-        <div>Tamu</div>
-        <div class="sign-line"></div>
-        <div>{{ $order->pelanggan?->nama ?? '________________' }}</div>
-      </div>
     </div>
   </div>
 </body>

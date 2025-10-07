@@ -18,39 +18,38 @@ class RekapController extends Controller
         $start = Carbon::create($tahun, $bulan, 1)->startOfDay();
         $end = (clone $start)->endOfMonth()->endOfDay();
 
-        // Rekap kamar: gunakan total_harga dari BookingOrder yang overlap bulan ini dan tidak dibatalkan
-        $roomOrders = BookingOrder::whereIn('status', [1,2,3])
-            ->where(function($q) use ($start,$end){
-                $q->whereBetween('tanggal_checkin', [$start,$end])
-                  ->orWhereBetween('tanggal_checkout', [$start,$end])
-                  ->orWhere(function($qq) use ($start,$end){
-                      $qq->where('tanggal_checkin','<=',$start)
-                         ->where('tanggal_checkout','>=',$end);
-                  });
-            })
+        // Cash-in log: dp_in, dp_remaining_in, cafe_in (exclude dp_canceled)
+        $entries = \DB::table('cash_ledger as l')
+            ->leftJoin('booking as b', 'b.id', '=', 'l.booking_id')
+            ->leftJoin('pelanggan as p', 'p.id', '=', 'b.pelanggan_id')
+            ->whereBetween('l.created_at', [$start, $end])
+            ->whereIn('l.type', ['dp_in','dp_remaining_in','cafe_in'])
+            ->orderBy('l.created_at','asc')
+            ->select([
+                'l.id as ledger_id',
+                'l.booking_id',
+                'p.nama as pelanggan_nama',
+                'b.payment_method',
+                'b.pemesanan',
+                'l.type',
+                'l.note',
+                'l.amount',
+                'l.created_at'
+            ])
             ->get();
 
-        // Asumsi: total_harga sudah berisi total biaya kamar untuk order tsb
-        $totalKamar = $roomOrders->sum(function($o){ return (float)($o->total_harga ?? 0); });
+        $cashGrand = (int) \DB::table('cash_ledger')
+            ->whereBetween('created_at', [$start, $end])
+            ->whereIn('type', ['dp_in','dp_remaining_in','cafe_in'])
+            ->sum('amount');
 
-        // Tambahan: jika payment_status 'dp', tetap masukkan nominal penuh (asumsi rekap target pendapatan, bukan kas masuk)
-        // Jika mau hanya yang sudah lunas, filter $roomOrders->where('payment_status','lunas')
-
-        // Rekap Cafe: berdasarkan CafeOrder yang terkait booking dan dibuat pada bulan tsb.
-        $cafeTotal = CafeOrder::whereBetween('created_at', [$start,$end])->sum('total');
-
-        $grandTotal = $totalKamar + $cafeTotal;
-
-        // Kirim ke view
         return view('rekap', [
             'bulan' => $bulan,
             'tahun' => $tahun,
-            'totalKamar' => $totalKamar,
-            'totalCafe' => $cafeTotal,
-            'grandTotal' => $grandTotal,
             'start' => $start,
             'end' => $end,
-            'orders' => $roomOrders,
+            'entries' => $entries,
+            'cashGrand' => (int)$cashGrand,
         ]);
     }
 
@@ -73,16 +72,25 @@ class RekapController extends Controller
             })
             ->get();
 
-        $totalKamar = $roomOrders->sum(function($o){ return (float)($o->total_harga ?? 0); });
-        $cafeTotal = \App\Models\CafeOrder::whereBetween('created_at', [$start,$end])->sum('total');
-        $grandTotal = $totalKamar + $cafeTotal;
+        $ledger = \DB::table('cash_ledger')
+            ->select('type', \DB::raw('SUM(amount) as total'))
+            ->whereBetween('created_at', [$start, $end])
+            ->groupBy('type')
+            ->pluck('total','type');
+        $totalDpIn = (int)($ledger['dp_in'] ?? 0);
+        $totalDpRemaining = (int)($ledger['dp_remaining_in'] ?? 0);
+        $totalDpCanceled = (int)($ledger['dp_canceled'] ?? 0);
+        $totalCafeIn = (int)($ledger['cafe_in'] ?? 0);
+        $cashGrand = $totalDpIn + $totalDpRemaining + $totalCafeIn;
 
         return view('rekap_print', [
             'bulan' => $bulan,
             'tahun' => $tahun,
-            'totalKamar' => $totalKamar,
-            'totalCafe' => $cafeTotal,
-            'grandTotal' => $grandTotal,
+            'totalDpIn' => $totalDpIn,
+            'totalDpRemaining' => $totalDpRemaining,
+            'totalDpCanceled' => $totalDpCanceled,
+            'totalCafeIn' => $totalCafeIn,
+            'cashGrand' => $cashGrand,
             'start' => $start,
             'end' => $end,
             'orders' => $roomOrders,

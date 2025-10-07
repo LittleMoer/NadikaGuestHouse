@@ -8,9 +8,9 @@ return new class extends Migration {
     {
         Schema::create('cafe_orders', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('booking_id')->nullable()->constrained('booking')->nullOnDelete();
-            $table->decimal('total',12,2)->default(0);
-            $table->text('catatan')->nullable();
+            $table->unsignedBigInteger('booking_id')->index();
+            $table->unsignedBigInteger('total')->default(0);
+            $table->string('catatan')->nullable();
             $table->timestamps();
         });
     }

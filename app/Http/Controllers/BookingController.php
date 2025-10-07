@@ -8,6 +8,7 @@ use App\Models\Pelanggan;
 use App\Models\Kamar;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 
 class BookingController extends Controller
@@ -93,6 +94,7 @@ class BookingController extends Controller
             'payment_status'    => 'nullable|in:dp,lunas',
             'dp_percentage'     => 'nullable|integer|min:0|max:100',
             'catatan'           => 'nullable|string',
+            'biaya_tambahan'    => 'nullable|integer|min:0',
         ]);
         if ($validator->fails()) {
             return redirect()->route('booking.index')
@@ -138,15 +140,39 @@ class BookingController extends Controller
     // Default lifecycle: walk-in defaults to checkin (2), online defaults to dipesan (1)
     $status = isset($data['status']) ? (int)$data['status'] : ((int)$data['pemesanan'] == 0 ? 2 : 1);
 
-        $totalOrder = 0;
+        // Base total from selected rooms * nights
+        $baseTotal = 0;
         foreach($kamarList as $k){
-            $totalOrder += $days * (int)$k->harga;
+            $baseTotal += $days * (int)$k->harga;
         }
+        // Extra time factor: half => +50%, sixth => +35%
+        $extraTime = $request->get('extra_time','none');
+        if($extraTime === 'half'){
+            $baseTotal = (int) round($baseTotal * 1.5);
+        } elseif($extraTime === 'sixth'){
+            $baseTotal = (int) round($baseTotal * 1.35);
+        }
+        // Per-head mode: if enabled and guests > 2, add 50k per extra guest; ensure min 100k
+        $jumlahTamu = (int)($request->get('jumlah_tamu') ?? 1);
+        $perHeadMode = (bool)$request->boolean('per_head_mode');
+        if($perHeadMode && $jumlahTamu > 2){
+            $baseTotal += 50000 * ($jumlahTamu - 2);
+        }
+        $baseTotal = max($baseTotal, 100000);
+        // Discounts: review (10%), follow (10%), sequential if both
+        $discReview = $request->boolean('discount_review');
+        $discFollow = $request->boolean('discount_follow');
+        $totalAfterDisc = $baseTotal;
+        if($discReview){ $totalAfterDisc = (int) round($totalAfterDisc * 0.9); }
+        if($discFollow){ $totalAfterDisc = (int) round($totalAfterDisc * 0.9); }
+        $diskonNominal = max(0, $baseTotal - $totalAfterDisc);
+        $totalOrder = $totalAfterDisc;
 
-        // Payment + DP
-        $dpPct = $request->get('dp_percentage');
-        $paymentStatus = $request->get('payment_status');
-        if(!$paymentStatus){ $paymentStatus = 'dp'; }
+        // DP nominal and payment status decision
+        $dpAmount = (int)($request->get('dp_amount') ?? 0);
+        $paymentStatus = $dpAmount >= $totalOrder ? 'lunas' : 'dp';
+        $paymentMethod = $request->get('payment_method'); // cash, transfer, qris, card (nullable)
+        $biayaTambahan = (int)($request->get('biaya_tambahan') ?? 0);
 
         $order = BookingOrder::create([
             'pelanggan_id' => $data['pelanggan_id'],
@@ -157,8 +183,16 @@ class BookingController extends Controller
             'pemesanan' => (int)$data['pemesanan'],
             'catatan' => $data['catatan'] ?? null,
             'total_harga' => $totalOrder,
-         'payment_status' => in_array($paymentStatus,['dp','lunas'])? $paymentStatus : 'dp',
-         'dp_percentage' => $dpPct!==null && $dpPct!=='' ? max(0,min(100,(int)$dpPct)) : null,
+            'payment_status' => $paymentStatus,
+            'payment_method' => $paymentMethod ? strtolower($paymentMethod) : null,
+            'dp_percentage' => null,
+            'dp_amount' => $dpAmount > 0 ? $dpAmount : null,
+            'discount_review' => $discReview,
+            'discount_follow' => $discFollow,
+            'extra_time' => in_array($extraTime,['none','half','sixth']) ? $extraTime : 'none',
+            'per_head_mode' => $perHeadMode,
+            'diskon' => $diskonNominal,
+            'biaya_tambahan' => $biayaTambahan > 0 ? $biayaTambahan : null,
         ]);
 
         foreach($kamarList as $k){
@@ -172,6 +206,18 @@ class BookingController extends Controller
             if($status === 2){
                 $k->update(['status'=>2]);
             }
+        }
+
+        // Ledger: DP in
+        if($dpAmount > 0){
+            DB::table('cash_ledger')->insert([
+                'booking_id' => $order->id,
+                'type' => 'dp_in',
+                'amount' => $dpAmount,
+                'note' => 'Uang masuk DP',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
         }
 
         return redirect()->route('booking.index')
@@ -193,6 +239,7 @@ class BookingController extends Controller
         switch ($action) {
             case 'checkin':
                 if ($booking->status != 1) return redirect()->back()->with('error','Tidak dapat check-in');
+                if ($booking->payment_status !== 'lunas') return redirect()->back()->with('error','Check-in hanya diizinkan jika pembayaran sudah Lunas');
                 $booking->status = 2;
                 foreach($booking->items as $it){ $it->kamar?->update(['status'=>2]); }
                 break;
@@ -289,7 +336,8 @@ class BookingController extends Controller
                 'catatan'=>$order->catatan,
                 'total_harga'=>$order->total_harga,
                 'total_cafe'=>$order->total_cafe ?? 0,
-                'grand_total'=>($order->total_harga) + ($order->total_cafe ?? 0),
+                'biaya_tambahan'=>$order->biaya_tambahan ?? 0,
+                'grand_total'=>(($order->total_harga) + ($order->total_cafe ?? 0)) - ($order->diskon ?? 0) + ($order->biaya_tambahan ?? 0),
                 'total_kamar'=>$order->items->count(),
                 'total_malam'=>$order->items->first()?->malam ?? 0,
                 'items'=>$order->items->map(function($it){
@@ -341,8 +389,14 @@ class BookingController extends Controller
             'pelanggan_id'=>'nullable|exists:pelanggan,id',
             'catatan'=>'nullable|string',
             'status'=>'nullable|integer|in:1,2,3,4',
-            'payment_status'=>'nullable|in:dp,lunas',
-            'dp_percentage'=>'nullable|integer|min:0|max:100',
+            'payment_status'=>'nullable|in:dp,lunas,dp_cancel',
+            'dp_amount'=>'nullable|integer|min:0',
+            'discount_review'=>'nullable|boolean',
+            'discount_follow'=>'nullable|boolean',
+            'extra_time'=>'nullable|in:none,half,sixth',
+            'per_head_mode'=>'nullable|boolean',
+            'payment_method'=>'nullable|string|max:20',
+            'biaya_tambahan'=>'nullable|integer|min:0',
         ]);
         // Optional new fields (won't error if absent from form)
         $dpPct = $request->get('dp_percentage');
@@ -350,14 +404,30 @@ class BookingController extends Controller
         $end = Carbon::parse($data['tanggal_checkout']);
         $days = max($start->diffInDays($end),1);
 
-        // Recalculate all item nights & subtotal
-        $newTotalRooms = 0;
+        // Base recalc from item nightly rates
+        $base = 0;
         foreach($order->items as $it){
             $it->malam = $days;
             $it->subtotal = $days * (int)$it->harga_per_malam;
             $it->save();
-            $newTotalRooms += $it->subtotal;
+            $base += $it->subtotal;
         }
+        // Apply extra time
+        $extraTime = $data['extra_time'] ?? ($order->extra_time ?? 'none');
+        if($extraTime==='half'){ $base = (int) round($base * 1.5); }
+        if($extraTime==='sixth'){ $base = (int) round($base * 1.35); }
+        // Per-head
+        $perHead = (bool)($data['per_head_mode'] ?? $order->per_head_mode ?? false);
+        $jumlahTamu = (int)($data['jumlah_tamu_total'] ?? $order->jumlah_tamu_total ?? 1);
+        if($perHead && $jumlahTamu>2){ $base += 50000 * ($jumlahTamu - 2); }
+        $base = max($base, 100000);
+        // Discounts
+        $discReview = (bool)($data['discount_review'] ?? $order->discount_review ?? false);
+        $discFollow = (bool)($data['discount_follow'] ?? $order->discount_follow ?? false);
+        $after = $base;
+        if($discReview){ $after = (int) round($after * 0.9); }
+        if($discFollow){ $after = (int) round($after * 0.9); }
+        $diskonNom = max(0, $base - $after);
 
         // Apply editable fields
         if(isset($data['pelanggan_id'])) $order->pelanggan_id = $data['pelanggan_id'];
@@ -366,9 +436,17 @@ class BookingController extends Controller
         $order->tanggal_checkout = $end;
         $order->pemesanan = (int)$data['pemesanan'];
         $order->catatan = $data['catatan'] ?? null;
-        $order->total_harga = $newTotalRooms; // room total only; cafe total unaffected
-        if(isset($data['status'])){ $order->status = (int)$data['status']; }
+        $order->total_harga = $after; // room total after modifiers
+        $order->discount_review = $discReview;
+        $order->discount_follow = $discFollow;
+        $order->extra_time = in_array($extraTime,['none','half','sixth']) ? $extraTime : 'none';
+        $order->per_head_mode = $perHead;
+        $order->diskon = $diskonNom;
+        if(isset($data['biaya_tambahan'])){ $order->biaya_tambahan = (int)$data['biaya_tambahan']; }
+        // Payment handling
+        if(isset($data['dp_amount'])){ $order->dp_amount = (int)$data['dp_amount']; }
         if(isset($data['payment_status'])){ $order->payment_status = $data['payment_status']; }
+        if(isset($data['payment_method'])){ $order->payment_method = strtolower($data['payment_method']); }
         // Jika status menjadi checkout (3), paksa pelunasan
         if(isset($data['status']) && (int)$data['status'] === 3){
             $order->payment_status = 'lunas';
@@ -376,6 +454,36 @@ class BookingController extends Controller
         }
         if($dpPct!==null && $dpPct!==''){ $order->dp_percentage = max(0,min(100,(int)$dpPct)); }
         $order->save();
+
+        // Ledger logic
+        // If payment becomes lunas and dp_amount < total, log remaining-in once
+        if(($order->payment_status==='lunas') && (int)($order->dp_amount ?? 0) < (int)$order->total_harga){
+            $remaining = (int)$order->total_harga - (int)($order->dp_amount ?? 0);
+            if($remaining>0){
+                DB::table('cash_ledger')->insert([
+                    'booking_id'=>$order->id,
+                    'type'=>'dp_remaining_in',
+                    'amount'=>$remaining,
+                    'note'=>'Pelunasan sisa DP',
+                    'created_at'=>now(),
+                    'updated_at'=>now(),
+                ]);
+                // Update dp_amount to reflect fully paid if desired
+                $order->dp_amount = (int)$order->total_harga;
+                $order->save();
+            }
+        }
+        // If marked dp_cancel, log a dp_canceled entry with current dp_amount
+        if($order->payment_status==='dp_cancel' && (int)($order->dp_amount ?? 0) > 0){
+            DB::table('cash_ledger')->insert([
+                'booking_id'=>$order->id,
+                'type'=>'dp_canceled',
+                'amount'=>(int)$order->dp_amount,
+                'note'=>'DP dibatalkan',
+                'created_at'=>now(),
+                'updated_at'=>now(),
+            ]);
+        }
 
         if($request->wantsJson()){
             $meta = $this->statusMeta($order->status);
@@ -397,7 +505,7 @@ class BookingController extends Controller
                 ]
             ]);
         }
-        return redirect()->back()->with('success','Booking berhasil diperbarui');
+        return redirect()->route('booking.detail', $id)->with('success','Booking berhasil diperbarui');
     }
 
     /**
@@ -495,15 +603,15 @@ class BookingController extends Controller
         $roomTotal = (float)($order->total_harga ?? 0);
         $cafeTotal = (float)($order->total_cafe ?? 0);
         $diskon = (float)($order->diskon ?? 0);
-        $biayaLain = (float)($order->biaya_lain ?? 0);
+        $biayaTambahan = (float)($order->biaya_tambahan ?? 0);
         $subtotal = $roomTotal + $cafeTotal;
-        $grand = $subtotal - $diskon + $biayaLain;
+        $grand = $subtotal - $diskon + $biayaTambahan;
         return view('nota', [
             'order'=>$order,
             'roomTotal'=>$roomTotal,
             'cafeTotal'=>$cafeTotal,
             'diskon'=>$diskon,
-            'biayaLain'=>$biayaLain,
+            'biayaLain'=>$biayaTambahan,
             'grandTotal'=>$grand,
         ]);
     }
@@ -539,18 +647,55 @@ class BookingController extends Controller
         ]);
     }
 
-    // (CRUD detail methods omitted – using modal-based create/update flows on index)
+    // Page-based detail view (replaces modal)
+    public function detailPage($id)
+    {
+        $order = BookingOrder::with(['pelanggan','items.kamar','cafeOrders.items.product'])->findOrFail($id);
+        // Other orders by same customer for quick history
+        $other = collect();
+        if($order->pelanggan_id){
+            $other = BookingOrder::where('pelanggan_id',$order->pelanggan_id)
+                ->where('id','!=',$order->id)
+                ->orderByDesc('tanggal_checkin')
+                ->limit(10)
+                ->get();
+        }
+        return view('booking_detail', [
+            'order' => $order,
+            'otherOrders' => $other,
+        ]);
+    }
+
+    // Page-based edit view
+    public function editPage($id)
+    {
+        $order = BookingOrder::with(['pelanggan','items.kamar'])->findOrFail($id);
+        $pelangganList = Pelanggan::orderBy('nama')->get();
+        return view('booking_edit', [
+            'order' => $order,
+            'pelangganList' => $pelangganList,
+        ]);
+    }
+
+    public function create()
+    {
+        $pelangganList = Pelanggan::orderBy('nama')->get();
+        $availableKamar = Kamar::orderBy('tipe')->orderBy('nomor_kamar')->get();
+
+        return view('booking_create', compact('pelangganList', 'availableKamar'));
+    }
+
     public function penginap()
     {
         $penginap = Pelanggan::paginate(10);
         return view('penginap', compact('penginap'));
     }
+
     public function penginapcreate(Request $request)
     {
         // Validasi input (gunakan nama field yang konsisten dengan model Pelanggan)
         $validated = $request->validate([
             'nama' => 'required|string|max:255',
-            'email' => 'nullable|email:rfc,dns|max:255',
             'telepon' => 'required|string|max:20',
             'alamat' => 'required|string|max:500',
             'jenis_identitas' => 'nullable|string|max:100',
@@ -565,7 +710,6 @@ class BookingController extends Controller
             'nama' => $validated['nama'],
             'alamat' => $validated['alamat'],
             'telepon' => $validated['telepon'],
-            'email' => $validated['email'] ?? null,
             'jenis_identitas' => ($validated['jenis_identitas'] ?? null) === 'LAIN'
                 ? ($validated['jenis_identitas_lain'] ?? 'Lain')
                 : ($validated['jenis_identitas'] ?? null),
@@ -583,7 +727,6 @@ class BookingController extends Controller
         $validator = \Validator::make($request->all(), [
             'id' => 'required|exists:pelanggan,id',
             'nama' => 'required|string|max:255',
-            'email' => 'nullable|email:rfc,dns|max:255',
             'telepon' => 'required|string|max:20',
             'alamat' => 'required|string|max:500',
             'jenis_identitas' => 'nullable|string|max:100',
@@ -603,7 +746,6 @@ class BookingController extends Controller
             'nama' => $validated['nama'],
             'alamat' => $validated['alamat'],
             'telepon' => $validated['telepon'],
-            'email' => $validated['email'] ?? null,
             'jenis_identitas' => $validated['jenis_identitas'] ?? null,
             'nomor_identitas' => $validated['nomor_identitas'] ?? null,
             'tempat_lahir' => $validated['tempat_lahir'] ?? null,

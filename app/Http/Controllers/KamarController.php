@@ -24,10 +24,8 @@ class KamarController extends Controller
             'tipe' => 'required',
             'kapasitas' => 'required|integer|min:1',
             'harga' => 'required|numeric|min:0',
-            'status' => 'required|in:1,2,3',
             'deskripsi' => 'nullable'
         ]);
-        $validated['status'] = (int)$validated['status'];
         Kamar::create($validated);
         return redirect()->route('kamar.index')->with('success', 'Kamar berhasil ditambahkan.');
     }
@@ -45,7 +43,6 @@ class KamarController extends Controller
             'tipe' => 'required',
             'kapasitas' => 'required|integer|min:1',
             'harga' => 'required|numeric|min:0',
-            'status' => 'required|in:1,2,3',
             'deskripsi' => 'nullable'
         ]);
         if ($validator->fails()) {
@@ -53,7 +50,6 @@ class KamarController extends Controller
         }
         $validated = $validator->validated();
         $kamar = Kamar::findOrFail($id);
-    $validated['status'] = (int)$validated['status'];
     $kamar->update($validated + ['deskripsi' => $request->input('deskripsi')]);
         return redirect()->route('kamar.index')->with('success', 'Kamar berhasil diupdate.');
     }

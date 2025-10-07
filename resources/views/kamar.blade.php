@@ -33,8 +33,7 @@
                     <th class="border px-4 py-2">Tipe</th>
                     <th class="border px-4 py-2">Kapasitas</th>
                     <th class="border px-4 py-2">Harga</th>
-                    <th class="border px-4 py-2">Status</th>
-                    <th class="border px-4 py-2">Aksi</th>
+                                        <th class="border px-4 py-2">Aksi</th>
                 </tr>
             </thead>
             <tbody>
@@ -44,11 +43,7 @@
                     <td class="border px-4 py-2">{{ $k->tipe }}</td>
                     <td class="border px-4 py-2">{{ $k->kapasitas }}</td>
                     <td class="border px-4 py-2">Rp {{ number_format($k->harga, 0, ',', '.') }}</td>
-                    <td class="border px-4 py-2">
-                        @php $statusLabelMap = [1=>'Tersedia',2=>'Terisi',3=>'Perawatan']; @endphp
-                        {{ $statusLabelMap[$k->status] ?? $k->status }}
-                    </td>
-                    <td class="border px-4 py-2">
+                                        <td class="border px-4 py-2">
                         <button type="button"
                             class="btn btn-warning text-white px-2 py-1 rounded hover:bg-yellow-500 btn-edit-kamar"
                             data-id="{{ $k->id }}"
@@ -56,8 +51,7 @@
                             data-tipe="{{ $k->tipe }}"
                             data-kapasitas="{{ $k->kapasitas }}"
                             data-harga="{{ $k->harga }}"
-                            data-status="{{ $k->status }}"
-                            data-deskripsi="{{ $k->deskripsi }}"
+                                                        data-deskripsi="{{ $k->deskripsi }}"
                         >Edit</button>
                         <form action="{{ route('kamar.destroy', $k->id) }}" method="POST" style="display:inline;">
                             @csrf
@@ -107,17 +101,7 @@
                         <label class="block mb-1 font-medium">Harga (Rp)</label>
                         <input type="number" min="0" step="1" name="harga" class="form-control" value="{{ old('harga') }}" required>
                     </div>
-                    @php $oldCreateStatus = (string)old('status'); @endphp
-                    <div class="mb-3">
-                        <label class="block mb-1 font-medium">Status</label>
-                        <select name="status" class="form-control" required>
-                            <option value="">Pilih status</option>
-                            <option value="1" {{ $oldCreateStatus==='1' ? 'selected' : '' }}>Tersedia</option>
-                            <option value="2" {{ $oldCreateStatus==='2' ? 'selected' : '' }}>Terisi</option>
-                            <option value="3" {{ $oldCreateStatus==='3' ? 'selected' : '' }}>Perawatan</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
+                                        <div class="mb-3">
                         <label class="block mb-1 font-medium">Deskripsi</label>
                         <textarea name="deskripsi" class="form-control" rows="3">{{ old('deskripsi') }}</textarea>
                     </div>
@@ -164,22 +148,7 @@
                         <label class="block mb-1 font-medium">Harga (Rp)</label>
                         <input type="number" min="0" step="1" name="harga" id="edit_harga" class="form-control" value="{{ old('harga') }}" required>
                     </div>
-                    @php
-                        $oldStatus = old('status');
-                        if ($oldStatus === 'tersedia') $oldStatus = '1';
-                        elseif ($oldStatus === 'terisi') $oldStatus = '2';
-                        elseif ($oldStatus === 'perawatan') $oldStatus = '3';
-                    @endphp
-                    <div class="mb-3">
-                        <label class="block mb-1 font-medium">Status</label>
-                        <select name="status" id="edit_status" class="form-control" required>
-                            <option value="">Pilih status</option>
-                            <option value="1" {{ (string)$oldStatus==='1' ? 'selected' : '' }}>Tersedia</option>
-                            <option value="2" {{ (string)$oldStatus==='2' ? 'selected' : '' }}>Terisi</option>
-                            <option value="3" {{ (string)$oldStatus==='3' ? 'selected' : '' }}>Perawatan</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
+                                        <div class="mb-3">
                         <label class="block mb-1 font-medium">Deskripsi</label>
                         <textarea name="deskripsi" id="edit_deskripsi" class="form-control" rows="3">{{ old('deskripsi') }}</textarea>
                     </div>

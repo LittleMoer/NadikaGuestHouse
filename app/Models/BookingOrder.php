@@ -9,12 +9,36 @@ class BookingOrder extends Model
     // Menggunakan tabel 'booking' sebagai header multi-kamar
     protected $table = 'booking';
     protected $fillable = [
-        'pelanggan_id','tanggal_checkin','tanggal_checkout','status','payment_status','pemesanan','catatan','total_harga','jumlah_tamu_total','total_cafe','dp_percentage'
+        'pelanggan_id',
+        'tanggal_checkin',
+        'tanggal_checkout',
+        'status',
+        'payment_status',
+        'payment_method',
+        'pemesanan',
+        'catatan',
+        'total_harga',
+        'jumlah_tamu_total',
+        'total_cafe',
+        // legacy percentage kept for BC, but we now use nominal dp_amount
+        'dp_percentage',
+        // new fields
+        'dp_amount',
+        'diskon',
+        'discount_review',
+        'discount_follow',
+        'extra_time', // values: none, half, sixth
+        'per_head_mode', // boolean-like 0/1
+        'biaya_tambahan'
     ];
 
     protected $casts = [
         'tanggal_checkin' => 'datetime',
         'tanggal_checkout' => 'datetime',
+        'discount_review' => 'boolean',
+        'discount_follow' => 'boolean',
+        'per_head_mode' => 'boolean',
+        'biaya_tambahan' => 'integer',
     ];
 
     public function pelanggan(): BelongsTo
@@ -49,7 +73,7 @@ class BookingOrder extends Model
     public function getStatusMetaAttribute(): array
     {
         $isCancel = ((int)$this->status) === 4;
-        $pay = $this->payment_status === 'lunas' ? 'lunas' : 'dp';
+        $pay = in_array($this->payment_status, ['lunas','dp','dp_cancel']) ? $this->payment_status : 'dp';
         // Map pemesanan to channel: 0=walkin, 1=traveloka(online), 2=agent1, 3=agent2
         $channel = 'walkin';
         if($isCancel){
@@ -81,7 +105,7 @@ class BookingOrder extends Model
     private function buildStatusLabelFromParts(string $payment, string $channel, bool $isCancel): string
     {
         if($isCancel) return 'Dibatalkan';
-        $payLabel = $payment==='lunas' ? 'Lunas' : 'DP';
+        $payLabel = $payment==='lunas' ? 'Lunas' : ($payment==='dp_cancel' ? 'DP Batal' : 'DP');
         $channelLabelMap = [
             'walkin'=>'Walk-In',
             'traveloka'=>'Traveloka',

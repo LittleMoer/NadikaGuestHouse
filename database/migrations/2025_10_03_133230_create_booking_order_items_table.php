@@ -8,11 +8,11 @@ return new class extends Migration {
     {
         Schema::create('booking_order_items', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('booking_order_id')->constrained('booking')->onDelete('cascade');
-            $table->foreignId('kamar_id')->constrained('kamar')->onDelete('cascade');
-            $table->integer('malam')->default(1); // jumlah malam kamar ini dipakai
-            $table->decimal('harga_per_malam',12,2)->default(0);
-            $table->decimal('subtotal',12,2)->default(0);
+            $table->unsignedBigInteger('booking_order_id')->index();
+            $table->unsignedBigInteger('kamar_id')->nullable()->index();
+            $table->unsignedBigInteger('harga_per_malam')->default(0);
+            $table->unsignedInteger('malam')->default(1);
+            $table->unsignedBigInteger('subtotal')->default(0);
             $table->timestamps();
         });
     }

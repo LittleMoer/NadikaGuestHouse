@@ -8,11 +8,11 @@ return new class extends Migration {
     {
         Schema::create('cafe_order_items', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('cafe_order_id')->constrained('cafe_orders')->onDelete('cascade');
-            $table->foreignId('cafe_product_id')->constrained('cafe_products')->onDelete('cascade');
-            $table->integer('qty');
-            $table->decimal('harga_satuan',12,2)->default(0);
-            $table->decimal('subtotal',12,2)->default(0);
+            $table->unsignedBigInteger('cafe_order_id')->index();
+            $table->unsignedBigInteger('cafe_product_id')->index();
+            $table->unsignedInteger('qty')->default(1);
+            $table->unsignedBigInteger('harga_satuan')->default(0);
+            $table->unsignedBigInteger('subtotal')->default(0);
             $table->timestamps();
         });
     }

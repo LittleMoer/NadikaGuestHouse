@@ -13,7 +13,6 @@ class PelangganSeeder extends Seeder
         $data = [
             [
                 'nama' => 'Andi Pratama',
-                'email' => 'andi@example.com',
                 'telepon' => '081234567801',
                 'alamat' => 'Jl. Melati No. 12, Bandung',
                 'jenis_identitas' => 'KTP',
@@ -24,7 +23,6 @@ class PelangganSeeder extends Seeder
             ],
             [
                 'nama' => 'Budi Santoso',
-                'email' => 'budi@example.com',
                 'telepon' => '081234567802',
                 'alamat' => 'Jl. Kenanga No. 5, Jakarta',
                 'jenis_identitas' => 'KTP',
@@ -35,7 +33,6 @@ class PelangganSeeder extends Seeder
             ],
             [
                 'nama' => 'Citra Lestari',
-                'email' => 'citra@example.com',
                 'telepon' => '081234567803',
                 'alamat' => 'Jl. Anggrek No. 8, Surabaya',
                 'jenis_identitas' => 'KTP',
@@ -46,7 +43,6 @@ class PelangganSeeder extends Seeder
             ],
             [
                 'nama' => 'Dewi Kartika',
-                'email' => 'dewi@example.com',
                 'telepon' => '081234567804',
                 'alamat' => 'Jl. Cendana No. 3, Yogyakarta',
                 'jenis_identitas' => 'SIM',
@@ -57,7 +53,6 @@ class PelangganSeeder extends Seeder
             ],
             [
                 'nama' => 'Eko Wijaya',
-                'email' => 'eko@example.com',
                 'telepon' => '081234567805',
                 'alamat' => 'Jl. Mawar No. 21, Medan',
                 'jenis_identitas' => 'PASPOR',
@@ -67,11 +62,5 @@ class PelangganSeeder extends Seeder
                 'kewarganegaraan' => 'Indonesia',
             ],
         ];
-
-        foreach($data as $row){
-            Pelanggan::updateOrCreate([
-                'email' => $row['email']
-            ], $row);
-        }
     }
 }

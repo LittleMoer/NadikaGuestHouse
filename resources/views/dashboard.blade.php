@@ -194,7 +194,7 @@
         </div>
       </div>
     </div>
-        {{-- Modals for quick booking creation from dashboard --}}
+        {{-- Removed modals: direct cell click will go to create booking --}}
         <style>
             /* Dashboard table - refined look */
             .table-dashboard { width: 100%; border-collapse: separate; border-spacing: 0; font-size: .88rem; table-layout: fixed; border: 2px solid #000000; }
@@ -276,295 +276,42 @@
             .error-text {color:#dc2626;font-size:.7rem;margin-top:2px;}
             /* Uniform border for each date row */
             .table-dashboard tbody tr.day-row td {
-                border-top: 1px solid #0066ffff !important;
-                border-bottom: 1px solid #0066ffff !important;
+                border-top: 1px solid rgb(0, 0, 0) !important;
+                border-bottom: 1px solid rgb(0, 0, 0) !important;
             }
             .table-dashboard tbody tr.day-row td:first-child {
-                border-left: 1px solid #0066ffff !important;
+                border-left: 1px solid rgb(0, 0, 0) !important;
             }
             .table-dashboard tbody tr.day-row td:last-child {
-                border-right: 1px solid #0066ffff !important;
+                border-right: 1px solid rgb(0, 0, 0) !important;
             }
         </style>
-        <div id="modalSelectPelanggan" class="dash-modal-overlay" aria-hidden="true">
-            <div class="dash-modal">
-                <button class="dash-close" data-close>&times;</button>
-                <h3>Pilih / Tambah Pelanggan</h3>
-                <div class="flex-row">
-                    <div class="form-group" style="flex:1 1 100%;">
-                        <input type="text" id="filterPelanggan" placeholder="Cari nama / telepon" />
-                    </div>
-                </div>
-                <div class="scroll-area" id="pelangganListContainer">
-                    @php $pelangganAll = \App\Models\Pelanggan::orderBy('nama')->limit(200)->get(); @endphp
-                    @forelse($pelangganAll as $pl)
-                        <div class="selectable-row" data-id="{{ $pl->id }}" data-nama="{{ $pl->nama }}" data-telepon="{{ $pl->telepon }}">
-                            <strong>{{ $pl->nama }}</strong> <span style="color:#666;font-size:.7rem;">{{ $pl->telepon }}</span>
-                        </div>
-                    @empty
-                        <div style="font-size:.8rem;color:#777;">Belum ada data pelanggan.</div>
-                    @endforelse
-                </div>
-                <div class="divider"></div>
-                        <details style="margin-bottom:8px;">
-                            <summary style="cursor:pointer;font-weight:600;font-size:.8rem;">Tambah Pelanggan Baru</summary>
-                            <form id="formCreatePelanggan" style="margin-top:8px;">
-                                @csrf
-                                <div class="flex-row" style="gap:.85rem;">
-                                    <div class="form-group half">
-                                        <label>Nama</label>
-                                        <input type="text" name="nama" required />
-                                    </div>
-                                    <div class="form-group half">
-                                        <label>Telepon</label>
-                                        <input type="text" name="telepon" required />
-                                    </div>
-                                    <div class="form-group half">
-                                        <label>Email</label>
-                                        <input type="email" name="email" />
-                                    </div>
-                                    <div class="form-group half">
-                                        <label>Tempat Lahir</label>
-                                        <input type="text" name="tempat_lahir" />
-                                    </div>
-                                    <div class="form-group half">
-                                        <label>Tanggal Lahir</label>
-                                        <input type="date" name="tanggal_lahir" />
-                                    </div>
-                                    <div class="form-group half">
-                                        <label>Kewarganegaraan</label>
-                                        <input type="text" name="kewarganegaraan" />
-                                    </div>
-                                    <div class="form-group half">
-                                        <label>Jenis Identitas</label>
-                                        <select name="jenis_identitas" id="fp_jenis_identitas">
-                                            <option value="">-- Pilih --</option>
-                                            <option value="KTP">KTP</option>
-                                            <option value="SIM">SIM</option>
-                                            <option value="PASPOR">Paspor</option>
-                                            <option value="LAIN">Lainnya</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group half d-none" id="wrap_jenis_identitas_lain">
-                                        <label>Isi Jenis Lain</label>
-                                        <input type="text" name="jenis_identitas_lain" />
-                                    </div>
-                                    <div class="form-group half">
-                                        <label>Nomor Identitas</label>
-                                        <input type="text" name="nomor_identitas" />
-                                    </div>
-                                    <div class="form-group" style="flex:1 1 100%;">
-                                        <label>Alamat</label>
-                                        <textarea name="alamat" rows="2" required></textarea>
-                                    </div>
-                                    <div class="form-group" style="flex:1 1 100%;margin-top:-4px;">
-                                        <small style="font-size:.65rem;color:#666;display:block;">Kolom opsional boleh dikosongkan jika tidak tersedia.</small>
-                                    </div>
-                                </div>
-                                <div class="actions">
-                                    <button type="submit" class="btn-sm btn-accent">Simpan Pelanggan</button>
-                                </div>
-                            </form>
-                        </details>
-                <div class="actions">
-                    <button class="btn-sm btn-neutral" data-close>Batal</button>
-                    <button id="btnLanjutBooking" class="btn-sm btn-primary2" disabled>Lanjut Booking</button>
-                </div>
-            </div>
-        </div>
-        <div id="modalCreateBooking" class="dash-modal-overlay" aria-hidden="true">
-            <div class="dash-modal">
-                <button class="dash-close" data-close>&times;</button>
-                <h3>Buat Booking</h3>
-                <form id="formQuickBooking" method="POST" action="{{ route('booking.store') }}">
-                    @csrf
-                    <input type="hidden" name="pelanggan_id" id="qb_pelanggan_id" />
-                    <div class="form-group" style="flex:1 1 100%;">
-                        <label>Pilih Kamar (Multi)</label>
-                        <select name="kamar_ids[]" id="qb_kamar_ids" multiple size="6" required style="width:100%;border:1px solid #d0d7de;border-radius:8px;padding:6px 8px;font-size:.8rem;">
-                            @php $allKamarForQuick = \App\Models\Kamar::orderBy('tipe')->orderBy('nomor_kamar')->get(); @endphp
-                            @foreach($allKamarForQuick as $km)
-                                <option value="{{ $km->id }}">{{ $km->nomor_kamar }} ({{ $km->tipe }}) - Rp{{ number_format($km->harga,0,',','.') }}</option>
-                            @endforeach
-                        </select>
-                        <small style="font-size:.6rem;color:#555;">Gunakan CTRL / SHIFT untuk memilih beberapa kamar.</small>
-                    </div>
-                    <div class="flex-row">
-                        <div class="form-group half">
-                            <label>Tanggal & Waktu Check-in</label>
-                            <input type="datetime-local" name="tanggal_checkin" id="qb_checkin" required />
-                        </div>
-                        <div class="form-group half">
-                            <label>Tanggal & Waktu Check-out</label>
-                            <input type="datetime-local" name="tanggal_checkout" id="qb_checkout" required />
-                        </div>
-                        <div class="form-group half">
-                            <label>Jumlah Tamu</label>
-                            <input type="number" name="jumlah_tamu" value="1" min="1" required />
-                        </div>
-                        <div class="form-group half">
-                            <label>Metode</label>
-                            <select name="pemesanan" required>
-                                <option value="0">Walk-in</option>
-                                <option value="1">Online</option>
-                                <option value="2">Agent 1</option>
-                                <option value="3">Agent 2</option>
-                            </select>
-                        </div>
-                        <div class="form-group half">
-                            <label>Status</label>
-                            <select name="status">
-                                <option value="1">Dipesan</option>
-                                <option value="2">Check-In</option>
-                                <option value="3">Check-Out</option>
-                            </select>
-                        </div>
-                        <div class="form-group half">
-                            <label>Status Pembayaran</label>
-                            <select name="payment_status">
-                                <option value="dp" selected>DP</option>
-                                <option value="lunas">Lunas</option>
-                            </select>
-                        </div>
-                        <div class="form-group half">
-                            <label>DP (%)</label>
-                            <input type="number" name="dp_percentage" min="0" max="100" step="1" placeholder="0-100" />
-                        </div>
-                        <div class="form-group" style="flex:1 1 100%;">
-                            <label>Catatan</label>
-                            <textarea name="catatan" rows="2"></textarea>
-                        </div>
-                    </div>
-                    <div style="font-size:.7rem;color:#666;margin-top:-4px;">Checkout minimal +1 hari dari check-in.</div>
-                    <div class="actions">
-                        <button type="button" class="btn-sm btn-neutral" data-close>Batal</button>
-                        <button type="submit" class="btn-sm btn-accent">Simpan Booking</button>
-                    </div>
-                </form>
-            </div>
-        </div>
+        
         <script>
             (function(){
-                // Payment coloring
-                function applyPaymentColor(cell){
-                    const pay = cell.getAttribute('data-payment');
-                    if(!pay) return;
-                    if(pay==='dp'){
-                        cell.style.color = '#faed00';
-                        cell.style.fontWeight = '700';
-                    } else if(pay==='lunas') {
-                        cell.style.color = '#ffffff';
-                        cell.style.fontWeight = '700';
-                        cell.style.textShadow = '0 0 3px rgba(0,0,0,.6)';
-                    }
-                }
-                document.querySelectorAll('.dash-booking-cell[data-booking-id]')
-                    .forEach(c=> applyPaymentColor(c));
-                const cellSelector = '.dash-booking-cell, .status-cell.has-multi';
+                // Click empty/any cell to prefill booking form with kamar & tanggal
+                document.querySelectorAll('.dash-booking-cell').forEach(td=>{
+                    td.addEventListener('click', ()=> {
+                        const kamarId = td.getAttribute('data-kamar-id');
+                        const tanggal = td.getAttribute('data-tanggal'); // format YYYY-MM-DD
+                        // Determine slot based on row class (morning/afternoon)
+                        const isMorning = td.parentElement?.classList.contains('morning-row');
+                        // Morning: 06:00 - 12:00 (same day)
+                        // Afternoon: 12:00 - 23:59 (same day)
+                        const checkin = `${tanggal}T${isMorning ? '06:00' : '12:00'}`;
+                        const checkout = `${tanggal}T${isMorning ? '12:00' : '23:59'}`;
 
-                // ===== Restore modal helpers & state =====
-                let selectedCell = null; let selectedPelangganId = null;
-                const modalPelanggan = document.getElementById('modalSelectPelanggan');
-                const modalBooking = document.getElementById('modalCreateBooking');
-                const btnLanjut = document.getElementById('btnLanjutBooking');
-                const pelangganListContainer = document.getElementById('pelangganListContainer');
-                const filterInput = document.getElementById('filterPelanggan');
-                const formCreatePelanggan = document.getElementById('formCreatePelanggan');
-                function openModal(m){ if(!m)return; m.classList.add('show'); m.setAttribute('aria-hidden','false'); }
-                function closeModal(m){ if(!m)return; m.classList.remove('show'); m.setAttribute('aria-hidden','true'); }
-                document.querySelectorAll('[data-close]').forEach(btn=> btn.addEventListener('click', e=>{closeModal(btn.closest('.dash-modal-overlay'));}));
-                ;[modalPelanggan, modalBooking].forEach(m=> m && m.addEventListener('click', e=> { if(e.target===m) closeModal(m); }));
-                document.addEventListener('keydown', e=> { if(e.key==='Escape'){closeModal(modalPelanggan);closeModal(modalBooking);} });
+                        const params = new URLSearchParams();
+                        if (kamarId) { params.append('kamar_ids[]', kamarId); }
+                        params.set('tanggal_checkin', checkin);
+                        params.set('tanggal_checkout', checkout);
+                        // optional sensible defaults
+                        params.set('pemesanan', '0'); // walk-in
+                        params.set('jumlah_tamu', '1');
 
-                // Klik sel / segmen
-                document.querySelectorAll(cellSelector).forEach(td=>{
-                    td.addEventListener('click', function(e){
-                        const seg = e.target.closest('.cell-seg');
-                        const bookingId = seg ? seg.dataset.bookingId : this.dataset.bookingId;
-                        selectedCell = this;
-                        if(bookingId){
-                            window.location.href = '{{ route('booking.index') }}?tanggal=' + this.dataset.tanggal;
-                            return;
-                        }
-                        // Jika tidak ada bookingId -> proses booking cepat
-                        openModal(modalPelanggan);
+                        const url = `{{ route('booking.create') }}?${params.toString()}`;
+                        window.location.href = url;
                     });
-                });
-
-                // Filter pelanggan
-                filterInput && filterInput.addEventListener('input', function(){
-                    const q = this.value.toLowerCase();
-                    pelangganListContainer.querySelectorAll('.selectable-row').forEach(row=>{
-                        const txt = (row.dataset.nama + ' ' + row.dataset.telepon).toLowerCase();
-                        row.style.display = txt.includes(q) ? '' : 'none';
-                    });
-                });
-
-                // Pilih pelanggan
-                pelangganListContainer && pelangganListContainer.addEventListener('click', function(e){
-                    const row = e.target.closest('.selectable-row');
-                        if(!row) return;
-                        pelangganListContainer.querySelectorAll('.selectable-row').forEach(r=> r.classList.remove('active'));
-                        row.classList.add('active');
-                        selectedPelangganId = row.dataset.id;
-                        btnLanjut.disabled = false;
-                });
-
-                // Tambah pelanggan baru (AJAX sederhana)
-                formCreatePelanggan && formCreatePelanggan.addEventListener('submit', function(e){
-                    e.preventDefault();
-                    const fd = new FormData(this);
-                    fetch('{{ route('penginap.create') }}', {method:'POST', headers:{'X-CSRF-TOKEN': fd.get('_token')}, body:fd})
-                        .then(r=>{ if(!r.ok) throw new Error('Gagal'); return r.text(); })
-                        .then(()=>{ location.reload(); })
-                        .catch(()=> alert('Gagal menambah pelanggan')); // fallback sederhana
-                });
-
-                // Dynamic jenis identitas lainnya
-                const fpJenis = document.getElementById('fp_jenis_identitas');
-                const wrapJenisLain = document.getElementById('wrap_jenis_identitas_lain');
-                if(fpJenis && wrapJenisLain){
-                    fpJenis.addEventListener('change', ()=>{
-                        if(fpJenis.value === 'LAIN'){
-                            wrapJenisLain.classList.remove('d-none');
-                            const inputLain = wrapJenisLain.querySelector('input');
-                            inputLain.required = true;
-                            inputLain.focus();
-                        } else {
-                            wrapJenisLain.classList.add('d-none');
-                            const inputLain = wrapJenisLain.querySelector('input');
-                            inputLain.value='';
-                            inputLain.required = false;
-                        }
-                    });
-                }
-
-                // Lanjut booking setelah pilih pelanggan
-                btnLanjut && btnLanjut.addEventListener('click', function(){
-                    if(!selectedCell || !selectedPelangganId) return;
-                    closeModal(modalPelanggan);
-                    // Prefill form booking
-                    document.getElementById('qb_pelanggan_id').value = selectedPelangganId;
-                    // Preselect kamar yg diklik
-                    const selectMulti = document.getElementById('qb_kamar_ids');
-                    if(selectMulti){
-                        [...selectMulti.options].forEach(o=> o.selected = false);
-                        const opt = [...selectMulti.options].find(o=> o.value == selectedCell.dataset.kamarId);
-                        if(opt) opt.selected = true;
-                    }
-                    const tgl = selectedCell.dataset.tanggal;
-                    // default check-in 14:00
-                    const ci = new Date(tgl + 'T14:00:00');
-                    // default check-out +1 day 12:00
-                    const co = new Date(tgl + 'T12:00:00');
-                    co.setDate(co.getDate()+1);
-                    const toLocalDT = (d)=>{
-                        const pad=n=> n.toString().padStart(2,'0');
-                        return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-                    };
-                    document.getElementById('qb_checkin').value = toLocalDT(ci);
-                    document.getElementById('qb_checkout').value = toLocalDT(co);
-                    openModal(modalBooking);
                 });
             })();
         </script>

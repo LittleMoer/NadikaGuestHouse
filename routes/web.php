@@ -17,8 +17,11 @@ Route::get('/', function () {
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.index');
     Route::get('/booking', [BookingController::class, 'index'])->name('booking.index');
+    Route::get('/booking/create', [BookingController::class, 'create'])->name('booking.create');
     Route::post('/booking', [BookingController::class, 'store'])->name('booking.store');
     Route::get('/booking/{id}', [BookingController::class, 'show'])->name('booking.show');
+    Route::get('/booking/{id}/detail', [BookingController::class, 'detailPage'])->name('booking.detail');
+    Route::get('/booking/{id}/edit', [BookingController::class, 'editPage'])->name('booking.edit');
     Route::post('/booking/{id}/update', [BookingController::class, 'update'])->name('booking.update');
     Route::post('/booking/{id}/status', [BookingController::class, 'updateStatus'])->name('booking.status');
     Route::post('/booking/{id}/prices', [BookingController::class, 'updatePrices'])->name('booking.prices');

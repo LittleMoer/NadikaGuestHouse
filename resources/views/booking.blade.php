@@ -15,7 +15,7 @@
         <div class="card mb-3 shadow-sm">
             <div class="card-body py-3 d-flex justify-content-between align-items-center">
                 <div class="fw-semibold">Daftar Booking</div>
-                <button type="button" class="btn btn-success btn-sm" id="btnOpenBookingModal">+ Booking</button>
+                <button type="button" class="btn btn-success btn-sm"><a href="{{ route('booking.create') }}" style="color: white; text-decoration: none;">+ Booking</a></button>
             </div>
         </div>
 
@@ -37,7 +37,7 @@
                         <th>Kamar (Jumlah)</th>
                         <th>Check-In</th>
                         <th>Check-Out</th>
-                        <th>Metode</th>
+                        <th>Metode Bayar</th>
                         <th class="text-end">Kamar (Rp)</th>
                         <th class="text-end">Cafe (Rp)</th>
                         <th class="text-end">Grand Total (Rp)</th>
@@ -60,12 +60,14 @@
                         </td>
                         <td>{{ \Carbon\Carbon::parse($order->tanggal_checkin)->format('d/m/Y H:i') }}</td>
                         <td>{{ \Carbon\Carbon::parse($order->tanggal_checkout)->format('d/m/Y H:i') }}</td>
-                        <td>{{ $channelLabel }}</td>
+                        <td>{{ $order->payment_method ? strtoupper($order->payment_method) : '-' }}</td>
                         <td class="text-end">{{ number_format($order->total_harga,0,',','.') }}</td>
                         <td class="text-end">{{ number_format($order->total_cafe ?? 0,0,',','.') }}</td>
                         <td class="text-end">{{ number_format(($order->total_harga)+($order->total_cafe ?? 0),0,',','.') }}</td>
-                        <td style="min-width:110px;">
-                            <button type="button" class="btn btn-sm btn-secondary btn-detail">Detail</button>
+                        <td style="min-width:50px;display:flex;justify-content:flex-end;gap:8px;">
+                            <a href="{{ route('booking.detail', $order->id) }}" class="btn btn-sm btn-secondary">Detail</a>
+                            <a href="{{ route('booking.edit', $order->id) }}" class="btn btn-sm btn-warning text-white">Edit</a>
+                            <a href="{{ route('booking.destroy', $order->id) }}" class="btn btn-sm btn-danger text-white">Hapus</a>
                         </td>
                     </tr>
                 @empty
@@ -507,120 +509,6 @@
             // Initial payment visuals
             qsa('#tabel-booking tbody tr').forEach(updatePaymentVisual);
         });
-        </script>
-
-        <!-- Create Booking Modal -->
-        <div id="modalCreateBooking" class="modal-overlay" aria-hidden="true">
-            <div class="modal-card" style="max-width:640px;">
-                <button type="button" class="modal-close" id="closeModalCreateBooking" aria-label="Tutup">&times;</button>
-                <h3 style="margin-top:0;">Buat Booking</h3>
-                @if ($errors->hasBag('booking_create') && $errors->booking_create->any())
-                    <div class="alert alert-danger" style="margin-bottom:12px;">
-                        <ul style="margin:0;padding-left:18px;">
-                            @foreach ($errors->booking_create->all() as $err)
-                                <li>{{ $err }}</li>
-                            @endforeach
-                        </ul>
-                    </div>
-                @endif
-                <form action="{{ route('booking.store') }}" method="POST">
-                    @csrf
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Pelanggan</label>
-                            <select name="pelanggan_id" class="form-control" required>
-                                <option value="">-- Pilih Pelanggan --</option>
-                                @foreach($pelangganList as $p)
-                                    <option value="{{ $p->id }}" {{ old('pelanggan_id')==$p->id ? 'selected' : '' }}>{{ $p->nama }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Pilih Kamar (Multi)</label>
-                            <select name="kamar_ids[]" class="form-control" multiple size="6" required>
-                                @foreach($availableKamar as $k)
-                                    <option value="{{ $k->id }}" {{ (collect(old('kamar_ids')))->contains($k->id) ? 'selected' : '' }}>
-                                        {{ $k->nomor_kamar }} ({{ $k->tipe }}) - Rp{{ number_format($k->harga,0,',','.') }}/mlm
-                                    </option>
-                                @endforeach
-                            </select>
-                            <small style="font-size:.7rem;color:#555;">Tahan CTRL / SHIFT untuk memilih lebih dari satu.</small>
-                            @error('kamar_ids','booking_create')
-                                <div class="text-danger" style="font-size:.7rem;">{{ $message }}</div>
-                            @enderror
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Check-In</label>
-                            <input type="datetime-local" name="tanggal_checkin" value="{{ old('tanggal_checkin') }}" class="form-control" required>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Check-Out</label>
-                            <input type="datetime-local" name="tanggal_checkout" value="{{ old('tanggal_checkout') }}" class="form-control" required>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">Jumlah Tamu</label>
-                            <input type="number" name="jumlah_tamu" min="1" class="form-control" value="{{ old('jumlah_tamu',1) }}" required>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">Jenis Pemesanan</label>
-                            <select name="pemesanan" class="form-control" required>
-                                <option value="0" {{ old('pemesanan')==='0' ? 'selected' : '' }}>Walk-In</option>
-                                <option value="1" {{ old('pemesanan')==='1' ? 'selected' : '' }}>Online (Traveloka)</option>
-                                <option value="2" {{ old('pemesanan')==='2' ? 'selected' : '' }}>Agent 1</option>
-                                <option value="3" {{ old('pemesanan')==='3' ? 'selected' : '' }}>Agent 2</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">Status</label>
-                            <select name="status" class="form-control">
-                                <option value="1" {{ old('status')=='1' ? 'selected' : '' }}>Dipesan</option>
-                                <option value="2" {{ old('status')=='2' ? 'selected' : '' }}>Check-In</option>
-                                <option value="3" {{ old('status')=='3' ? 'selected' : '' }}>Check-Out</option>
-                                <option value="4" {{ old('status')=='4' ? 'selected' : '' }}>Dibatalkan</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">DP (%)</label>
-                            <input type="number" name="dp_percentage" min="0" max="100" step="1" class="form-control" value="{{ old('dp_percentage') }}" placeholder="0-100" />
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">Status Pembayaran</label>
-                            <select name="payment_status" class="form-control">
-                                <option value="dp" {{ old('payment_status','dp')==='dp' ? 'selected' : '' }}>DP</option>
-                                <option value="lunas" {{ old('payment_status')==='lunas' ? 'selected' : '' }}>Lunas</option>
-                            </select>
-                        </div>
-                        <div class="col-md-12 mb-3">
-                            <label class="form-label">Catatan</label>
-                            <textarea name="catatan" class="form-control" rows="3">{{ old('catatan') }}</textarea>
-                        </div>
-                    </div>
-                    <div class="d-flex justify-content-end gap-2">
-                        <button type="button" class="btn btn-light" id="batalModalCreateBooking">Batal</button>
-                        <button type="submit" class="btn btn-success">Simpan</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-        <style>
-            .modal-overlay{position:fixed;inset:0;z-index:1055;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45);padding:16px;opacity:0;visibility:hidden;transition:opacity .2s ease,visibility 0s linear .2s;}
-            .modal-overlay.show{opacity:1;visibility:visible;transition:opacity .2s ease;}
-            .modal-card{width:100%;background:#fff;border-radius:14px;box-shadow:0 18px 36px rgba(0,0,0,.25);padding:22px;position:relative;transform:translateY(14px) scale(.97);opacity:.95;transition:transform .25s ease,opacity .2s ease;}
-            .modal-overlay.show .modal-card{transform:translateY(0) scale(1);opacity:1;}
-            .modal-close{position:absolute;top:8px;right:12px;border:0;background:transparent;font-size:30px;line-height:1;cursor:pointer;color:#999;}
-            .modal-close:hover{color:#e74c3c;}
-        </style>
-        <script>
-            document.addEventListener('DOMContentLoaded',function(){
-                const modal=document.getElementById('modalCreateBooking');
-                const openBtn=document.getElementById('btnOpenBookingModal');
-                const closeBtn=document.getElementById('closeModalCreateBooking');
-                const cancelBtn=document.getElementById('batalModalCreateBooking');
-                function openM(){ modal.classList.add('show'); modal.setAttribute('aria-hidden','false'); }
-                function closeM(){ modal.classList.remove('show'); modal.setAttribute('aria-hidden','true'); }
-                openBtn?.addEventListener('click',openM); closeBtn?.addEventListener('click',closeM); cancelBtn?.addEventListener('click',closeM); modal?.addEventListener('click',e=>{ if(e.target===modal) closeM(); }); document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeM(); });
-                @if ($errors->hasBag('booking_create') && $errors->booking_create->any()) openM(); @endif
-            });
         </script>
     </div>
 </div>

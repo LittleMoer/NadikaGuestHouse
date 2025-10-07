@@ -52,10 +52,6 @@
             <input type="text" name="nama" class="form-control" value="{{ old('nama') }}" required>
           </div>
           <div class="mb-3">
-            <label class="block mb-1 font-medium">Email</label>
-            <input type="email" name="email" class="form-control" value="{{ old('email') }}">
-          </div>
-          <div class="mb-3">
             <label class="block mb-1 font-medium">Telepon</label>
             <input type="text" name="telepon" class="form-control" value="{{ old('telepon') }}" required>
           </div>
@@ -102,7 +98,6 @@
       <thead class="bg-blue-200">
         <tr>
           <th class="border px-4 py-2">Nama</th>
-          <th class="border px-4 py-2">Email</th>
           <th class="border px-4 py-2">Telepon</th>
           <th class="border px-4 py-2">Alamat</th>
           <th class="border px-4 py-2">Jenis Identitas</th>
@@ -114,7 +109,6 @@
         @foreach ($penginap as $p)
         <tr>
           <td class="border px-4 py-2">{{ $p->nama }}</td>
-          <td class="border px-4 py-2">{{ $p->email }}</td>
           <td class="border px-4 py-2">{{ $p->telepon }}</td>
           <td class="border px-4 py-2">{{ $p->alamat }}</td>
           <td class="border px-4 py-2">{{ $p->jenis_identitas }}</td>
