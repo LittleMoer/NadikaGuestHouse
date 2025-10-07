@@ -28,7 +28,7 @@ class BookingOrder extends Model
         'diskon',
         'discount_review',
         'discount_follow',
-        'extra_time', // values: none, half, sixth
+        'extra_time', // values: none, h3(+35%), h6(+50%), h9(+85%), d1(+100%)
         'per_head_mode', // boolean-like 0/1
         'biaya_tambahan'
     ];

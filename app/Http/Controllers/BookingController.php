@@ -113,6 +113,12 @@ class BookingController extends Controller
         // Cek overlap per kamar terhadap order aktif (status 1/2)
         $startCheck = Carbon::parse($data['tanggal_checkin']);
         $endCheck = Carbon::parse($data['tanggal_checkout']);
+        // Tambahan waktu: adjust checkout by selected extension (does not change pricing directly)
+        $extraSel = $request->get('extra_time','none');
+        if ($extraSel === 'h3') { $endCheck = $endCheck->copy()->addHours(3); }
+        elseif ($extraSel === 'h6') { $endCheck = $endCheck->copy()->addHours(6); }
+        elseif ($extraSel === 'h9') { $endCheck = $endCheck->copy()->addHours(9); }
+        elseif ($extraSel === 'd1') { $endCheck = $endCheck->copy()->addDay(); }
         foreach($kamarList as $k){
             $conflict = BookingOrderItem::where('kamar_id',$k->id)
                 ->whereHas('order', function($q) use ($startCheck,$endCheck){
@@ -145,17 +151,12 @@ class BookingController extends Controller
         foreach($kamarList as $k){
             $baseTotal += $days * (int)$k->harga;
         }
-        // Extra time factor: h3 => +35%, h6 => +50%, h9 => +85%, d1 => +100%
-        $extraTime = $request->get('extra_time','none');
-        if($extraTime === 'h3'){
-            $baseTotal = (int) round($baseTotal * 1.35);
-        } elseif($extraTime === 'h6'){
-            $baseTotal = (int) round($baseTotal * 1.5);
-        } elseif($extraTime === 'h9'){
-            $baseTotal = (int) round($baseTotal * 1.85);
-        } elseif($extraTime === 'd1'){
-            $baseTotal = (int) round($baseTotal * 2.0);
+        // If booking duration is half-day (<= 6 hours), charge 50% of base day rate
+        $diffHours = $endCheck->diffInHours($startCheck);
+        if ($diffHours <= 6) {
+            $baseTotal = (int) round($baseTotal * 0.5);
         }
+        // Do not apply extra_time multipliers to price; only date is adjusted above
         // Per-head mode: if enabled and guests > 2, add 50k per extra guest; ensure min 100k
         $jumlahTamu = (int)($request->get('jumlah_tamu') ?? 1);
         $perHeadMode = (bool)$request->boolean('per_head_mode');
@@ -193,7 +194,8 @@ class BookingController extends Controller
             'dp_amount' => $dpAmount > 0 ? $dpAmount : null,
             'discount_review' => $discReview,
             'discount_follow' => $discFollow,
-            'extra_time' => in_array($extraTime,['none','h3','h6','h9','d1']) ? $extraTime : 'none',
+            // Store as 'none' to avoid enum mismatch; date already extended
+            'extra_time' => 'none',
             'per_head_mode' => $perHeadMode,
             'diskon' => $diskonNominal,
             'biaya_tambahan' => $biayaTambahan > 0 ? $biayaTambahan : null,
@@ -404,6 +406,12 @@ class BookingController extends Controller
         $dpPct = $request->get('dp_percentage');
         $start = Carbon::parse($data['tanggal_checkin']);
         $end = Carbon::parse($data['tanggal_checkout']);
+        // Apply tambahan waktu by extending checkout time only (no price multiplier)
+        $extraSel = $data['extra_time'] ?? 'none';
+        if ($extraSel === 'h3') { $end = $end->copy()->addHours(3); }
+        elseif ($extraSel === 'h6') { $end = $end->copy()->addHours(6); }
+        elseif ($extraSel === 'h9') { $end = $end->copy()->addHours(9); }
+        elseif ($extraSel === 'd1') { $end = $end->copy()->addDay(); }
         $days = max($start->diffInDays($end),1);
 
         // Base recalc from item nightly rates
@@ -414,12 +422,12 @@ class BookingController extends Controller
             $it->save();
             $base += $it->subtotal;
         }
-        // Apply extra time
-        $extraTime = $data['extra_time'] ?? ($order->extra_time ?? 'none');
-        if($extraTime==='h3'){ $base = (int) round($base * 1.35); }
-        if($extraTime==='h6'){ $base = (int) round($base * 1.5); }
-        if($extraTime==='h9'){ $base = (int) round($base * 1.85); }
-        if($extraTime==='d1'){ $base = (int) round($base * 2.0); }
+        // Apply automatic half-day adjustment first if duration <= 6 hours
+        $diffHours = $end->diffInHours($start);
+        if ($diffHours <= 6) {
+            $base = (int) round($base * 0.5);
+        }
+        // Do not apply extra_time multipliers to price; only date adjusted above
         // Per-head
         $perHead = (bool)($data['per_head_mode'] ?? $order->per_head_mode ?? false);
         $jumlahTamu = (int)($data['jumlah_tamu_total'] ?? $order->jumlah_tamu_total ?? 1);
@@ -443,7 +451,8 @@ class BookingController extends Controller
         $order->total_harga = $after; // room total after modifiers
         $order->discount_review = $discReview;
         $order->discount_follow = $discFollow;
-        $order->extra_time = in_array($extraTime,['none','h3','h6','h9','d1']) ? $extraTime : 'none';
+        // Store as 'none' to avoid enum mismatch; checkout already extended
+        $order->extra_time = 'none';
         $order->per_head_mode = $perHead;
         $order->diskon = $diskonNom;
         if(isset($data['biaya_tambahan'])){ $order->biaya_tambahan = (int)$data['biaya_tambahan']; }
