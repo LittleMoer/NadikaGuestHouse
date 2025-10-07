@@ -111,7 +111,7 @@
 <body>
   <div class="wrap">
     <div class="wifi-info">
-      ID:{{ $order->id }}{{ now()->format('Ymd') }}<br>
+      ID:{{ now()->format('Ym') }}{{ $order->id }}<br>
       PASSWORD WIFI ATAS: nginapdulu<br>
       Gedung belakang: nadikaguestb2025
     </div>
@@ -150,8 +150,8 @@
           <div>: {{ $order->jumlah_tamu_total ?? '0' }} orang</div>
         </div>
         <div class="info-row">
-          <div class="info-label">Tipe Kamar</div>
-          <div>: {{ collect($order->items)->map(function($item) { return $item->kamar->tipe ?? '-'; })->unique()->join(', ') }}</div>
+          <div class="info-label">Jaminan</div>
+          <div>: {{ $order->pelanggan?->jenis_identitas ?? '-' }}</div>
         </div>
         <div class="info-row">
           <div class="info-label">Jenis Kamar Disewa</div>
