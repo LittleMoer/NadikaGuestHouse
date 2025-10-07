@@ -112,15 +112,6 @@
                 Login
             </button>
         </form>
-
-        <!-- Register Button -->
-        <div class="mt-4">
-            <a href="{{ route('register') }}" class="w-full bg-white bg-opacity-20 hover:bg-opacity-30 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50 text-center block">
-                Register
-            </a>
-        </div>
-        
-
         <!-- Footer -->
         <div class="mt-8 text-center">
             <p class="text-white text-opacity-60 text-xs">
