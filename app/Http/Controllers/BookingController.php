@@ -145,12 +145,16 @@ class BookingController extends Controller
         foreach($kamarList as $k){
             $baseTotal += $days * (int)$k->harga;
         }
-        // Extra time factor: half => +50%, sixth => +35%
+        // Extra time factor: h3 => +35%, h6 => +50%, h9 => +85%, d1 => +100%
         $extraTime = $request->get('extra_time','none');
-        if($extraTime === 'half'){
-            $baseTotal = (int) round($baseTotal * 1.5);
-        } elseif($extraTime === 'sixth'){
+        if($extraTime === 'h3'){
             $baseTotal = (int) round($baseTotal * 1.35);
+        } elseif($extraTime === 'h6'){
+            $baseTotal = (int) round($baseTotal * 1.5);
+        } elseif($extraTime === 'h9'){
+            $baseTotal = (int) round($baseTotal * 1.85);
+        } elseif($extraTime === 'd1'){
+            $baseTotal = (int) round($baseTotal * 2.0);
         }
         // Per-head mode: if enabled and guests > 2, add 50k per extra guest; ensure min 100k
         $jumlahTamu = (int)($request->get('jumlah_tamu') ?? 1);
@@ -189,7 +193,7 @@ class BookingController extends Controller
             'dp_amount' => $dpAmount > 0 ? $dpAmount : null,
             'discount_review' => $discReview,
             'discount_follow' => $discFollow,
-            'extra_time' => in_array($extraTime,['none','half','sixth']) ? $extraTime : 'none',
+            'extra_time' => in_array($extraTime,['none','h3','h6','h9','d1']) ? $extraTime : 'none',
             'per_head_mode' => $perHeadMode,
             'diskon' => $diskonNominal,
             'biaya_tambahan' => $biayaTambahan > 0 ? $biayaTambahan : null,
@@ -391,7 +395,7 @@ class BookingController extends Controller
             'dp_amount'=>'nullable|integer|min:0',
             'discount_review'=>'nullable|boolean',
             'discount_follow'=>'nullable|boolean',
-            'extra_time'=>'nullable|in:none,half,sixth',
+            'extra_time'=>'nullable|in:none,h3,h6,h9,d1',
             'per_head_mode'=>'nullable|boolean',
             'payment_method'=>'nullable|string|max:20',
             'biaya_tambahan'=>'nullable|integer|min:0',
@@ -412,8 +416,10 @@ class BookingController extends Controller
         }
         // Apply extra time
         $extraTime = $data['extra_time'] ?? ($order->extra_time ?? 'none');
-        if($extraTime==='half'){ $base = (int) round($base * 1.5); }
-        if($extraTime==='sixth'){ $base = (int) round($base * 1.35); }
+        if($extraTime==='h3'){ $base = (int) round($base * 1.35); }
+        if($extraTime==='h6'){ $base = (int) round($base * 1.5); }
+        if($extraTime==='h9'){ $base = (int) round($base * 1.85); }
+        if($extraTime==='d1'){ $base = (int) round($base * 2.0); }
         // Per-head
         $perHead = (bool)($data['per_head_mode'] ?? $order->per_head_mode ?? false);
         $jumlahTamu = (int)($data['jumlah_tamu_total'] ?? $order->jumlah_tamu_total ?? 1);
@@ -437,7 +443,7 @@ class BookingController extends Controller
         $order->total_harga = $after; // room total after modifiers
         $order->discount_review = $discReview;
         $order->discount_follow = $discFollow;
-        $order->extra_time = in_array($extraTime,['none','half','sixth']) ? $extraTime : 'none';
+        $order->extra_time = in_array($extraTime,['none','h3','h6','h9','d1']) ? $extraTime : 'none';
         $order->per_head_mode = $perHead;
         $order->diskon = $diskonNom;
         if(isset($data['biaya_tambahan'])){ $order->biaya_tambahan = (int)$data['biaya_tambahan']; }

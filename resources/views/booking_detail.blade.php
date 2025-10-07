@@ -150,7 +150,17 @@
             <div class="row">
               <div class="col-6 mb-2"><strong>Diskon Review:</strong> {{ $order->discount_review ? 'Ya (-10%)' : 'Tidak' }}</div>
               <div class="col-6 mb-2"><strong>Diskon Follow:</strong> {{ $order->discount_follow ? 'Ya (-10%)' : 'Tidak' }}</div>
-              <div class="col-6 mb-2"><strong>Tambahan Waktu:</strong> {{ $order->extra_time === 'half' ? '+1/2 Hari (50%)' : ($order->extra_time === 'sixth' ? '+1/6 Hari (35%)' : 'Tidak ada') }}</div>
+              <div class="col-6 mb-2"><strong>Tambahan Waktu:</strong>
+                @php
+                  $et = $order->extra_time;
+                  $etLabel = 'Tidak ada';
+                  if($et === 'h3') $etLabel = '+3 jam (35%)';
+                  elseif($et === 'h6') $etLabel = '+6 jam (50%)';
+                  elseif($et === 'h9') $etLabel = '+9 jam (85%)';
+                  elseif($et === 'd1') $etLabel = '+1 hari (100%)';
+                @endphp
+                {{ $etLabel }}
+              </div>
               <div class="col-6 mb-2"><strong>Mode Per Kepala:</strong> {{ $order->per_head_mode ? 'Aktif' : 'Tidak' }}</div>
               @if(!is_null($order->diskon))
                 <div class="col-12 mt-1 text-muted">Diskon tercatat: Rp {{ number_format($order->diskon,0,',','.') }}</div>

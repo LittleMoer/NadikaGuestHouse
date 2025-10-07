@@ -34,7 +34,7 @@
             </div>
         </div>
                     @php $loopJenis = isset($orderedJenisKamar) ? $orderedJenisKamar : $jenisKamar; @endphp
-                    <div class="table-responsive">
+                    <div class="dash-table-wrap">
                         <table class="table table-bordered table-dashboard ">
                             <thead>
                                 <tr class="first-header">
@@ -202,6 +202,11 @@
             .table-dashboard { width: 100%; border-collapse: separate; border-spacing: 0; font-size: .88rem; table-layout: fixed; border: 2px solid #000000; }
             .table-dashboard th, .table-dashboard td { vertical-align: middle; text-align: center; overflow: hidden; text-overflow: ellipsis; }
             .table-dashboard thead th { background: #fff9db; color:#1f2937; font-weight:700; border-bottom: 3px solid rgba(0, 0, 0, .6); padding: 6px 4px; white-space: nowrap; border-right: 2px solid #000000; border-left: 2px solid #000000; }
+            /* Sticky headers */
+            .dash-table-wrap { position: relative; height: 70vh; overflow: auto; }
+            .table-dashboard thead tr.first-header th { position: sticky; top: 0; z-index: 20; background: #fff9db; }
+            /* second header sits just below the first; JS sets --hdr1h dynamically */
+            .table-dashboard thead tr.second-header th { position: sticky; top: var(--hdr1h, 40px); z-index: 19; background: #fff3bf; }
             .table-dashboard thead th:first-child { border: 2px solid #000000; }
             .first-header .group-header { text-transform: uppercase; letter-spacing: .4px; font-size: .7rem; background: #fde68a; color:#7c2d12; border: 1px solid #000000 !important; }
             .first-header .group-header:first-child { border: 1px solid #000000 !important; }
@@ -341,6 +346,17 @@
                         window.location.href = url;
                     });
                 });
+                // Compute sticky offset for the second header based on actual height of the first header row
+                function setStickyOffsets(){
+                    const wrap = document.querySelector('.dash-table-wrap');
+                    const firstHdr = document.querySelector('.table-dashboard thead tr.first-header');
+                    if(wrap && firstHdr){
+                        const h = firstHdr.getBoundingClientRect().height || firstHdr.offsetHeight || 40;
+                        wrap.style.setProperty('--hdr1h', h + 'px');
+                    }
+                }
+                setStickyOffsets();
+                window.addEventListener('resize', setStickyOffsets);
             })();
         </script>
 @endsection

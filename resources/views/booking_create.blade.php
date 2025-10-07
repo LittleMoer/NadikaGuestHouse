@@ -206,8 +206,10 @@
                             <label class="form-label">Tambahan Waktu</label>
                             <select name="extra_time" class="form-control">
                                 <option value="none" {{ old('extra_time','none')==='none' ? 'selected' : '' }}>Tidak ada</option>
-                                <option value="half" {{ old('extra_time')==='half' ? 'selected' : '' }}>+1/2 Hari (+50%)</option>
-                                <option value="sixth" {{ old('extra_time')==='sixth' ? 'selected' : '' }}>+1/6 Hari (+35%)</option>
+                                <option value="h3" {{ old('extra_time')==='h3' ? 'selected' : '' }}>+3 jam (35%)</option>
+                                <option value="h6" {{ old('extra_time')==='h6' ? 'selected' : '' }}>+6 jam (50%)</option>
+                                <option value="h9" {{ old('extra_time')==='h9' ? 'selected' : '' }}>+9 jam (85%)</option>
+                                <option value="d1" {{ old('extra_time')==='d1' ? 'selected' : '' }}>+1 hari (100%)</option>
                             </select>
                         </div>
                         <div class="col-md-4 mb-3">
