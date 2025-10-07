@@ -414,9 +414,11 @@ class BookingController extends Controller
         elseif ($extraSel === 'd1') { $end = $end->copy()->addDay(); }
         $days = max($start->diffInDays($end),1);
 
-        // Base recalc from item nightly rates
+        // Base recalc from authoritative kamar nightly rates
         $base = 0;
         foreach($order->items as $it){
+            // Always pull price from kamar table; remove manual overrides
+            $it->harga_per_malam = (int)($it->kamar?->harga ?? $it->harga_per_malam ?? 0);
             $it->malam = $days;
             $it->subtotal = $days * (int)$it->harga_per_malam;
             $it->save();
@@ -533,42 +535,13 @@ class BookingController extends Controller
      */
     public function updatePrices(Request $request, $id)
     {
-        $order = BookingOrder::with('items')->findOrFail($id);
-        $payload = $request->validate([
-            'items'=>'required|array|min:1',
-            'items.*.id'=>'required|integer|exists:booking_order_items,id',
-            'items.*.harga_per_malam'=>'nullable|integer|min:0',
-            'items.*.subtotal'=>'nullable|integer|min:0'
-        ]);
-
-        // Pastikan item milik order ini
-        $allowedIds = $order->items->pluck('id')->toArray();
-        $updateMap = collect($payload['items'])->keyBy('id');
-        foreach($updateMap as $itemId=>$vals){
-            if(!in_array($itemId,$allowedIds)){
-                return response()->json(['success'=>false,'message'=>'Item tidak sesuai dengan booking'],422);
-            }
-        }
-
+        // Ignore client overrides; enforce price from kamar table
+        $order = BookingOrder::with('items.kamar')->findOrFail($id);
         $total = 0;
         foreach($order->items as $it){
-            if(isset($updateMap[$it->id])){
-                $vals = $updateMap[$it->id];
-                $changed = false;
-                if(array_key_exists('harga_per_malam',$vals) && $vals['harga_per_malam'] !== null){
-                    $it->harga_per_malam = (int)$vals['harga_per_malam'];
-                    // Recalc subtotal jika subtotal eksplisit tidak dikirim
-                    if(!array_key_exists('subtotal',$vals) || $vals['subtotal'] === null){
-                        $it->subtotal = $it->malam * $it->harga_per_malam;
-                    }
-                    $changed = true;
-                }
-                if(array_key_exists('subtotal',$vals) && $vals['subtotal'] !== null){
-                    $it->subtotal = (int)$vals['subtotal'];
-                    $changed = true;
-                }
-                if($changed){ $it->save(); }
-            }
+            $it->harga_per_malam = (int)($it->kamar?->harga ?? 0);
+            $it->subtotal = (int)$it->malam * (int)$it->harga_per_malam;
+            $it->save();
             $total += $it->subtotal;
         }
         $order->total_harga = $total;
@@ -577,7 +550,7 @@ class BookingController extends Controller
         if($request->wantsJson()){
             return response()->json([
                 'success'=>true,
-                'message'=>'Harga berhasil diperbarui',
+                'message'=>'Harga diambil otomatis dari data kamar',
                 'order'=>[
                     'id'=>$order->id,
                     'total_harga'=>$order->total_harga,
@@ -590,7 +563,7 @@ class BookingController extends Controller
                 ]
             ]);
         }
-        return redirect()->back()->with('success','Harga booking diperbarui');
+        return redirect()->back()->with('success','Harga booking diset dari data kamar');
     }
 
     /**
