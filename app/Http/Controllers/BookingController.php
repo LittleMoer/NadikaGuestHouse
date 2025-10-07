@@ -687,7 +687,7 @@ class BookingController extends Controller
 
     public function penginap()
     {
-        $penginap = Pelanggan::paginate(10);
+        $penginap = Pelanggan::orderBy('nama')->get();
         return view('penginap', compact('penginap'));
     }
 

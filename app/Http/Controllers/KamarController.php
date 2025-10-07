@@ -8,7 +8,7 @@ class KamarController extends Controller
 {
     public function index()
     {
-        $kamar = Kamar::paginate(10);
+        $kamar = Kamar::orderBy('tipe')->orderBy('nomor_kamar')->get();
         return view('kamar', compact('kamar'));
     }
 

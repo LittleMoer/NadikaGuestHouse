@@ -64,9 +64,7 @@
                 @endforeach
             </tbody>
         </table>
-        <div class="mt-4 p-3 rounded bg-gray-50">
-            {{ $kamar->onEachSide(1)->links('pagination::bootstrap-5') }}
-        </div>
+        <!-- Laravel pagination removed because DataTables provides client-side pagination -->
         <!-- Create Modal for Kamar -->
         <div id="modalCreateKamar" class="modal-overlay" aria-hidden="true">
             <div class="modal-card">
@@ -193,16 +191,22 @@
         </style>
         <script>
         $(document).ready(function() {
-            // Disable client-side paging; use Laravel pagination instead
+            // Enable full DataTables pagination & filtering
             $('#tabel-kamar').DataTable({
-                paging: false,
+                paging: true,
+                pageLength: 10,
+                lengthMenu: [[10, 25, 50, -1], [10, 25, 50, 'Semua']],
                 searching: true,
-                info: false,
-                lengthChange: false,
+                info: true,
+                lengthChange: true,
                 language: {
                     search: 'Cari:',
                     zeroRecords: 'Data tidak ditemukan',
+                    info: 'Menampilkan _START_ sampai _END_ dari _TOTAL_ data',
                     infoEmpty: 'Tidak ada data',
+                    infoFiltered: '(disaring dari _MAX_ total data)',
+                    lengthMenu: 'Tampilkan _MENU_ data per halaman',
+                    paginate: { previous: 'Sebelumnya', next: 'Berikutnya' }
                 }
             });
 
