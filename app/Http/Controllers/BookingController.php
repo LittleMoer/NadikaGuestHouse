@@ -203,9 +203,7 @@ class BookingController extends Controller
                 'harga_per_malam' => (int)$k->harga,
                 'subtotal' => $days * (int)$k->harga,
             ]);
-            if($status === 2){
-                $k->update(['status'=>2]);
-            }
+            // Room status update removed
         }
 
         // Ledger: DP in
@@ -241,7 +239,7 @@ class BookingController extends Controller
                 if ($booking->status != 1) return redirect()->back()->with('error','Tidak dapat check-in');
                 if ($booking->payment_status !== 'lunas') return redirect()->back()->with('error','Check-in hanya diizinkan jika pembayaran sudah Lunas');
                 $booking->status = 2;
-                foreach($booking->items as $it){ $it->kamar?->update(['status'=>2]); }
+                // Room status update removed
                 break;
             case 'checkout':
                 if ($booking->status != 2) return redirect()->back()->with('error','Tidak dapat check-out');
@@ -249,7 +247,7 @@ class BookingController extends Controller
                 // Otomatis set pembayaran menjadi lunas saat checkout
                 $booking->payment_status = 'lunas';
                 $booking->dp_percentage = 100; // tandai sudah lunas penuh
-                foreach($booking->items as $it){ $it->kamar?->update(['status'=>1]); }
+                // Room status update removed
                 break;
         }
         $booking->save();
@@ -582,8 +580,6 @@ class BookingController extends Controller
     public function destroy(Request $request, $id)
     {
         $order = BookingOrder::with(['items','cafeOrders.items'])->findOrFail($id);
-        // Kembalikan status kamar ke available jika sedang checkin/dipesan
-        foreach($order->items as $it){ $it->kamar?->update(['status'=>1]); }
         // Hapus hierarki manual (jika belum cascade di DB)
         foreach($order->cafeOrders as $co){ $co->items()->delete(); $co->delete(); }
         $order->items()->delete();

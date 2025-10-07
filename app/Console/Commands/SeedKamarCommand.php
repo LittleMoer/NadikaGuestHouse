@@ -51,7 +51,7 @@ class SeedKamarCommand extends Command
                     'tipe' => $spec['tipe'],
                     'kapasitas' => $spec['kapasitas'],
                     'harga' => $spec['harga'],
-                    'status' => 1,
+                    // status field removed
                     'deskripsi' => $spec['deskripsi'],
                 ]);
                 $this->line("+ Kamar {$nomor} ({$spec['tipe']}) ditambahkan");

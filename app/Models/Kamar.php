@@ -5,7 +5,7 @@ class Kamar extends Model
 {
     protected $table = 'kamar';
     protected $fillable = [
-        'nomor_kamar', 'tipe', 'kapasitas', 'harga', 'status', 'deskripsi'
+        'nomor_kamar', 'tipe', 'kapasitas', 'harga', 'deskripsi'
     ];
     public function bookings()
     {
