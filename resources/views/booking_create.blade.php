@@ -72,6 +72,22 @@
                     t.show();
                 });
 
+                // Prefill default booking window: today 12:00 -> tomorrow 12:00 if empty
+                try {
+                    const inpIn = document.querySelector('input[name="tanggal_checkin"][type="datetime-local"]');
+                    const inpOut = document.querySelector('input[name="tanggal_checkout"][type="datetime-local"]');
+                    if (inpIn && inpOut && (!inpIn.value || !inpOut.value)) {
+                        const now = new Date();
+                        const pad = n => (n<10? '0'+n : ''+n);
+                        const setLocal = (d)=> `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                        // Normalize to 12:00 local
+                        const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0, 0);
+                        const end = new Date(start.getTime() + 24*60*60*1000);
+                        if (!inpIn.value) inpIn.value = setLocal(start);
+                        if (!inpOut.value) inpOut.value = setLocal(end);
+                    }
+                } catch(e) { /* no-op */ }
+
                 // Rupiah formatting for inputs with .rupiah
                 function formatRupiah(val){
                     const num = (val||'').toString().replace(/[^0-9]/g,'');
