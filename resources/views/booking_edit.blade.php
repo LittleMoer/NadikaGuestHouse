@@ -69,13 +69,16 @@
             });
           });
         });
+
       });
     </script>
 
     <div class="card">
       <div class="card-header d-flex justify-content-between align-items-center">
         <span>Form Edit Booking</span>
-        <a class="btn btn-light btn-sm" href="{{ route('booking.detail', $order->id) }}">Lihat Detail</a>
+        <div class="d-flex gap-2">
+          <a class="btn btn-light btn-sm" href="{{ route('booking.detail', $order->id) }}">Lihat Detail</a>
+        </div>
       </div>
       <form action="{{ route('booking.update', $order->id) }}" method="POST">
         @csrf

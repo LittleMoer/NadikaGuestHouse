@@ -111,6 +111,26 @@
               <div><strong>Sisa Pembayaran</strong></div>
               <div><strong>Rp {{ number_format($sisa,0,',','.') }}</strong></div>
             </div>
+            <hr/>
+            <div class="mt-2">
+              <form action="{{ route('booking.cashback', $order->id) }}" method="POST" class="row g-2 align-items-end" id="formCashbackDetail">
+                @csrf
+                <div class="col-auto">
+                  <label class="form-label mb-1" style="font-size:.8rem;">Cashback (Rp)</label>
+                  <input type="text" name="amount" class="form-control form-control-sm rupiah" placeholder="0" />
+                </div>
+                <div class="col-auto">
+                  <label class="form-label mb-1" style="font-size:.8rem;">Catatan</label>
+                  <input type="text" name="note" class="form-control form-control-sm" placeholder="Cashback" />
+                </div>
+                <div class="col-auto">
+                  <button type="submit" class="btn btn-success btn-sm">Tambah Cashback</button>
+                </div>
+                <div class="col-12">
+                  <small class="text-muted">Cashback tidak mengubah perhitungan booking. Nilai ini hanya masuk ke Rekap.</small>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       </div>

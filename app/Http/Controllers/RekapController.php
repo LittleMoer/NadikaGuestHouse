@@ -31,7 +31,7 @@ class RekapController extends Controller
             ->leftJoin('booking_order_items as boi', 'boi.booking_order_id', '=', 'l.booking_id')
             ->leftJoin('kamar as k', 'k.id', '=', 'boi.kamar_id')
             ->whereBetween('l.created_at', [$start, $end])
-            ->whereIn('l.type', ['dp_in','dp_remaining_in','cafe_in']);
+            ->whereIn('l.type', ['dp_in','dp_remaining_in','cafe_in','cashback_in']);
 
         // Apply filters
         if ($paymentMethod && strtolower($paymentMethod) !== 'all') {
@@ -93,7 +93,7 @@ class RekapController extends Controller
         $sumQuery = \DB::table('cash_ledger as l')
             ->leftJoin('booking as b', 'b.id', '=', 'l.booking_id')
             ->whereBetween('l.created_at', [$start, $end])
-            ->whereIn('l.type', ['dp_in','dp_remaining_in','cafe_in']);
+            ->whereIn('l.type', ['dp_in','dp_remaining_in','cafe_in','cashback_in']);
         if ($paymentMethod && strtolower($paymentMethod) !== 'all') {
             $sumQuery->where('b.payment_method', strtolower($paymentMethod));
         }
@@ -162,7 +162,8 @@ class RekapController extends Controller
         $totalDpRemaining = (int)($ledger['dp_remaining_in'] ?? 0);
         $totalDpCanceled = (int)($ledger['dp_canceled'] ?? 0);
         $totalCafeIn = (int)($ledger['cafe_in'] ?? 0);
-        $cashGrand = $totalDpIn + $totalDpRemaining + $totalCafeIn;
+        $totalCashback = (int)($ledger['cashback_in'] ?? 0);
+        $cashGrand = $totalDpIn + $totalDpRemaining + $totalCafeIn + $totalCashback;
 
         return view('rekap_print', [
             'bulan' => $bulan,
@@ -171,6 +172,7 @@ class RekapController extends Controller
             'totalDpRemaining' => $totalDpRemaining,
             'totalDpCanceled' => $totalDpCanceled,
             'totalCafeIn' => $totalCafeIn,
+            'totalCashback' => $totalCashback,
             'cashGrand' => $cashGrand,
             'start' => $start,
             'end' => $end,

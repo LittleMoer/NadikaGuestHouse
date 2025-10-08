@@ -26,6 +26,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/booking/{id}/status', [BookingController::class, 'updateStatus'])->name('booking.status');
     Route::post('/booking/{id}/prices', [BookingController::class, 'updatePrices'])->name('booking.prices');
     Route::post('/booking/{id}/payment', [BookingController::class, 'updatePaymentStatus'])->name('booking.payment');
+    Route::post('/booking/{id}/cashback', [BookingController::class, 'addCashback'])->name('booking.cashback');
     Route::get('/booking/{id}/nota', [BookingController::class, 'printNota'])->name('booking.nota');
     Route::get('/booking/{id}/printout', [BookingController::class, 'printout'])->name('booking.printout');
     Route::get('/booking/{id}/nota-cafe', [BookingController::class, 'notaCafe'])->name('booking.nota.cafe');

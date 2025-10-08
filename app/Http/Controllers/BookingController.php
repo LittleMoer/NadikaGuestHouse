@@ -77,6 +77,31 @@ class BookingController extends Controller
     }
 
     /**
+     * Tambah cashback (pendapatan tambahan) untuk sebuah booking.
+     * Tidak memengaruhi perhitungan total_harga booking; hanya tercatat di ledger dan ikut rekap.
+     */
+    public function addCashback(Request $request, $id)
+    {
+        $order = BookingOrder::findOrFail($id);
+        $data = $request->validate([
+            'amount' => 'required|integer|min:0',
+            'note'   => 'nullable|string|max:190',
+        ]);
+        \DB::table('cash_ledger')->insert([
+            'booking_id' => $order->id,
+            'type'       => 'cashback_in',
+            'amount'     => (int)$data['amount'],
+            'note'       => $data['note'] ? $data['note'] : 'Cashback',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        if ($request->wantsJson()) {
+            return response()->json(['success'=>true]);
+        }
+        return back()->with('success','Cashback ditambahkan');
+    }
+
+    /**
      * Simpan booking baru (walk-in atau online)
      */
     public function store(Request $request)

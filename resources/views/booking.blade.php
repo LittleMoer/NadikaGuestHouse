@@ -11,6 +11,7 @@
             </ul>
         </div>
 
+
         <!-- Actions -->
         <div class="card mb-3 shadow-sm">
             <div class="card-body py-3 d-flex justify-content-between align-items-center">
@@ -67,6 +68,7 @@
                         <td style="min-width:50px;display:flex;justify-content:flex-end;gap:8px;">
                             <a href="{{ route('booking.detail', $order->id) }}" class="btn btn-sm btn-secondary">Detail</a>
                             <a href="{{ route('booking.edit', $order->id) }}" class="btn btn-sm btn-warning text-white">Edit</a>
+                            <button type="button" class="btn btn-sm btn-outline-success btn-cashback-prompt" data-booking-id="{{ $order->id }}">Cashback</button>
                             <form action="{{ route('booking.destroy', $order->id) }}" method="POST" style="display:inline" onsubmit="return confirm('Yakin ingin menghapus booking ini?')">
                                 @csrf
                                 @method('DELETE')
@@ -576,6 +578,7 @@
 
             // Initial payment visuals
             qsa('#tabel-booking tbody tr').forEach(updatePaymentVisual);
+
         });
         </script>
     </div>

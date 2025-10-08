@@ -90,7 +90,7 @@
             </thead>
             <tbody>
             @php
-              $mapType = ['dp_in'=>'DP Masuk','dp_remaining_in'=>'Pelunasan','cafe_in'=>'Cafe'];
+              $mapType = ['dp_in'=>'DP Masuk','dp_remaining_in'=>'Pelunasan','cafe_in'=>'Cafe','cashback_in'=>'Cashback'];
               $mapPemesanan = [0=>'Walk-In',1=>'Online',2=>'Agent 1',3=>'Agent 2'];
               $i=1;
             @endphp
