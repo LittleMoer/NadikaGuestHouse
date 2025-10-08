@@ -120,16 +120,14 @@ class BookingController extends Controller
         elseif ($extraSel === 'h9') { $endCheck = $endCheck->copy()->addHours(9); }
         elseif ($extraSel === 'd1') { $endCheck = $endCheck->copy()->addDay(); }
         foreach($kamarList as $k){
+            // Overlap rule using half-open intervals: [start, end)
+            // Conflict exists if existing.checkin < selected.end AND existing.checkout > selected.start
             $conflict = BookingOrderItem::where('kamar_id',$k->id)
                 ->whereHas('order', function($q) use ($startCheck,$endCheck){
                     $q->whereIn('status',[1,2])
                       ->where(function($qq) use ($startCheck,$endCheck){
-                          $qq->whereBetween('tanggal_checkin', [$startCheck,$endCheck])
-                             ->orWhereBetween('tanggal_checkout', [$startCheck,$endCheck])
-                             ->orWhere(function($qx) use ($startCheck,$endCheck){
-                                 $qx->where('tanggal_checkin','<=',$startCheck)
-                                    ->where('tanggal_checkout','>=',$endCheck);
-                             });
+                          $qq->where('tanggal_checkin','<',$endCheck)
+                             ->where('tanggal_checkout','>',$startCheck);
                       });
                 })
                 ->exists();
