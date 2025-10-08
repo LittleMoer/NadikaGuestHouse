@@ -141,7 +141,9 @@ class BookingController extends Controller
         }
 
         $start = $startCheck; $end = $endCheck;
-        $days = max($start->diffInDays($end),1);
+        // Compute raw day and hour differences
+        $rawDays = $start->diffInDays($end);
+        $days = max($rawDays,1);
 
     // Default lifecycle: walk-in defaults to checkin (2), online defaults to dipesan (1)
     $status = isset($data['status']) ? (int)$data['status'] : ((int)$data['pemesanan'] == 0 ? 2 : 1);
@@ -151,9 +153,9 @@ class BookingController extends Controller
         foreach($kamarList as $k){
             $baseTotal += $days * (int)$k->harga;
         }
-        // If booking duration is half-day (<= 6 hours), charge 50% of base day rate
+        // If booking duration is truly half-day (<= 6 hours AND within same calendar day span), charge 50%
         $diffHours = $endCheck->diffInHours($startCheck);
-        if ($diffHours <= 6) {
+        if ($rawDays === 0 && $diffHours <= 6) {
             $baseTotal = (int) round($baseTotal * 0.5);
         }
         // Do not apply extra_time multipliers to price; only date is adjusted above
@@ -203,8 +205,8 @@ class BookingController extends Controller
 
         foreach($kamarList as $k){
             $subtotal = $days * (int)$k->harga;
-            // Apply half-day adjustment to item subtotal as well when duration <= 6 hours
-            if ($diffHours <= 6) { $subtotal = (int) round($subtotal * 0.5); }
+            // Apply half-day adjustment to item subtotal only when rawDays==0 and <=6 hours
+            if ($rawDays === 0 && $diffHours <= 6) { $subtotal = (int) round($subtotal * 0.5); }
             BookingOrderItem::create([
                 'booking_order_id' => $order->id,
                 'kamar_id' => $k->id,
@@ -423,7 +425,9 @@ class BookingController extends Controller
         elseif ($extraSel === 'h6') { $end = $end->copy()->addHours(6); }
         elseif ($extraSel === 'h9') { $end = $end->copy()->addHours(9); }
         elseif ($extraSel === 'd1') { $end = $end->copy()->addDay(); }
-        $days = max($start->diffInDays($end),1);
+        // Calculate raw day span and derived nights
+        $rawDays = $start->diffInDays($end);
+        $days = max($rawDays,1);
 
         // Base recalc from authoritative kamar nightly rates
         $base = 0;
@@ -435,9 +439,9 @@ class BookingController extends Controller
             $it->save();
             $base += $it->subtotal;
         }
-        // Apply automatic half-day adjustment to both base and each item if duration <= 6 hours
+        // Apply automatic half-day adjustment only when within the same day and <= 6 hours
         $diffHours = $end->diffInHours($start);
-        if ($diffHours <= 6) {
+        if ($rawDays === 0 && $diffHours <= 6) {
             $base = (int) round($base * 0.5);
             foreach($order->items as $it){
                 $it->subtotal = (int) round($it->subtotal * 0.5);
