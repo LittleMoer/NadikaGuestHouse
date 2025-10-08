@@ -181,52 +181,66 @@ class BookingController extends Controller
         $paymentMethod = $request->get('payment_method'); // cash, transfer, qris, card (nullable)
         $biayaTambahan = (int)($request->get('biaya_tambahan') ?? 0);
 
-        $order = BookingOrder::create([
-            'pelanggan_id' => $data['pelanggan_id'],
-            'tanggal_checkin' => $start,
-            'tanggal_checkout' => $end,
-            'jumlah_tamu_total' => $data['jumlah_tamu'],
-            'status' => $status,
-            'pemesanan' => (int)$data['pemesanan'],
-            'catatan' => $data['catatan'] ?? null,
-            'total_harga' => $totalOrder,
-            'payment_status' => $paymentStatus,
-            'payment_method' => $paymentMethod ? strtolower($paymentMethod) : null,
-            'dp_percentage' => null,
-            'dp_amount' => $dpAmount > 0 ? $dpAmount : null,
-            'discount_review' => $discReview,
-            'discount_follow' => $discFollow,
-            // Store as 'none' to avoid enum mismatch; date already extended
-            'extra_time' => 'none',
-            'per_head_mode' => $perHeadMode,
-            'diskon' => $diskonNominal,
-            'biaya_tambahan' => $biayaTambahan > 0 ? $biayaTambahan : null,
-        ]);
+        try {
+            DB::beginTransaction();
 
-        foreach($kamarList as $k){
-            $subtotal = $days * (int)$k->harga;
-            // Apply half-day adjustment to item subtotal only when rawDays==0 and <=6 hours
-            if ($rawDays === 0 && $diffHours <= 6) { $subtotal = (int) round($subtotal * 0.5); }
-            BookingOrderItem::create([
-                'booking_order_id' => $order->id,
-                'kamar_id' => $k->id,
-                'malam' => $days,
-                'harga_per_malam' => (int)$k->harga,
-                'subtotal' => $subtotal,
+            $order = BookingOrder::create([
+                'pelanggan_id' => $data['pelanggan_id'],
+                'tanggal_checkin' => $start,
+                'tanggal_checkout' => $end,
+                'jumlah_tamu_total' => $data['jumlah_tamu'],
+                'status' => $status,
+                'pemesanan' => (int)$data['pemesanan'],
+                'catatan' => $data['catatan'] ?? null,
+                'total_harga' => $totalOrder,
+                'payment_status' => $paymentStatus,
+                'payment_method' => $paymentMethod ? strtolower($paymentMethod) : null,
+                'dp_percentage' => null,
+                'dp_amount' => $dpAmount > 0 ? $dpAmount : null,
+                'discount_review' => $discReview,
+                'discount_follow' => $discFollow,
+                // Store as 'none' to avoid enum mismatch; date already extended
+                'extra_time' => 'none',
+                'per_head_mode' => $perHeadMode,
+                'diskon' => $diskonNominal,
+                'biaya_tambahan' => $biayaTambahan > 0 ? $biayaTambahan : null,
             ]);
-            // Room status update removed
-        }
 
-        // Ledger: DP in
-        if($dpAmount > 0){
-            DB::table('cash_ledger')->insert([
-                'booking_id' => $order->id,
-                'type' => 'dp_in',
-                'amount' => $dpAmount,
-                'note' => 'Uang masuk DP',
-                'created_at' => now(),
-                'updated_at' => now(),
+            foreach($kamarList as $k){
+                $subtotal = $days * (int)$k->harga;
+                // Apply half-day adjustment to item subtotal only when rawDays==0 and <=6 hours
+                if ($rawDays === 0 && $diffHours <= 6) { $subtotal = (int) round($subtotal * 0.5); }
+                BookingOrderItem::create([
+                    'booking_order_id' => $order->id,
+                    'kamar_id' => $k->id,
+                    'malam' => $days,
+                    'harga_per_malam' => (int)$k->harga,
+                    'subtotal' => $subtotal,
+                ]);
+            }
+
+            // Ledger: DP in
+            if($dpAmount > 0){
+                DB::table('cash_ledger')->insert([
+                    'booking_id' => $order->id,
+                    'type' => 'dp_in',
+                    'amount' => $dpAmount,
+                    'note' => 'Uang masuk DP',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            \Log::error('Create booking failed', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
+            return redirect()->route('booking.index')
+                ->withErrors(['general' => 'Terjadi kesalahan saat membuat booking. Silakan coba lagi.'], 'booking_create')
+                ->withInput();
         }
 
         return redirect()->route('booking.index')
