@@ -114,6 +114,61 @@
                     });
                 });
 
+                // Client-side validation for booking create form
+                (function(){
+                    const form = document.getElementById('formBookingCreate');
+                    if(!form) return;
+                    form.addEventListener('submit', function(e){
+                        // prevent double submit
+                        if(this.dataset.submitting === '1'){
+                            e.preventDefault();
+                            return false;
+                        }
+                        const errs = [];
+                        const get = sel=> this.querySelector(sel);
+                        const pelanggan = get('select[name="pelanggan_id"]')?.value || '';
+                        const kamarSel = Array.from(this.querySelectorAll('select[name="kamar_ids[]"] option:checked')).map(o=>o.value).filter(Boolean);
+                        const vIn = get('input[name="tanggal_checkin"][type="datetime-local"]')?.value || '';
+                        const vOut = get('input[name="tanggal_checkout"][type="datetime-local"]')?.value || '';
+                        const jTamuVal = (get('input[name="jumlah_tamu"]')?.value || '').toString().trim();
+                        const jTamu = parseInt(jTamuVal, 10);
+                        // basic required checks
+                        if(!pelanggan) errs.push('Pelanggan wajib dipilih');
+                        if(kamarSel.length === 0) errs.push('Minimal pilih 1 kamar');
+                        if(!vIn) errs.push('Tanggal check-in wajib diisi');
+                        if(!vOut) errs.push('Tanggal check-out wajib diisi');
+                        // date validity and order
+                        let dIn = null, dOut = null;
+                        if(vIn){ dIn = new Date(vIn); if(isNaN(dIn.getTime())) errs.push('Format tanggal check-in tidak valid'); }
+                        if(vOut){ dOut = new Date(vOut); if(isNaN(dOut.getTime())) errs.push('Format tanggal check-out tidak valid'); }
+                        if(dIn && dOut){
+                            if(dOut <= dIn){ errs.push('Check-out harus setelah Check-in'); }
+                        }
+                        if(!(Number.isFinite(jTamu) && jTamu >= 1)) errs.push('Jumlah tamu minimal 1');
+                        if(errs.length){
+                            e.preventDefault();
+                            // Prefer toast if available; fallback to alert
+                            try{
+                                const container = document.querySelector('.position-fixed.top-0.end-0.p-3');
+                                const div = document.createElement('div');
+                                div.className = 'toast text-bg-danger border-0';
+                                div.setAttribute('role','alert');
+                                div.setAttribute('aria-live','assertive');
+                                div.setAttribute('aria-atomic','true');
+                                div.innerHTML = '<div class="toast-header bg-danger text-white"><strong class="me-auto">Validasi Gagal</strong><button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button></div>'+
+                                    '<div class="toast-body"><ul style="margin:0;padding-left:18px;">'+errs.map(t=>`<li>${t}</li>`).join('')+'</ul></div>';
+                                if(container){ container.appendChild(div); const t = new bootstrap.Toast(div); t.show(); }
+                                else { alert(errs.join('\n')); }
+                            }catch(_){ alert(errs.join('\n')); }
+                            return false;
+                        }
+                        // mark as submitting and disable submit button
+                        this.dataset.submitting = '1';
+                        this.querySelectorAll('button[type="submit"], input[type="submit"]').forEach(b=> b.disabled = true);
+                        return true;
+                    }, {capture:true});
+                })();
+
                 // Durasi (Hari) selector -> sets times to slot system
                 (function(){
                     const sel = document.getElementById('durasi_hari');
@@ -147,7 +202,7 @@
             });
         </script>
 
-        <form action="{{ route('booking.store') }}" method="POST">
+        <form id="formBookingCreate" action="{{ route('booking.store') }}" method="POST">
             @csrf
             <div class="card">
                 <div class="card-header">
