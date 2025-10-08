@@ -137,7 +137,7 @@
                             start = new Date(base.getFullYear(), base.getMonth(), base.getDate(), 12, 0, 0, 0);
                             const fullDays = Math.floor(num);
                             const hasHalf = (num - fullDays) >= 0.5;
-                            const hoursToAdd = fullDays * 24 + (hasHalf ? 6 : 24); // 1 day = +24h; 1.5 day adds +30h total (24 + 6)
+                            const hoursToAdd = fullDays * 24 + (hasHalf ? 6 : 0); // 1 day = +24h; 1.5 day = 24 + 6 = 30h
                             var end = new Date(start.getTime() + hoursToAdd * 60 * 60 * 1000);
                         }
                         inpIn.value = setLocal(start);
