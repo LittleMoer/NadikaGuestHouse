@@ -250,11 +250,13 @@ class BookingController extends Controller
 
             // Ledger: DP in
             if($dpAmount > 0){
+                $dpMethod = strtolower((string)($request->get('dp_payment_method') ?? $paymentMethod ?? '')) ?: null;
                 DB::table('cash_ledger')->insert([
                     'booking_id' => $order->id,
                     'type' => 'dp_in',
                     'amount' => $dpAmount,
                     'note' => 'Uang masuk DP',
+                    'payment_method' => $dpMethod,
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
@@ -592,11 +594,13 @@ class BookingController extends Controller
         // 1) Record DP additions (manual increase in dp_amount)
         if($newDp > $oldDp){
             $delta = $newDp - $oldDp;
+            $dpMethod = strtolower((string)($request->get('dp_payment_method') ?? $request->get('payment_method') ?? $order->payment_method ?? '')) ?: null;
             DB::table('cash_ledger')->insert([
                 'booking_id'=>$order->id,
                 'type'=>'dp_in',
                 'amount'=>$delta,
                 'note'=>'Tambahan DP',
+                'payment_method' => $dpMethod,
                 'created_at'=>now(),
                 'updated_at'=>now(),
             ]);
@@ -617,11 +621,13 @@ class BookingController extends Controller
         if($oldPayment !== 'lunas' && $newPayment === 'lunas'){
             $remaining = max(0, $newTotal - $newDp);
             if($remaining > 0){
+                $pelunasanMethod = strtolower((string)($request->get('pelunasan_payment_method') ?? $request->get('payment_method') ?? $order->payment_method ?? '')) ?: null;
                 DB::table('cash_ledger')->insert([
                     'booking_id'=>$order->id,
                     'type'=>'dp_remaining_in',
                     'amount'=>$remaining,
                     'note'=>'Pelunasan sisa DP',
+                    'payment_method' => $pelunasanMethod,
                     'created_at'=>now(),
                     'updated_at'=>now(),
                 ]);
@@ -634,11 +640,13 @@ class BookingController extends Controller
         // 4) If already lunas and total increases beyond current dp, log top-up
         if($newPayment === 'lunas' && $newTotal > $newDp){
             $delta = $newTotal - $newDp;
+            $pelunasanMethod = strtolower((string)($request->get('pelunasan_payment_method') ?? $request->get('payment_method') ?? $order->payment_method ?? '')) ?: null;
             DB::table('cash_ledger')->insert([
                 'booking_id'=>$order->id,
                 'type'=>'dp_remaining_in',
                 'amount'=>$delta,
                 'note'=>'Penyesuaian total (top-up)',
+                'payment_method' => $pelunasanMethod,
                 'created_at'=>now(),
                 'updated_at'=>now(),
             ]);
@@ -653,6 +661,7 @@ class BookingController extends Controller
                 'type'=>'dp_canceled',
                 'amount'=>$delta,
                 'note'=>'Penyesuaian total (refund/koreksi)',
+                'payment_method' => strtolower((string)($request->get('pelunasan_payment_method') ?? $order->payment_method ?? '')) ?: null,
                 'created_at'=>now(),
                 'updated_at'=>now(),
             ]);

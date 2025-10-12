@@ -86,6 +86,7 @@
                 <th style="width:120px;">Metode Pesan</th>
                 <th>Keterangan</th>
                 <th class="text-end" style="width:160px;">Nominal Masuk</th>
+                <th style="width:70px;">Aksi</th>
               </tr>
             </thead>
             <tbody>
@@ -107,6 +108,15 @@
                 <td>{{ $mapPemesanan[$e->pemesanan ?? 0] ?? '-' }}</td>
                 <td>{{ $mapType[$e->type] ?? ucfirst($e->type) }}{{ $e->note ? (' - '.$e->note) : '' }}</td>
                 <td class="text-end">Rp {{ number_format((int)$e->amount,0,',','.') }}</td>
+                <td>
+                  <form method="POST" action="{{ route('rekap.destroy', $e->ledger_id) }}" onsubmit="return confirm('Hapus pemasukan ini dari rekap?');">
+                    @csrf
+                    @method('DELETE')
+                    <input type="hidden" name="bulan" value="{{ $bulan }}" />
+                    <input type="hidden" name="tahun" value="{{ $tahun }}" />
+                    <button type="submit" class="btn btn-sm btn-outline-danger">Hapus</button>
+                  </form>
+                </td>
               </tr>
             @empty
               <tr><td colspan="7" class="text-center text-muted">Tidak ada pemasukan pada periode ini.</td></tr>

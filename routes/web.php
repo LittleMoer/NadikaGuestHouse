@@ -41,6 +41,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:owner')->group(function () {
         Route::get('/rekap', [RekapController::class, 'index'])->name('rekap.index');
         Route::get('/rekap/print', [RekapController::class, 'print'])->name('rekap.print');
+        Route::delete('/rekap/{ledgerId}', [RekapController::class, 'destroy'])->name('rekap.destroy');
         // Users management (owner only)
         Route::resource('users', UsersController::class)->except(['show']);
     });

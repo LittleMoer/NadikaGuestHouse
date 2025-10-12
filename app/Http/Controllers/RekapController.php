@@ -31,11 +31,12 @@ class RekapController extends Controller
             ->leftJoin('booking_order_items as boi', 'boi.booking_order_id', '=', 'l.booking_id')
             ->leftJoin('kamar as k', 'k.id', '=', 'boi.kamar_id')
             ->whereBetween('l.created_at', [$start, $end])
+            ->whereNull('l.deleted_at')
             ->whereIn('l.type', ['dp_in','dp_remaining_in','cafe_in','cashback_in']);
 
         // Apply filters
         if ($paymentMethod && strtolower($paymentMethod) !== 'all') {
-            $entriesQuery->where('b.payment_method', strtolower($paymentMethod));
+            $entriesQuery->where('l.payment_method', strtolower($paymentMethod));
         }
         if ($channel && strtolower($channel) !== 'all') {
             $map = ['walkin'=>0,'traveloka'=>1,'agent1'=>2,'agent2'=>3];
@@ -69,14 +70,14 @@ class RekapController extends Controller
         $entries = (clone $entriesQuery)
             ->orderBy('l.created_at','asc')
             ->groupBy(
-                'l.id','l.booking_id','p.nama','b.payment_method','b.pemesanan','l.type','l.note','l.amount','l.created_at',
+                'l.id','l.booking_id','p.nama','l.payment_method','b.pemesanan','l.type','l.note','l.amount','l.created_at',
                 'b.created_at','b.tanggal_checkin','b.tanggal_checkout'
             )
             ->select([
                 'l.id as ledger_id',
                 'l.booking_id',
                 'p.nama as pelanggan_nama',
-                'b.payment_method',
+                'l.payment_method',
                 'b.pemesanan',
                 'l.type',
                 'l.note',
@@ -93,9 +94,10 @@ class RekapController extends Controller
         $sumQuery = \DB::table('cash_ledger as l')
             ->leftJoin('booking as b', 'b.id', '=', 'l.booking_id')
             ->whereBetween('l.created_at', [$start, $end])
+            ->whereNull('l.deleted_at')
             ->whereIn('l.type', ['dp_in','dp_remaining_in','cafe_in','cashback_in']);
         if ($paymentMethod && strtolower($paymentMethod) !== 'all') {
-            $sumQuery->where('b.payment_method', strtolower($paymentMethod));
+            $sumQuery->where('l.payment_method', strtolower($paymentMethod));
         }
         if ($channel && strtolower($channel) !== 'all') {
             $map = ['walkin'=>0,'traveloka'=>1,'agent1'=>2,'agent2'=>3];
@@ -132,6 +134,22 @@ class RekapController extends Controller
             'filter_discount' => $discount,
             'filter_payment_status' => $paymentStatus,
         ]);
+    }
+
+    public function destroy(Request $request, $ledgerId)
+    {
+        // Soft delete the ledger row to preserve auditability
+        \DB::table('cash_ledger')->where('id', $ledgerId)->update([
+            'deleted_at' => now(),
+            'updated_at' => now(),
+        ]);
+        if($request->wantsJson()){
+            return response()->json(['success'=>true]);
+        }
+        return redirect()->route('rekap.index', [
+            'bulan' => $request->get('bulan'),
+            'tahun' => $request->get('tahun'),
+        ])->with('success','Baris rekap dihapus');
     }
 
     public function print(Request $request)

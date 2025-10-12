@@ -64,6 +64,9 @@
             </div>
             @endif
         </div>
+        <!-- Flatpickr CSS/JS (CDN) -->
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+        <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
         <script>
             document.addEventListener('DOMContentLoaded', function(){
                 const toastElList = [].slice.call(document.querySelectorAll('.toast'));
@@ -72,36 +75,26 @@
                     t.show();
                 });
 
-                // Helpers for DDMMYYYY parsing and formatting
-                function pad2(n){ return n<10? ('0'+n) : (''+n); }
-                function fmtDDMMYYYYHHmm(d){ return pad2(d.getDate())+pad2(d.getMonth()+1)+d.getFullYear()+" "+pad2(d.getHours())+":"+pad2(d.getMinutes()); }
-                function parseDDMMYYYY(input, defaultTime){
-                    if(!input) return null;
-                    const s = input.trim();
-                    const m = s.match(/^([0-3]\d)([01]\d)(\d{4})(?:\s+([0-2]?\d):([0-5]\d))?$/);
-                    if(!m) return null;
-                    const dd = parseInt(m[1],10), mm = parseInt(m[2],10)-1, yyyy = parseInt(m[3],10);
-                    let hh = 12, min = 0;
-                    if(m[4]!==undefined){ hh = parseInt(m[4],10); min = parseInt(m[5],10); }
-                    else if(defaultTime){ hh = defaultTime.hh; min = defaultTime.mm; }
-                    const d = new Date(yyyy, mm, dd, hh, min, 0, 0);
-                    if(d.getFullYear()!==yyyy || d.getMonth()!==mm || d.getDate()!==dd) return null;
-                    return d;
-                }
-                function toIsoLocal(d){ return d.getFullYear()+"-"+pad2(d.getMonth()+1)+"-"+pad2(d.getDate())+"T"+pad2(d.getHours())+":"+pad2(d.getMinutes()); }
-
-                // Prefill default booking window (DDMMYYYY HH:mm): today 12:00 -> tomorrow 12:00 if empty
+                // Initialize Flatpickr on inputs, with visible DD-MM-YYYY HH:MM and submitted ISO value
+                const fpOpts = {
+                    enableTime: true,
+                    time_24hr: true,
+                    altInput: true,
+                    altFormat: 'd-m-Y H:i',
+                    dateFormat: "Y-m-d\\TH:i"
+                };
+                const fpIn = flatpickr('input[name="tanggal_checkin"]', fpOpts);
+                const fpOut = flatpickr('input[name="tanggal_checkout"]', fpOpts);
+                // Prefill default booking window via flatpickr if empty
                 try {
-                    const inpIn = document.querySelector('input[name="tanggal_checkin"]');
-                    const inpOut = document.querySelector('input[name="tanggal_checkout"]');
-                    if (inpIn && inpOut && (!inpIn.value || !inpOut.value)) {
+                    if (fpIn && fpOut) {
                         const now = new Date();
                         const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0, 0);
                         const end = new Date(start.getTime() + 24*60*60*1000);
-                        if (!inpIn.value) inpIn.value = fmtDDMMYYYYHHmm(start);
-                        if (!inpOut.value) inpOut.value = fmtDDMMYYYYHHmm(end);
+                        if (!fpIn.input.value) fpIn.setDate(start, true);
+                        if (!fpOut.input.value) fpOut.setDate(end, true);
                     }
-                } catch(e) { /* no-op */ }
+                } catch(_){}
 
                 // Rupiah formatting for inputs with .rupiah
                 function formatRupiah(val){
@@ -153,9 +146,10 @@
                         if(!vIn) errs.push('Tanggal check-in wajib diisi');
                         if(!vOut) errs.push('Tanggal check-out wajib diisi');
                         // date validity and order
-                        let dIn = null, dOut = null;
-                        if(vIn){ dIn = parseDDMMYYYY(vIn, {hh:12, mm:0}); if(!dIn) errs.push('Format tanggal check-in (DDMMYYYY atau DDMMYYYY HH:mm) tidak valid'); }
-                        if(vOut){ dOut = parseDDMMYYYY(vOut, {hh:12, mm:0}); if(!dOut) errs.push('Format tanggal check-out (DDMMYYYY atau DDMMYYYY HH:mm) tidak valid'); }
+                        let dIn = fpIn?.selectedDates?.[0] || (vIn ? new Date(vIn) : null);
+                        let dOut = fpOut?.selectedDates?.[0] || (vOut ? new Date(vOut) : null);
+                        if(!dIn) errs.push('Tanggal check-in tidak valid');
+                        if(!dOut) errs.push('Tanggal check-out tidak valid');
                         if(dIn && dOut){
                             if(dOut <= dIn){ errs.push('Check-out harus setelah Check-in'); }
                         }
@@ -177,11 +171,8 @@
                             }catch(_){ alert(errs.join('\n')); }
                             return false;
                         }
-                        // Convert to ISO for backend consumption
-                        const inpIn = get('input[name="tanggal_checkin"]');
-                        const inpOut = get('input[name="tanggal_checkout"]');
-                        if(inpIn && dIn) inpIn.value = toIsoLocal(dIn);
-                        if(inpOut && dOut) inpOut.value = toIsoLocal(dOut);
+                        // Ensure inputs contain ISO values (flatpickr already sets ISO by dateFormat)
+                    
                         // mark as submitting and disable submit button
                         this.dataset.submitting = '1';
                         this.querySelectorAll('button[type="submit"], input[type="submit"]').forEach(b=> b.disabled = true);
@@ -192,7 +183,6 @@
                 // Durasi (Hari) selector -> sets times to slot system
                 (function(){
                     const sel = document.getElementById('durasi_hari');
-                    if(!sel) return;
                     const inpIn = document.querySelector('input[name="tanggal_checkin"]');
                     const inpOut = document.querySelector('input[name="tanggal_checkout"]');
                     sel.addEventListener('change', function(){
@@ -200,7 +190,7 @@
                         const val = this.value;
                         if(!val) return;
                         const num = parseFloat(val);
-                        const base = inpIn.value ? (parseDDMMYYYY(inpIn.value,{hh:12,mm:0}) || new Date()) : new Date();
+                        const base = (fpIn?.selectedDates?.[0]) || (inpIn.value ? new Date(inpIn.value) : new Date());
                         // Normalize start base: for 0.5 day use 06:00; otherwise start at 12:00
                         let start;
                         if(num === 0.5){
@@ -210,11 +200,11 @@
                             start = new Date(base.getFullYear(), base.getMonth(), base.getDate(), 12, 0, 0, 0);
                             const fullDays = Math.floor(num);
                             const hasHalf = (num - fullDays) >= 0.5;
-                            const hoursToAdd = fullDays * 24 + (hasHalf ? 6 : 0); // 1 day = +24h; 1.5 day = 24 + 6 = 30h
+                            const hoursToAdd = fullDays * 24 + (hasHalf ? 6 : 0);
                             var end = new Date(start.getTime() + hoursToAdd * 60 * 60 * 1000);
                         }
-                        inpIn.value = fmtDDMMYYYYHHmm(start);
-                        inpOut.value = fmtDDMMYYYYHHmm(end);
+                        if (fpIn) fpIn.setDate(start, true);
+                        if (fpOut) fpOut.setDate(end, true);
                     });
                 })();
             });
@@ -261,11 +251,11 @@
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Check-In</label>
-                            <input type="text" name="tanggal_checkin" value="{{ old('tanggal_checkin', request('tanggal_checkin')) }}" class="form-control" placeholder="DDMMYYYY atau DDMMYYYY HH:MM" required>
+                            <input type="text" name="tanggal_checkin" value="{{ old('tanggal_checkin', request('tanggal_checkin')) }}" class="form-control" placeholder="DD-MM-YYYY atau DD-MM-YYYY HH:MM" required>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Check-Out</label>
-                            <input type="text" name="tanggal_checkout" value="{{ old('tanggal_checkout', request('tanggal_checkout')) }}" class="form-control" placeholder="DDMMYYYY atau DDMMYYYY HH:MM" required>
+                            <input type="text" name="tanggal_checkout" value="{{ old('tanggal_checkout', request('tanggal_checkout')) }}" class="form-control" placeholder="DD-MM-YYYY atau DD-MM-YYYY HH:MM" required>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Durasi (Hari)</label>
@@ -306,6 +296,17 @@
                             <label class="form-label">DP (Rp)</label>
                             <input type="text" name="dp_amount" class="form-control rupiah" value="{{ old('dp_amount', 0) }}" placeholder="Nominal DP" />
                             <small class="text-muted">Sisa akan dihitung otomatis.</small>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Metode DP</label>
+                            @php $dpPmOld = old('dp_payment_method'); @endphp
+                            <select name="dp_payment_method" class="form-control">
+                                <option value="">- Pilih -</option>
+                                <option value="cash" {{ $dpPmOld==='cash' ? 'selected' : '' }}>Cash</option>
+                                <option value="transfer" {{ $dpPmOld==='transfer' ? 'selected' : '' }}>Transfer</option>
+                                <option value="qris" {{ $dpPmOld==='qris' ? 'selected' : '' }}>QRIS</option>
+                                <option value="card" {{ $dpPmOld==='card' ? 'selected' : '' }}>Kartu</option>
+                            </select>
                         </div>
                         <div class="col-md-4 mb-3">
                             <label class="form-label">Biaya Tambahan (Rp)</label>

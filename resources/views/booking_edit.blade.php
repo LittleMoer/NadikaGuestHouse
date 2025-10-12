@@ -40,6 +40,9 @@
       </div>
       @endif
     </div>
+    <!-- Flatpickr CSS/JS (CDN) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script>
       document.addEventListener('DOMContentLoaded', function(){
         const toastElList = [].slice.call(document.querySelectorAll('.toast'));
@@ -69,29 +72,21 @@
             });
           });
         });
-        // Helpers for DDMMYYYY parsing and ISO conversion
-        function pad2(n){ return n<10? ('0'+n) : (''+n); }
-        function parseDDMMYYYY(input, defaultTime){
-          if(!input) return null; const s=input.trim();
-          const m=s.match(/^([0-3]\d)([01]\d)(\d{4})(?:\s+([0-2]?\d):([0-5]\d))?$/);
-          if(!m) return null; const dd=+m[1], mm=(+m[2])-1, yyyy=+m[3];
-          let hh=12, min=0; if(m[4]!==undefined){ hh=+m[4]; min=+m[5]; } else if(defaultTime){ hh=defaultTime.hh; min=defaultTime.mm; }
-          const d=new Date(yyyy,mm,dd,hh,min,0,0); if(d.getFullYear()!==yyyy||d.getMonth()!==mm||d.getDate()!==dd) return null; return d;
-        }
-        function toIsoLocal(d){ return d.getFullYear()+"-"+pad2(d.getMonth()+1)+"-"+pad2(d.getDate())+"T"+pad2(d.getHours())+":"+pad2(d.getMinutes()); }
+        // Initialize Flatpickr on inputs, with visible DD-MM-YYYY HH:MM and submitted ISO value
+        const fpOpts = { enableTime:true, time_24hr:true, altInput:true, altFormat:'d-m-Y H:i', dateFormat:'Y-m-d\\TH:i' };
+        const fpIn = flatpickr('input[name="tanggal_checkin"]', fpOpts);
+        const fpOut = flatpickr('input[name="tanggal_checkout"]', fpOpts);
         // Convert edit form dates before submit
         const editForm = document.querySelector('form[action*="/booking/"]');
         if(editForm){
           editForm.addEventListener('submit', function(e){
             const inpIn = this.querySelector('input[name="tanggal_checkin"]');
             const inpOut = this.querySelector('input[name="tanggal_checkout"]');
-            let errs=[]; let dIn=null,dOut=null;
-            if(inpIn && inpIn.value){ dIn = parseDDMMYYYY(inpIn.value,{hh:12,mm:0}); if(!dIn) errs.push('Format tanggal check-in (DDMMYYYY atau DDMMYYYY HH:mm) tidak valid'); }
-            if(inpOut && inpOut.value){ dOut = parseDDMMYYYY(inpOut.value,{hh:12,mm:0}); if(!dOut) errs.push('Format tanggal check-out (DDMMYYYY atau DDMMYYYY HH:mm) tidak valid'); }
+            let errs=[]; let dIn = fpIn?.selectedDates?.[0]; let dOut = fpOut?.selectedDates?.[0];
+            if(!dIn) errs.push('Tanggal check-in tidak valid');
+            if(!dOut) errs.push('Tanggal check-out tidak valid');
             if(dIn && dOut && dOut <= dIn){ errs.push('Check-out harus setelah Check-in'); }
             if(errs.length){ e.preventDefault(); alert(errs.join('\n')); return false; }
-            if(inpIn && dIn) inpIn.value = toIsoLocal(dIn);
-            if(inpOut && dOut) inpOut.value = toIsoLocal(dOut);
           }, {capture:true});
         }
       });
@@ -123,11 +118,11 @@
             </div>
             <div class="col-md-6 mb-3">
               <label class="form-label">Check-In</label>
-              <input type="text" name="tanggal_checkin" class="form-control" value="{{ old('tanggal_checkin', \Carbon\Carbon::parse($order->tanggal_checkin)->format('dmY H:i')) }}" placeholder="DDMMYYYY atau DDMMYYYY HH:MM" required />
+              <input type="text" name="tanggal_checkin" class="form-control" value="{{ old('tanggal_checkin', \Carbon\Carbon::parse($order->tanggal_checkin)->format('Y-m-d\\TH:i')) }}" placeholder="DD-MM-YYYY atau DD-MM-YYYY HH:MM" required />
             </div>
             <div class="col-md-6 mb-3">
               <label class="form-label">Check-Out</label>
-              <input type="text" name="tanggal_checkout" class="form-control" value="{{ old('tanggal_checkout', \Carbon\Carbon::parse($order->tanggal_checkout)->format('dmY H:i')) }}" placeholder="DDMMYYYY atau DDMMYYYY HH:MM" required />
+              <input type="text" name="tanggal_checkout" class="form-control" value="{{ old('tanggal_checkout', \Carbon\Carbon::parse($order->tanggal_checkout)->format('Y-m-d\\TH:i')) }}" placeholder="DD-MM-YYYY atau DD-MM-YYYY HH:MM" required />
             </div>
             <div class="col-md-4 mb-3">
               <label class="form-label">Jenis Pemesanan</label>
@@ -153,6 +148,17 @@
                 <option value="dp" {{ old('payment_status',$order->payment_status)==='dp' ? 'selected' : '' }}>DP</option>
                 <option value="lunas" {{ old('payment_status',$order->payment_status)==='lunas' ? 'selected' : '' }}>Lunas</option>
                 <option value="dp_cancel" {{ old('payment_status',$order->payment_status)==='dp_cancel' ? 'selected' : '' }}>DP Batal</option>
+              </select>
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="form-label">Metode Pelunasan</label>
+              @php $pelOld = old('pelunasan_payment_method'); @endphp
+              <select name="pelunasan_payment_method" class="form-control">
+                <option value="">- Pilih -</option>
+                <option value="cash" {{ $pelOld==='cash' ? 'selected' : '' }}>Cash</option>
+                <option value="transfer" {{ $pelOld==='transfer' ? 'selected' : '' }}>Transfer</option>
+                <option value="qris" {{ $pelOld==='qris' ? 'selected' : '' }}>QRIS</option>
+                <option value="card" {{ $pelOld==='card' ? 'selected' : '' }}>Kartu</option>
               </select>
             </div>
             <div class="col-md-4 mb-3">
