@@ -92,20 +92,21 @@
     @media print {
       @page {
         size: A5 landscape;
-        margin: 8mm;
+        margin: 0; /* match 'Margins: None' */
       }
       body {
         width: 100%;
         height: 100%;
         margin: 0;
         padding: 0;
-        font-size: 14px; /* bump up a bit more */
-        line-height: 1.36;   /* tighten a bit more to fit */
+        font-size: 14px; /* readable */
+        line-height: 1.36;   /* keep compact */
+        zoom: 0.99; /* approximate 'Scale: 75%' in Chromium/Edge */
       }
       .wrap {
         max-width: none;
         margin: 0;
-        padding: 5.5mm; /* slightly less padding to compensate */
+        padding: 6mm; /* inner breathing space since outer margin is 0 */
       }
       .header h1 { font-size: 30px; }
       .header .address, .header .contact { font-size: 15.5px; }
@@ -198,5 +199,14 @@
       </ul>
     </div>
   </div>
+  <script>
+    // Auto-open print dialog when the page loads
+    window.addEventListener('load', function(){
+      // Small delay ensures fonts/layout are ready before printing
+      setTimeout(function(){
+        try { window.print(); } catch(e) {}
+      }, 150);
+    });
+  </script>
 </body>
 </html>
