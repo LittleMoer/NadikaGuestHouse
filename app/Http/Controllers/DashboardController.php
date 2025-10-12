@@ -20,15 +20,12 @@ class DashboardController extends Controller
         $end = (clone $start)->endOfMonth()->endOfDay();
 
         // Ambil semua kamar (tanpa urutan abjad tipe agar bisa diurutkan kustom)
-        $kamarList = Kamar::orderBy('nomor_kamar')->get();
-        $jenisKamar = $kamarList->pluck('tipe')->unique()->values();
-        // Urutan tipe yang diinginkan (Standard dulu agar sesuai ekspektasi penomoran)
-        $preferredOrder = ['Standard','Deluxe','Suite'];
-        $orderMap = collect($preferredOrder)->flip();
-        $orderedJenisKamar = $jenisKamar->sortBy(fn($t) => $orderMap[$t] ?? 999)->values();
-        // Kamar digrup per tipe dan diurutkan sesuai peta
+        $kamarList = Kamar::all();
+        $jenisKamar = $kamarList->pluck('tipe')->unique()->sort(SORT_NATURAL | SORT_FLAG_CASE)->values();
+        $orderedJenisKamar = $jenisKamar;
+        // Kamar digrup per tipe dan diurutkan natural berdasarkan nomor_kamar
         $kamarGrouped = $kamarList->groupBy('tipe')->map(function($group){
-            return $group->sortBy('nomor_kamar')->values();
+            return $group->sortBy('nomor_kamar', SORT_NATURAL)->values();
         });
 
         // Ambil semua booking yang overlapped dengan bulan ini (status 1..4)
