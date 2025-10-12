@@ -102,7 +102,7 @@
         padding: 0;
         font-size: 22px; /* bigger for readability */
         line-height: 1.36;   /* keep compact */
-        zoom: 1.05; /* keep current zoom unchanged */
+        zoom: 0; /* keep current zoom unchanged */
       }
       .wrap {
         max-width: none;
