@@ -23,12 +23,21 @@ class DashboardController extends Controller
         $kamarList = Kamar::all();
         $jenisKamar = $kamarList->pluck('tipe')->unique()->values();
         // Custom LTR order for tipe kamar
-        $preferred = ['family','superior','twin','standar','standar eco','non ac'];
-        $prefMap = collect($preferred)->mapWithKeys(fn($v,$i)=> [strtolower($v)=>$i])->all();
+        $preferred = ['family','superior','twin','standar','standar eco'];
+        $prefMap = collect($preferred)->mapWithKeys(fn($v,$i)=> [strtolower(trim($v))=>$i+1])->all();
         $orderedJenisKamar = $jenisKamar->sortBy(function($t) use ($prefMap){
-            $key = strtolower((string)$t);
-            $prio = $prefMap[$key] ?? 999;
-            return sprintf('%03d-%s', $prio, $key);
+            $keyRaw = (string)$t;
+            $key = strtolower(trim($keyRaw));
+            // Force NON AC to be the last
+            if ($key === 'non ac') {
+                return sprintf('%06d-%s', 999999, $key);
+            }
+            // Preferred ones get small priority numbers
+            if (array_key_exists($key, $prefMap)) {
+                return sprintf('%06d-%s', $prefMap[$key], $key);
+            }
+            // Unknowns come after preferred but before NON AC
+            return sprintf('%06d-%s', 900000, $key);
         })->values();
         // Kamar digrup per tipe dan diurutkan natural berdasarkan nomor_kamar
         $kamarGrouped = $kamarList->groupBy('tipe')->map(function($group){
