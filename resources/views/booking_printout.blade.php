@@ -96,7 +96,7 @@
     }
     @media print {
       @page {
-        size: A5 landscape;
+        size: A5 portrait;
         margin: 0; /* match 'Margins: None' */
       }
       body {
