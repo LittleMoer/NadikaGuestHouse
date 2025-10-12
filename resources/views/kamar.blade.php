@@ -229,32 +229,39 @@
             function openEdit(){ if (editModal) { editModal.classList.add('show'); editModal.setAttribute('aria-hidden','false'); } }
             function closeEdit(){ if (editModal) { editModal.classList.remove('show'); editModal.setAttribute('aria-hidden','true'); } }
 
-            document.querySelectorAll('.btn-edit-kamar').forEach(function(btn){
-                btn.addEventListener('click', function(){
-                    const id = this.getAttribute('data-id');
-                    if (idInput) idInput.value = id || '';
-                    if (nomorKamar) nomorKamar.value = this.getAttribute('data-nomor_kamar') || '';
-                    // Set tipe to select or custom
-                    const tipeVal = this.getAttribute('data-tipe') || '';
-                    if (['Standard','Standard Eco','Twin','Deluxe','Suite'].includes(tipeVal)){
-                        if (tipeSelectEdit) tipeSelectEdit.value = tipeVal;
-                        if (tipeLainEdit) { tipeLainEdit.style.display='none'; tipeLainEdit.value=''; }
-                        if (tipeHiddenEdit) tipeHiddenEdit.value = tipeVal;
-                    } else {
-                        if (tipeSelectEdit) tipeSelectEdit.value = 'LAIN';
-                        if (tipeLainEdit) { tipeLainEdit.style.display='block'; tipeLainEdit.value = tipeVal; }
-                        if (tipeHiddenEdit) tipeHiddenEdit.value = tipeVal;
-                    }
-                    if (kapasitas) kapasitas.value = this.getAttribute('data-kapasitas') || '';
-                    if (harga) harga.value = this.getAttribute('data-harga') || '';
-                    if (status) status.value = (this.getAttribute('data-status') || '').toString();
-                    if (deskripsi) deskripsi.value = this.getAttribute('data-deskripsi') || '';
+            // Use delegated handler to survive DataTables redraws
+            $(document).on('click', '.btn-edit-kamar', function(){
+                const id = this.getAttribute('data-id');
+                if (idInput) idInput.value = id || '';
+                if (nomorKamar) nomorKamar.value = this.getAttribute('data-nomor_kamar') || '';
+                // Set tipe to select or custom
+                const tipeVal = this.getAttribute('data-tipe') || '';
+                if (['Standard','Standard Eco','Twin','Deluxe','Suite'].includes(tipeVal)){
+                    if (tipeSelectEdit) tipeSelectEdit.value = tipeVal;
+                    if (tipeLainEdit) { tipeLainEdit.style.display='none'; tipeLainEdit.value=''; }
+                    if (tipeHiddenEdit) tipeHiddenEdit.value = tipeVal;
+                } else {
+                    if (tipeSelectEdit) tipeSelectEdit.value = 'LAIN';
+                    if (tipeLainEdit) { tipeLainEdit.style.display='block'; tipeLainEdit.value = tipeVal; }
+                    if (tipeHiddenEdit) tipeHiddenEdit.value = tipeVal;
+                }
+                if (kapasitas) kapasitas.value = this.getAttribute('data-kapasitas') || '';
+                if (harga) harga.value = this.getAttribute('data-harga') || '';
+                if (status) status.value = (this.getAttribute('data-status') || '').toString();
+                if (deskripsi) deskripsi.value = this.getAttribute('data-deskripsi') || '';
 
-                    if (actionBase && form) {
-                        form.setAttribute('action', actionBase + '/' + id);
+                if (actionBase && form) {
+                    form.setAttribute('action', actionBase + '/' + id);
+                }
+                // Ensure hidden tipe synced based on current selection/state
+                if (tipeSelectEdit && tipeHiddenEdit){
+                    if (tipeSelectEdit.value === 'LAIN'){
+                        if (tipeLainEdit){ tipeHiddenEdit.value = (tipeLainEdit.value || '').trim(); }
+                    } else {
+                        tipeHiddenEdit.value = tipeSelectEdit.value;
                     }
-                    openEdit();
-                });
+                }
+                openEdit();
             });
 
             closeEditBtn && closeEditBtn.addEventListener('click', closeEdit);
