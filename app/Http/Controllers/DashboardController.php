@@ -21,8 +21,15 @@ class DashboardController extends Controller
 
         // Ambil semua kamar (tanpa urutan abjad tipe agar bisa diurutkan kustom)
         $kamarList = Kamar::all();
-        $jenisKamar = $kamarList->pluck('tipe')->unique()->sort(SORT_NATURAL | SORT_FLAG_CASE)->values();
-        $orderedJenisKamar = $jenisKamar;
+        $jenisKamar = $kamarList->pluck('tipe')->unique()->values();
+        // Custom LTR order for tipe kamar
+        $preferred = ['family','superior','twin','standar','standar eco','non ac'];
+        $prefMap = collect($preferred)->mapWithKeys(fn($v,$i)=> [strtolower($v)=>$i])->all();
+        $orderedJenisKamar = $jenisKamar->sortBy(function($t) use ($prefMap){
+            $key = strtolower((string)$t);
+            $prio = $prefMap[$key] ?? 999;
+            return sprintf('%03d-%s', $prio, $key);
+        })->values();
         // Kamar digrup per tipe dan diurutkan natural berdasarkan nomor_kamar
         $kamarGrouped = $kamarList->groupBy('tipe')->map(function($group){
             return $group->sortBy('nomor_kamar', SORT_NATURAL)->values();
