@@ -72,19 +72,34 @@
                     t.show();
                 });
 
-                // Prefill default booking window: today 12:00 -> tomorrow 12:00 if empty
+                // Helpers for DDMMYYYY parsing and formatting
+                function pad2(n){ return n<10? ('0'+n) : (''+n); }
+                function fmtDDMMYYYYHHmm(d){ return pad2(d.getDate())+pad2(d.getMonth()+1)+d.getFullYear()+" "+pad2(d.getHours())+":"+pad2(d.getMinutes()); }
+                function parseDDMMYYYY(input, defaultTime){
+                    if(!input) return null;
+                    const s = input.trim();
+                    const m = s.match(/^([0-3]\d)([01]\d)(\d{4})(?:\s+([0-2]?\d):([0-5]\d))?$/);
+                    if(!m) return null;
+                    const dd = parseInt(m[1],10), mm = parseInt(m[2],10)-1, yyyy = parseInt(m[3],10);
+                    let hh = 12, min = 0;
+                    if(m[4]!==undefined){ hh = parseInt(m[4],10); min = parseInt(m[5],10); }
+                    else if(defaultTime){ hh = defaultTime.hh; min = defaultTime.mm; }
+                    const d = new Date(yyyy, mm, dd, hh, min, 0, 0);
+                    if(d.getFullYear()!==yyyy || d.getMonth()!==mm || d.getDate()!==dd) return null;
+                    return d;
+                }
+                function toIsoLocal(d){ return d.getFullYear()+"-"+pad2(d.getMonth()+1)+"-"+pad2(d.getDate())+"T"+pad2(d.getHours())+":"+pad2(d.getMinutes()); }
+
+                // Prefill default booking window (DDMMYYYY HH:mm): today 12:00 -> tomorrow 12:00 if empty
                 try {
-                    const inpIn = document.querySelector('input[name="tanggal_checkin"][type="datetime-local"]');
-                    const inpOut = document.querySelector('input[name="tanggal_checkout"][type="datetime-local"]');
+                    const inpIn = document.querySelector('input[name="tanggal_checkin"]');
+                    const inpOut = document.querySelector('input[name="tanggal_checkout"]');
                     if (inpIn && inpOut && (!inpIn.value || !inpOut.value)) {
                         const now = new Date();
-                        const pad = n => (n<10? '0'+n : ''+n);
-                        const setLocal = (d)=> `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-                        // Normalize to 12:00 local
                         const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0, 0);
                         const end = new Date(start.getTime() + 24*60*60*1000);
-                        if (!inpIn.value) inpIn.value = setLocal(start);
-                        if (!inpOut.value) inpOut.value = setLocal(end);
+                        if (!inpIn.value) inpIn.value = fmtDDMMYYYYHHmm(start);
+                        if (!inpOut.value) inpOut.value = fmtDDMMYYYYHHmm(end);
                     }
                 } catch(e) { /* no-op */ }
 
@@ -128,8 +143,8 @@
                         const get = sel=> this.querySelector(sel);
                         const pelanggan = get('select[name="pelanggan_id"]')?.value || '';
                         const kamarSel = Array.from(this.querySelectorAll('select[name="kamar_ids[]"] option:checked')).map(o=>o.value).filter(Boolean);
-                        const vIn = get('input[name="tanggal_checkin"][type="datetime-local"]')?.value || '';
-                        const vOut = get('input[name="tanggal_checkout"][type="datetime-local"]')?.value || '';
+                        const vIn = get('input[name="tanggal_checkin"]')?.value || '';
+                        const vOut = get('input[name="tanggal_checkout"]')?.value || '';
                         const jTamuVal = (get('input[name="jumlah_tamu"]')?.value || '').toString().trim();
                         const jTamu = parseInt(jTamuVal, 10);
                         // basic required checks
@@ -139,8 +154,8 @@
                         if(!vOut) errs.push('Tanggal check-out wajib diisi');
                         // date validity and order
                         let dIn = null, dOut = null;
-                        if(vIn){ dIn = new Date(vIn); if(isNaN(dIn.getTime())) errs.push('Format tanggal check-in tidak valid'); }
-                        if(vOut){ dOut = new Date(vOut); if(isNaN(dOut.getTime())) errs.push('Format tanggal check-out tidak valid'); }
+                        if(vIn){ dIn = parseDDMMYYYY(vIn, {hh:12, mm:0}); if(!dIn) errs.push('Format tanggal check-in (DDMMYYYY atau DDMMYYYY HH:mm) tidak valid'); }
+                        if(vOut){ dOut = parseDDMMYYYY(vOut, {hh:12, mm:0}); if(!dOut) errs.push('Format tanggal check-out (DDMMYYYY atau DDMMYYYY HH:mm) tidak valid'); }
                         if(dIn && dOut){
                             if(dOut <= dIn){ errs.push('Check-out harus setelah Check-in'); }
                         }
@@ -162,6 +177,11 @@
                             }catch(_){ alert(errs.join('\n')); }
                             return false;
                         }
+                        // Convert to ISO for backend consumption
+                        const inpIn = get('input[name="tanggal_checkin"]');
+                        const inpOut = get('input[name="tanggal_checkout"]');
+                        if(inpIn && dIn) inpIn.value = toIsoLocal(dIn);
+                        if(inpOut && dOut) inpOut.value = toIsoLocal(dOut);
                         // mark as submitting and disable submit button
                         this.dataset.submitting = '1';
                         this.querySelectorAll('button[type="submit"], input[type="submit"]').forEach(b=> b.disabled = true);
@@ -173,16 +193,14 @@
                 (function(){
                     const sel = document.getElementById('durasi_hari');
                     if(!sel) return;
-                    const inpIn = document.querySelector('input[name="tanggal_checkin"][type="datetime-local"]');
-                    const inpOut = document.querySelector('input[name="tanggal_checkout"][type="datetime-local"]');
-                    const pad = n => (n<10? '0'+n : ''+n);
-                    const setLocal = (d)=> `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                    const inpIn = document.querySelector('input[name="tanggal_checkin"]');
+                    const inpOut = document.querySelector('input[name="tanggal_checkout"]');
                     sel.addEventListener('change', function(){
                         if(!inpIn || !inpOut) return;
                         const val = this.value;
                         if(!val) return;
                         const num = parseFloat(val);
-                        const base = inpIn.value ? new Date(inpIn.value) : new Date();
+                        const base = inpIn.value ? (parseDDMMYYYY(inpIn.value,{hh:12,mm:0}) || new Date()) : new Date();
                         // Normalize start base: for 0.5 day use 06:00; otherwise start at 12:00
                         let start;
                         if(num === 0.5){
@@ -195,8 +213,8 @@
                             const hoursToAdd = fullDays * 24 + (hasHalf ? 6 : 0); // 1 day = +24h; 1.5 day = 24 + 6 = 30h
                             var end = new Date(start.getTime() + hoursToAdd * 60 * 60 * 1000);
                         }
-                        inpIn.value = setLocal(start);
-                        inpOut.value = setLocal(end);
+                        inpIn.value = fmtDDMMYYYYHHmm(start);
+                        inpOut.value = fmtDDMMYYYYHHmm(end);
                     });
                 })();
             });
@@ -243,11 +261,11 @@
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Check-In</label>
-                            <input type="datetime-local" name="tanggal_checkin" value="{{ old('tanggal_checkin', request('tanggal_checkin')) }}" class="form-control" required>
+                            <input type="text" name="tanggal_checkin" value="{{ old('tanggal_checkin', request('tanggal_checkin')) }}" class="form-control" placeholder="DDMMYYYY atau DDMMYYYY HH:MM" required>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Check-Out</label>
-                            <input type="datetime-local" name="tanggal_checkout" value="{{ old('tanggal_checkout', request('tanggal_checkout')) }}" class="form-control" required>
+                            <input type="text" name="tanggal_checkout" value="{{ old('tanggal_checkout', request('tanggal_checkout')) }}" class="form-control" placeholder="DDMMYYYY atau DDMMYYYY HH:MM" required>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Durasi (Hari)</label>

@@ -69,7 +69,31 @@
             });
           });
         });
-
+        // Helpers for DDMMYYYY parsing and ISO conversion
+        function pad2(n){ return n<10? ('0'+n) : (''+n); }
+        function parseDDMMYYYY(input, defaultTime){
+          if(!input) return null; const s=input.trim();
+          const m=s.match(/^([0-3]\d)([01]\d)(\d{4})(?:\s+([0-2]?\d):([0-5]\d))?$/);
+          if(!m) return null; const dd=+m[1], mm=(+m[2])-1, yyyy=+m[3];
+          let hh=12, min=0; if(m[4]!==undefined){ hh=+m[4]; min=+m[5]; } else if(defaultTime){ hh=defaultTime.hh; min=defaultTime.mm; }
+          const d=new Date(yyyy,mm,dd,hh,min,0,0); if(d.getFullYear()!==yyyy||d.getMonth()!==mm||d.getDate()!==dd) return null; return d;
+        }
+        function toIsoLocal(d){ return d.getFullYear()+"-"+pad2(d.getMonth()+1)+"-"+pad2(d.getDate())+"T"+pad2(d.getHours())+":"+pad2(d.getMinutes()); }
+        // Convert edit form dates before submit
+        const editForm = document.querySelector('form[action*="/booking/"]');
+        if(editForm){
+          editForm.addEventListener('submit', function(e){
+            const inpIn = this.querySelector('input[name="tanggal_checkin"]');
+            const inpOut = this.querySelector('input[name="tanggal_checkout"]');
+            let errs=[]; let dIn=null,dOut=null;
+            if(inpIn && inpIn.value){ dIn = parseDDMMYYYY(inpIn.value,{hh:12,mm:0}); if(!dIn) errs.push('Format tanggal check-in (DDMMYYYY atau DDMMYYYY HH:mm) tidak valid'); }
+            if(inpOut && inpOut.value){ dOut = parseDDMMYYYY(inpOut.value,{hh:12,mm:0}); if(!dOut) errs.push('Format tanggal check-out (DDMMYYYY atau DDMMYYYY HH:mm) tidak valid'); }
+            if(dIn && dOut && dOut <= dIn){ errs.push('Check-out harus setelah Check-in'); }
+            if(errs.length){ e.preventDefault(); alert(errs.join('\n')); return false; }
+            if(inpIn && dIn) inpIn.value = toIsoLocal(dIn);
+            if(inpOut && dOut) inpOut.value = toIsoLocal(dOut);
+          }, {capture:true});
+        }
       });
     </script>
 
@@ -99,11 +123,11 @@
             </div>
             <div class="col-md-6 mb-3">
               <label class="form-label">Check-In</label>
-              <input type="datetime-local" name="tanggal_checkin" class="form-control" value="{{ old('tanggal_checkin', \Carbon\Carbon::parse($order->tanggal_checkin)->format('Y-m-d\TH:i')) }}" required />
+              <input type="text" name="tanggal_checkin" class="form-control" value="{{ old('tanggal_checkin', \Carbon\Carbon::parse($order->tanggal_checkin)->format('dmY H:i')) }}" placeholder="DDMMYYYY atau DDMMYYYY HH:MM" required />
             </div>
             <div class="col-md-6 mb-3">
               <label class="form-label">Check-Out</label>
-              <input type="datetime-local" name="tanggal_checkout" class="form-control" value="{{ old('tanggal_checkout', \Carbon\Carbon::parse($order->tanggal_checkout)->format('Y-m-d\TH:i')) }}" required />
+              <input type="text" name="tanggal_checkout" class="form-control" value="{{ old('tanggal_checkout', \Carbon\Carbon::parse($order->tanggal_checkout)->format('dmY H:i')) }}" placeholder="DDMMYYYY atau DDMMYYYY HH:MM" required />
             </div>
             <div class="col-md-4 mb-3">
               <label class="form-label">Jenis Pemesanan</label>
