@@ -174,7 +174,7 @@
     <div class="terms">
       <h3>Syarat & Ketentuan Menginap:</h3>
       <ul>
-        <li>Check-in dimulai pukul 14:00 WIB dan check-out maksimal pukul 12:00 WIB.</li>
+        <li>Check-in dimulai pukul 12:00 WIB dan check-out maksimal pukul 12:00 WIB.</li>
         <li>Tamu wajib menunjukkan identitas asli (KTP/SIM) yang masih berlaku saat check-in.</li>
         <li>Dilarang membawa tamu tambahan ke dalam kamar tanpa registrasi.</li>
         <li>Barang berharga harap dijaga sendiri, pihak guest house tidak bertanggung jawab atas kehilangan.</li>
