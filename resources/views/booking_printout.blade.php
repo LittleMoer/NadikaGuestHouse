@@ -10,6 +10,7 @@
       margin: 16px;
       color: #111;
       line-height: 1.5;
+      font-size: 16px;
     }
     .wrap {
       max-width: 600px;
@@ -99,9 +100,9 @@
         height: 100%;
         margin: 0;
         padding: 0;
-        font-size: 14px; /* readable */
+        font-size: 18px; /* bigger for readability */
         line-height: 1.36;   /* keep compact */
-        zoom: 0.99; /* approximate 'Scale: 75%' in Chromium/Edge */
+        zoom: 1.05; /* slightly larger scaling */
       }
       .wrap {
         max-width: none;
