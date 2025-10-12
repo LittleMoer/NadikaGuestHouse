@@ -23,15 +23,15 @@ class DashboardController extends Controller
         $kamarList = Kamar::all();
         $jenisKamar = $kamarList->pluck('tipe')->unique()->values();
         // Custom LTR order for tipe kamar
-        $preferred = ['family','superior','twin','standar','standar eco','non ac','HALL'];
+        // Put 'non ac' and 'hall' at the very end (HALL as the last)
+        $preferred = ['family','superior','twin','standar','standar eco'];
         $prefMap = collect($preferred)->mapWithKeys(fn($v,$i)=> [strtolower(trim($v))=>$i+1])->all();
         $orderedJenisKamar = $jenisKamar->sortBy(function($t) use ($prefMap){
             $keyRaw = (string)$t;
             $key = strtolower(trim($keyRaw));
-            // Force NON AC to be the last
-            if ($key === 'non ac') {
-                return sprintf('%06d-%s', 999999, $key);
-            }
+            // Force terminal positions
+            if ($key === 'non ac') { return sprintf('%06d-%s', 999998, $key); }
+            if ($key === 'hall')   { return sprintf('%06d-%s', 999999, $key); }
             // Preferred ones get small priority numbers
             if (array_key_exists($key, $prefMap)) {
                 return sprintf('%06d-%s', $prefMap[$key], $key);
