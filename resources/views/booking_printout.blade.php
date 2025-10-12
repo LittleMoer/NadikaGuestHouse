@@ -177,10 +177,22 @@
             })->join(', ') }}
           </div>
         </div>
-        @php $roomTotal = (int) (collect($order->items)->sum('subtotal') ?? ($order->total_harga ?? 0)); @endphp
+        @php
+          $roomTotal = (int) (collect($order->items)->sum('subtotal') ?? ($order->total_harga ?? 0));
+          $paid = (int) ($order->dp_amount ?? 0);
+          $remaining = max(0, $roomTotal - $paid);
+        @endphp
         <div class="info-row">
           <div class="info-label">Total Harga Booking</div>
           <div>: Rp {{ number_format($roomTotal, 0, ',', '.') }}</div>
+        </div>
+        <div class="info-row">
+          <div class="info-label">Sudah Dibayarkan</div>
+          <div>: Rp {{ number_format($paid, 0, ',', '.') }}</div>
+        </div>
+        <div class="info-row">
+          <div class="info-label">Sisa Pembayaran</div>
+          <div>: Rp {{ number_format($remaining, 0, ',', '.') }}</div>
         </div>
       </div>
     </div>
