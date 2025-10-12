@@ -23,7 +23,7 @@ class DashboardController extends Controller
         $kamarList = Kamar::all();
         $jenisKamar = $kamarList->pluck('tipe')->unique()->values();
         // Custom LTR order for tipe kamar
-        $preferred = ['family','superior','twin','standar','standar eco'];
+        $preferred = ['family','superior','twin','standar','standar eco','non ac','hall'];
         $prefMap = collect($preferred)->mapWithKeys(fn($v,$i)=> [strtolower(trim($v))=>$i+1])->all();
         $orderedJenisKamar = $jenisKamar->sortBy(function($t) use ($prefMap){
             $keyRaw = (string)$t;
