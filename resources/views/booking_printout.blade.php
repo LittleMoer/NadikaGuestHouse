@@ -100,18 +100,18 @@
         height: 100%;
         margin: 0;
         padding: 0;
-        font-size: 18px; /* bigger for readability */
+        font-size: 22px; /* bigger for readability */
         line-height: 1.36;   /* keep compact */
-        zoom: 1.05; /* slightly larger scaling */
+        zoom: 1.05; /* keep current zoom unchanged */
       }
       .wrap {
         max-width: none;
         margin: 0;
         padding: 6mm; /* inner breathing space since outer margin is 0 */
       }
-      .header h1 { font-size: 30px; }
-      .header .address, .header .contact { font-size: 15.5px; }
-      .wifi-info { font-size: 13px; margin-bottom: 8px; }
+      .header h1 { font-size: 34px; }
+      .header .address, .header .contact { font-size: 18px; }
+      .wifi-info { font-size: 16px; margin-bottom: 8px; }
       .booking-info { padding: 11px; margin: 11px 0; }
       .guest-info { margin-bottom: 11px; }
       .info-row { margin-bottom: 5px; }
