@@ -65,6 +65,10 @@
     .summary .row .label { color:#333; }
     .summary .row .value { font-weight:600; }
     .summary .row.total { border-top:1px dashed #ddd; padding-top:8px; margin-top:8px; }
+    /* Two-column layout */
+    .columns { display:flex; gap:12px; align-items:flex-start; }
+    .col-left { flex: 1 1 60%; }
+    .col-right { flex: 1 1 40%; }
     .terms { margin-top: 18px; font-size: 18px; }
     .terms h3 {
       font-size: 16px;
@@ -100,26 +104,32 @@
         height: 100%;
         margin: 0;
         padding: 0;
-        font-size: 22px; /* bigger for readability */
-        line-height: 1.36;   /* keep compact */
+        font-size: 16px; /* compact for A5 fit */
+        line-height: 1.3;   /* slightly tighter */
         zoom: 1; /* ensure normal scaling for print */
       }
       .wrap {
         max-width: none;
         margin: 0;
-        padding: 6mm; /* inner breathing space since outer margin is 0 */
+        padding: 4mm; /* tighter padding */
       }
-      .header h1 { font-size: 34px; }
-      .header .address, .header .contact { font-size: 18px; }
-      .wifi-info { font-size: 16px; margin-bottom: 8px; }
-      .booking-info { padding: 10px 12px; margin: 10px 0; }
-      .guest-info { margin-bottom: 8px; }
-      .info-row { margin-bottom: 4px; }
-      .terms { margin-top: 12px; font-size: 18px; }
-      .terms h3 { font-size: 20px; margin-bottom: 8px; }
-      .terms li { margin-bottom: 4px; }
-      .signature { margin-top: 18px; }
-      .sign-line { margin: 32px 0 8px; }
+      .header h1 { font-size: 24px; }
+      .header .address, .header .contact { font-size: 12px; }
+      .wifi-info { font-size: 10px; margin-bottom: 6px; }
+      .booking-info { padding: 6px 8px; margin: 6px 0; }
+      .columns { gap: 6px; }
+      .col-left { flex-basis: 62%; }
+      .col-right { flex-basis: 38%; }
+      .info-row { margin-bottom: 3px; }
+      .info-label { width: 140px; }
+      .summary { padding: 8px 10px; }
+      .summary .row { margin-bottom: 4px; }
+      .summary .row.total { padding-top: 6px; margin-top: 6px; }
+      .terms { margin-top: 8px; font-size: 12px; }
+      .terms h3 { font-size: 13px; margin-bottom: 6px; }
+      .terms li { margin-bottom: 3px; }
+      .signature { margin-top: 12px; }
+      .sign-line { margin: 20px 0 6px; }
     }
   </style>
 </head>
@@ -138,77 +148,50 @@
       <div class="contact">Telpon: 024.7461127 - 08122542588</div>
     </div>
 
-    <div class="booking-info">
-      <div class="guest-info">
-        <div class="info-row">
-          <div class="info-label">Nama Pengunjung</div>
-          <div>: {{ $order->pelanggan?->nama ?? '-' }}</div>
-        </div>
-        <div class="info-row">
-          <div class="info-label">No. Identitas/SIM</div>
-          <div>: {{ $order->pelanggan?->no_identitas ?? '-' }}</div>
-        </div>
-        <div class="info-row">
-          <div class="info-label">No. HP</div>
-          <div>: {{ $order->pelanggan?->telepon ?? '-' }}</div>
-        </div>
-        <div class="info-row">
-          <div class="info-label">Check-in</div>
-          <div>: {{ $order->tanggal_checkin->format('d/m/Y H:i') }} WIB</div>
-        </div>
-        <div class="info-row">
-          <div class="info-label">Check-out</div>
-          <div>: {{ $order->tanggal_checkout->format('d/m/Y H:i') }} WIB</div>
-        </div>
-        <div class="info-row">
-          <div class="info-label">Jumlah Tamu</div>
-          <div>: {{ $order->jumlah_tamu_total ?? '0' }} orang</div>
-        </div>
-        <div class="info-row">
-          <div class="info-label">Jaminan</div>
-          <div>: {{ $order->pelanggan?->jenis_identitas ?? '-' }}</div>
-        </div>
-        <div class="info-row">
-          <div class="info-label">Jenis Kamar Disewa</div>
-          <div>:
-            {{ collect($order->items)->map(function($it){
-                $no = $it->kamar?->nomor_kamar ?? '-';
-                $tipe = $it->kamar?->tipe ?? '-';
-                return $no.' ('.$tipe.')';
-            })->join(', ') }}
+    <div class="columns">
+      <div class="col-left">
+        <div class="booking-info">
+          <div class="section-title">Data Tamu & Booking</div>
+          <div class="guest-info">
+            <div class="info-row"><div class="info-label">Nama Pengunjung</div><div class="info-value">: {{ $order->pelanggan?->nama ?? '-' }}</div></div>
+            <div class="info-row"><div class="info-label">No. Identitas/SIM</div><div class="info-value">: {{ $order->pelanggan?->no_identitas ?? '-' }}</div></div>
+            <div class="info-row"><div class="info-label">No. HP</div><div class="info-value">: {{ $order->pelanggan?->telepon ?? '-' }}</div></div>
+            <div class="info-row"><div class="info-label">Check-in</div><div class="info-value">: {{ $order->tanggal_checkin->format('d/m/Y H:i') }} WIB</div></div>
+            <div class="info-row"><div class="info-label">Check-out</div><div class="info-value">: {{ $order->tanggal_checkout->format('d/m/Y H:i') }} WIB</div></div>
+            <div class="info-row"><div class="info-label">Jumlah Tamu</div><div class="info-value">: {{ $order->jumlah_tamu_total ?? '0' }} orang</div></div>
+            <div class="info-row"><div class="info-label">Jaminan</div><div class="info-value">: {{ $order->pelanggan?->jenis_identitas ?? '-' }}</div></div>
+            <div class="info-row">
+              <div class="info-label">Jenis Kamar Disewa</div>
+              <div class="info-value">:
+                {{ collect($order->items)->map(function($it){
+                    $no = $it->kamar?->nomor_kamar ?? '-';
+                    $tipe = $it->kamar?->tipe ?? '-';
+                    return $no.' ('.$tipe.')';
+                })->join(', ') }}
+              </div>
+            </div>
           </div>
         </div>
+      </div>
+      <div class="col-right">
         @php
           $itemsSubtotal = (int) (collect($order->items)->sum('subtotal') ?? 0);
           $explicitTotal = (int) ($order->total_harga ?? 0);
-          // Prefer items subtotal when available; fallback to total_harga
           $baseSubtotal = $itemsSubtotal > 0 ? $itemsSubtotal : $explicitTotal;
           $diskon = (int) ($order->diskon ?? 0);
           $totalAfterDiscount = max(0, $baseSubtotal - $diskon);
           $paid = (int) ($order->dp_amount ?? 0);
           $remaining = max(0, $totalAfterDiscount - $paid);
         @endphp
-        <div class="info-row">
-          <div class="info-label">Subtotal</div>
-          <div class="info-value">: Rp {{ number_format($baseSubtotal, 0, ',', '.') }}</div>
-        </div>
-        @if($diskon > 0)
-        <div class="info-row">
-          <div class="info-label">Diskon</div>
-          <div class="info-value">: Rp {{ number_format($diskon, 0, ',', '.') }}</div>
-        </div>
-        @endif
-        <div class="info-row">
-          <div class="info-label">Total Harga Booking</div>
-          <div class="info-value">: Rp {{ number_format($totalAfterDiscount, 0, ',', '.') }}</div>
-        </div>
-        <div class="info-row">
-          <div class="info-label">Sudah Dibayarkan</div>
-          <div class="info-value">: Rp {{ number_format($paid, 0, ',', '.') }}</div>
-        </div>
-        <div class="info-row">
-          <div class="info-label">Sisa Pembayaran</div>
-          <div class="info-value">: Rp {{ number_format($remaining, 0, ',', '.') }}</div>
+        <div class="summary">
+          <div class="section-title">Ringkasan Pembayaran</div>
+          <div class="row"><div class="label">Subtotal</div><div class="value">Rp {{ number_format($baseSubtotal,0,',','.') }}</div></div>
+          @if($diskon > 0)
+          <div class="row"><div class="label">Diskon</div><div class="value">- Rp {{ number_format($diskon,0,',','.') }}</div></div>
+          @endif
+          <div class="row total"><div class="label">Total</div><div class="value">Rp {{ number_format($totalAfterDiscount,0,',','.') }}</div></div>
+          <div class="row"><div class="label">Sudah Dibayar</div><div class="value">Rp {{ number_format($paid,0,',','.') }}</div></div>
+          <div class="row"><div class="label">Sisa</div><div class="value">Rp {{ number_format($remaining,0,',','.') }}</div></div>
         </div>
       </div>
     </div>
