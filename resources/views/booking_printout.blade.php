@@ -64,7 +64,7 @@
     }
     .terms {
       margin-top: 20px;
-      font-size: 14px;
+      font-size: 30px;
     }
     .terms h3 {
       font-size: 16px;
