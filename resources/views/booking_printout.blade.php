@@ -92,19 +92,32 @@
     @media print {
       @page {
         size: A5 landscape;
-        margin: 10mm;
+        margin: 8mm;
       }
       body {
         width: 100%;
         height: 100%;
         margin: 0;
         padding: 0;
+        font-size: 14px; /* bump up a bit more */
+        line-height: 1.36;   /* tighten a bit more to fit */
       }
       .wrap {
         max-width: none;
         margin: 0;
-        padding: 10mm;
+        padding: 5.5mm; /* slightly less padding to compensate */
       }
+      .header h1 { font-size: 30px; }
+      .header .address, .header .contact { font-size: 15.5px; }
+      .wifi-info { font-size: 13px; margin-bottom: 8px; }
+      .booking-info { padding: 11px; margin: 11px 0; }
+      .guest-info { margin-bottom: 11px; }
+      .info-row { margin-bottom: 5px; }
+      .terms { margin-top: 14px; font-size: 15px; }
+      .terms h3 { font-size: 17px; margin-bottom: 7px; }
+      .terms li { margin-bottom: 4px; }
+      .signature { margin-top: 18px; }
+      .sign-line { margin: 32px 0 8px; }
     }
   </style>
 </head>
