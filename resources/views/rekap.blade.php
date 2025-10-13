@@ -107,7 +107,7 @@
                 <td>{{ strtoupper($e->payment_method ?? '-') }}</td>
                 <td>{{ $mapPemesanan[$e->pemesanan ?? 0] ?? '-' }}</td>
                 <td>{{ $mapType[$e->type] ?? ucfirst($e->type) }}{{ $e->note ? (' - '.$e->note) : '' }}</td>
-                <td class="text-end">Rp {{ number_format((int)$e->amount,0,',','.') }}</td>
+                <td class="text-end">Rp {{ number_format((int)($e->display_amount ?? (int)$e->amount),0,',','.') }}</td>
                 <td>
                   <form method="POST" action="{{ route('rekap.destroy', $e->ledger_id) }}" onsubmit="return confirm('Hapus pemasukan ini dari rekap?');">
                     @csrf

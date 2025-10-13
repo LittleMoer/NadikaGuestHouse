@@ -90,6 +90,18 @@ class RekapController extends Controller
             ])
             ->get();
 
+        // Adjust display amount: for Traveloka bookings (pemesanan=1), apply 22% cut
+        // only to room-related entries (dp_in, dp_remaining_in). Cafe and cashback remain as is.
+        $entries = $entries->map(function($e){
+            $amt = (int)($e->amount ?? 0);
+            $isTraveloka = ((int)($e->pemesanan ?? 0)) === 1;
+            if ($isTraveloka && in_array($e->type, ['dp_in','dp_remaining_in'])) {
+                $amt = (int) floor($amt * 0.78); // apply 22% cut
+            }
+            $e->display_amount = $amt;
+            return $e;
+        });
+
         // Sum total using a safe query (no item/kamar joins to avoid row multiplication)
         $sumQuery = \DB::table('cash_ledger as l')
             ->leftJoin('booking as b', 'b.id', '=', 'l.booking_id')
@@ -119,7 +131,8 @@ class RekapController extends Controller
                   ->where(function($qq){ $qq->whereNull('b.discount_follow')->orWhere('b.discount_follow', false); });
             });
         }
-        $cashGrand = (int) $sumQuery->sum('l.amount');
+        // Compute grand total from adjusted entries to reflect Traveloka 22% policy in recap only
+        $cashGrand = (int) $entries->sum(function($e){ return (int)($e->display_amount ?? (int)($e->amount ?? 0)); });
 
         return view('rekap', [
             'bulan' => $bulan,
@@ -171,9 +184,11 @@ class RekapController extends Controller
             })
             ->get();
 
+        // Pull raw sums per type
         $ledger = \DB::table('cash_ledger')
             ->select('type', \DB::raw('SUM(amount) as total'))
             ->whereBetween('created_at', [$start, $end])
+            ->whereNull('deleted_at')
             ->groupBy('type')
             ->pluck('total','type');
         $totalDpIn = (int)($ledger['dp_in'] ?? 0);
@@ -181,7 +196,25 @@ class RekapController extends Controller
         $totalDpCanceled = (int)($ledger['dp_canceled'] ?? 0);
         $totalCafeIn = (int)($ledger['cafe_in'] ?? 0);
         $totalCashback = (int)($ledger['cashback_in'] ?? 0);
-        $cashGrand = $totalDpIn + $totalDpRemaining + $totalCafeIn + $totalCashback;
+
+        // Compute adjusted room income with 22% cut for Traveloka on room-related entries
+        $roomEntries = \DB::table('cash_ledger as l')
+            ->leftJoin('booking as b', 'b.id', '=', 'l.booking_id')
+            ->whereBetween('l.created_at', [$start, $end])
+            ->whereNull('l.deleted_at')
+            ->whereIn('l.type', ['dp_in','dp_remaining_in'])
+            ->select(['l.amount','b.pemesanan','l.type'])
+            ->get();
+        $totalKamar = 0;
+        foreach ($roomEntries as $re) {
+            $amt = (int)($re->amount ?? 0);
+            $isTraveloka = ((int)($re->pemesanan ?? 0)) === 1;
+            if ($isTraveloka) { $amt = (int) floor($amt * 0.78); }
+            $totalKamar += $amt;
+        }
+        $totalCafe = (int)$totalCafeIn;
+        $grandTotal = $totalKamar + $totalCafe + (int)$totalCashback;
+        $cashGrand = $grandTotal;
 
         return view('rekap_print', [
             'bulan' => $bulan,
@@ -192,6 +225,10 @@ class RekapController extends Controller
             'totalCafeIn' => $totalCafeIn,
             'totalCashback' => $totalCashback,
             'cashGrand' => $cashGrand,
+            // cards expected by rekap_print view
+            'totalKamar' => (int)$totalKamar,
+            'totalCafe' => (int)$totalCafe,
+            'grandTotal' => (int)$grandTotal,
             'start' => $start,
             'end' => $end,
             'orders' => $roomOrders,
