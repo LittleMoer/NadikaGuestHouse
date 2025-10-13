@@ -217,6 +217,42 @@
           </div>
         </div>
         @endif
+
+        @if(isset($roomTransfers) && $roomTransfers->count())
+        <div class="card mb-3">
+          <div class="card-header">Riwayat Pemindahan/Upgrade Kamar</div>
+          <div class="card-body p-0">
+            <table class="table table-sm mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Tanggal</th>
+                  <th>Aksi</th>
+                  <th>Dari</th>
+                  <th>Ke</th>
+                  <th class="text-end">Harga/mlm (lama → baru)</th>
+                  <th class="text-end">Total (lama → baru)</th>
+                  <th>Admin</th>
+                  <th>Catatan</th>
+                </tr>
+              </thead>
+              <tbody>
+              @foreach($roomTransfers as $rt)
+                <tr>
+                  <td>{{ \Carbon\Carbon::parse($rt->created_at)->format('d/m/Y H:i') }}</td>
+                  <td><span class="badge {{ $rt->action==='upgrade' ? 'bg-warning text-dark' : 'bg-primary' }}">{{ strtoupper($rt->action) }}</span></td>
+                  <td>{{ $rt->fromKamar->nomor_kamar ?? '-' }} ({{ $rt->fromKamar->tipe ?? '-' }})</td>
+                  <td>{{ $rt->toKamar->nomor_kamar ?? '-' }} ({{ $rt->toKamar->tipe ?? '-' }})</td>
+                  <td class="text-end">{{ number_format((int)($rt->old_price_per_malam ?? 0),0,',','.') }} → <strong>{{ number_format((int)($rt->new_price_per_malam ?? 0),0,',','.') }}</strong></td>
+                  <td class="text-end">{{ number_format((int)($rt->old_total ?? 0),0,',','.') }} → <strong>{{ number_format((int)($rt->new_total ?? 0),0,',','.') }}</strong></td>
+                  <td>{{ $rt->actor->name ?? '-' }}</td>
+                  <td>{{ $rt->note ?? '-' }}</td>
+                </tr>
+              @endforeach
+              </tbody>
+            </table>
+          </div>
+        </div>
+        @endif
       </div>
     </div>
 

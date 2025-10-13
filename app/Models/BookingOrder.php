@@ -4,6 +4,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Models\Pelanggan;
+use App\Models\BookingRoomTransfer;
 
 class BookingOrder extends Model
 {
@@ -55,6 +56,11 @@ class BookingOrder extends Model
     public function cafeOrders(): HasMany
     {
         return $this->hasMany(CafeOrder::class,'booking_id');
+    }
+
+    public function roomTransfers(): HasMany
+    {
+        return $this->hasMany(BookingRoomTransfer::class, 'booking_id');
     }
 
     /**

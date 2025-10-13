@@ -222,6 +222,64 @@
         </div>
       </form>
     </div>
+
+    <!-- Kelola Kamar Dipesan: Diletakkan di luar form utama untuk menghindari nested forms -->
+    <div class="card mt-3">
+      <div class="card-header">
+        <span>Kelola Kamar Dipesan</span>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-sm">
+            <thead>
+              <tr>
+                <th>Kamar</th>
+                <th>Harga/Malam</th>
+                <th>Malam</th>
+                <th>Subtotal</th>
+                <th>Pindah Kamar</th>
+                <th>Upgrade Kamar</th>
+              </tr>
+            </thead>
+            <tbody>
+              @foreach(($order->items ?? []) as $it)
+                <tr>
+                  <td>{{ $it->kamar?->nomor_kamar }} ({{ $it->kamar?->tipe }})</td>
+                  <td>Rp{{ number_format($it->harga_per_malam) }}</td>
+                  <td>{{ $it->malam }}</td>
+                  <td>Rp{{ number_format($it->subtotal) }}</td>
+                  <td>
+                    <form method="POST" action="{{ route('booking.move_room', $order->id) }}" class="d-flex gap-2 align-items-center">
+                      @csrf
+                      <input type="hidden" name="item_id" value="{{ $it->id }}">
+                      <select name="new_kamar_id" class="form-select form-select-sm" required>
+                        @foreach(($availableKamar ?? collect()) as $k)
+                          <option value="{{ $k->id }}">{{ $k->nomor_kamar }} - {{ $k->tipe }} (Rp{{ number_format($k->harga) }})</option>
+                        @endforeach
+                      </select>
+                      <button type="submit" class="btn btn-sm btn-primary">Pindah</button>
+                    </form>
+                  </td>
+                  <td>
+                    <form method="POST" action="{{ route('booking.upgrade_room', $order->id) }}" class="d-flex gap-2 align-items-center">
+                      @csrf
+                      <input type="hidden" name="item_id" value="{{ $it->id }}">
+                      <select name="new_kamar_id" class="form-select form-select-sm" required>
+                        @foreach(($availableKamar ?? collect()) as $k)
+                          <option value="{{ $k->id }}">{{ $k->nomor_kamar }} - {{ $k->tipe }} (Rp{{ number_format($k->harga) }})</option>
+                        @endforeach
+                      </select>
+                      <button type="submit" class="btn btn-sm btn-warning">Upgrade</button>
+                    </form>
+                  </td>
+                </tr>
+              @endforeach
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   </div>
+</div>
 </div>
 @endsection

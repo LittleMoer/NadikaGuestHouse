@@ -9,6 +9,8 @@ use App\Models\Kamar;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use App\Models\BookingRoomTransfer;
+use Illuminate\Support\Facades\Auth;
 
 
 class BookingController extends Controller
@@ -171,7 +173,8 @@ class BookingController extends Controller
 
         $start = $startCheck; $end = $endCheck;
         // Compute raw day and hour differences
-        $rawDays = $start->diffInDays($end);
+        // Nights counted based on calendar days difference (ignore clock time)
+        $rawDays = $start->copy()->startOfDay()->diffInDays($end->copy()->startOfDay());
         $days = max($rawDays,1);
 
     // Default lifecycle: walk-in defaults to checkin (2), online defaults to dipesan (1)
@@ -182,9 +185,9 @@ class BookingController extends Controller
         foreach($kamarList as $k){
             $baseTotal += $days * (int)$k->harga;
         }
-        // If booking duration is truly half-day (<= 6 hours AND within same calendar day span), charge 50%
-        $diffHours = $endCheck->diffInHours($startCheck);
-        if ($rawDays === 0 && $diffHours <= 6) {
+        // Robust half-day check: same calendar day and <= 360 minutes
+        $halfDay = $startCheck->isSameDay($endCheck) && ($endCheck->diffInMinutes($startCheck) <= 360);
+        if ($halfDay) {
             $baseTotal = (int) round($baseTotal * 0.5);
         }
         // Do not apply extra_time multipliers to price; only date is adjusted above
@@ -237,8 +240,8 @@ class BookingController extends Controller
 
             foreach($kamarList as $k){
                 $subtotal = $days * (int)$k->harga;
-                // Apply half-day adjustment to item subtotal only when rawDays==0 and <=6 hours
-                if ($rawDays === 0 && $diffHours <= 6) { $subtotal = (int) round($subtotal * 0.5); }
+                // Apply half-day adjustment per item when halfDay
+                if ($halfDay) { $subtotal = (int) round($subtotal * 0.5); }
                 BookingOrderItem::create([
                     'booking_order_id' => $order->id,
                     'kamar_id' => $k->id,
@@ -518,8 +521,8 @@ class BookingController extends Controller
         elseif ($extraSel === 'h6') { $end = $end->copy()->addHours(6); }
         elseif ($extraSel === 'h9') { $end = $end->copy()->addHours(9); }
         elseif ($extraSel === 'd1') { $end = $end->copy()->addDay(); }
-        // Calculate raw day span and derived nights
-        $rawDays = $start->diffInDays($end);
+        // Calculate raw day span and derived nights (calendar days, ignore clock time)
+        $rawDays = $start->copy()->startOfDay()->diffInDays($end->copy()->startOfDay());
         $days = max($rawDays,1);
 
         // Base recalc from authoritative kamar nightly rates
@@ -532,9 +535,9 @@ class BookingController extends Controller
             $it->save();
             $base += $it->subtotal;
         }
-        // Apply automatic half-day adjustment only when within the same day and <= 6 hours
-        $diffHours = $end->diffInHours($start);
-        if ($rawDays === 0 && $diffHours <= 6) {
+        // Apply automatic half-day adjustment only when same calendar day and <= 360 minutes
+        $halfDay = $start->isSameDay($end) && ($end->diffInMinutes($start) <= 360);
+        if ($halfDay) {
             $base = (int) round($base * 0.5);
             foreach($order->items as $it){
                 $it->subtotal = (int) round($it->subtotal * 0.5);
@@ -824,9 +827,14 @@ class BookingController extends Controller
                 ->limit(10)
                 ->get();
         }
+        $roomTransfers = BookingRoomTransfer::with(['fromKamar','toKamar','actor','item'])
+            ->where('booking_id', $order->id)
+            ->orderByDesc('id')
+            ->get();
         return view('booking_detail', [
             'order' => $order,
             'otherOrders' => $other,
+            'roomTransfers' => $roomTransfers,
         ]);
     }
 
@@ -835,9 +843,27 @@ class BookingController extends Controller
     {
         $order = BookingOrder::with(['pelanggan','items.kamar'])->findOrFail($id);
         $pelangganList = Pelanggan::orderBy('nama')->get();
+        // Hitung kamar tersedia untuk rentang tanggal order ini (exclude order ini)
+        $start = Carbon::parse($order->tanggal_checkin);
+        $end = Carbon::parse($order->tanggal_checkout);
+        $conflictingItems = BookingOrderItem::whereHas('order', function($q) use ($order,$start,$end){
+                $q->whereIn('status',[1,2])
+                  ->where('id','!=',$order->id)
+                  ->where(function($qq) use ($start,$end){
+                      $qq->where('tanggal_checkin','<',$end)
+                         ->where('tanggal_checkout','>',$start);
+                  });
+            })
+            ->pluck('kamar_id')
+            ->all();
+        $occupied = array_fill_keys($conflictingItems, true);
+        $availableKamar = Kamar::orderBy('tipe')->orderBy('nomor_kamar')->get()
+            ->filter(fn($k) => !isset($occupied[$k->id]))
+            ->values();
         return view('booking_edit', [
             'order' => $order,
             'pelangganList' => $pelangganList,
+            'availableKamar' => $availableKamar,
         ]);
     }
 
@@ -929,5 +955,302 @@ class BookingController extends Controller
             return redirect()->back()->with('success', 'Data pelanggan berhasil dihapus.');
         }
         return redirect()->back()->with('error', 'Pelanggan tidak ditemukan.');
+    }
+
+    /**
+     * Pindah kamar untuk sebuah item booking (misal kamar bermasalah).
+     * Input: item_id, new_kamar_id
+     */
+    public function moveRoom(Request $request, $orderId)
+    {
+        $data = $request->validate([
+            'item_id' => 'required|exists:booking_order_items,id',
+            'new_kamar_id' => 'required|exists:kamar,id',
+        ]);
+        $order = BookingOrder::with('items.kamar')->findOrFail($orderId);
+        $item = $order->items->firstWhere('id', (int)$data['item_id']);
+        if(!$item){
+            return back()->with('error','Item booking tidak ditemukan di order ini');
+        }
+        $newKamar = Kamar::findOrFail((int)$data['new_kamar_id']);
+        if($item->kamar_id == $newKamar->id){
+            return back()->with('error','Kamar baru sama dengan kamar sekarang');
+        }
+
+        // Cek konflik jadwal untuk kamar baru pada rentang order ini
+        $start = Carbon::parse($order->tanggal_checkin);
+        $end = Carbon::parse($order->tanggal_checkout);
+        $conflict = BookingOrderItem::where('kamar_id',$newKamar->id)
+            ->whereHas('order', function($q) use ($order,$start,$end){
+                $q->whereIn('status',[1,2])
+                  ->where('id','!=',$order->id)
+                  ->where(function($qq) use ($start,$end){
+                      $qq->where('tanggal_checkin','<',$end)
+                         ->where('tanggal_checkout','>',$start);
+                  });
+            })
+            ->exists();
+        if($conflict){
+            return back()->with('error','Kamar tujuan sedang terpakai pada tanggal tersebut');
+        }
+
+        // Simpan nilai sebelum perubahan untuk rekonsiliasi ledger
+        $oldDp = (int)($order->dp_amount ?? 0);
+        $oldTotal = (int)($order->total_harga ?? 0);
+        $oldPayment = (string)($order->payment_status ?? 'dp');
+
+        // Hitung malam dan half-day
+        $rawDays = $start->diffInDays($end);
+        $days = max($rawDays,1);
+        $diffHours = $end->diffInHours($start);
+
+        // Terapkan pindah kamar pada item: HARGA TETAP (gunakan harga_per_malam saat ini)
+        $fromKamarId = $item->kamar_id;
+        $oldRoomNo = $item->kamar?->nomor_kamar;
+        $oldPricePerMalam = (int)($item->harga_per_malam ?? 0);
+        $item->kamar_id = $newKamar->id;
+        $item->malam = $days;
+        $item->subtotal = $days * (int)$item->harga_per_malam;
+        // Half-day adjustment per item jika berlaku
+        $halfDay = $start->isSameDay($end) && ($end->diffInMinutes($start) <= 360);
+        if ($halfDay) { $item->subtotal = (int) round($item->subtotal * 0.5); }
+        $item->save();
+
+        // Re-hitung BASE dari semua item TANPA mengubah harga_per_malam kecuali sesuaikan malam/subtotal
+        $order->load('items.kamar');
+        $base = 0;
+        foreach($order->items as $it){
+            $it->malam = $days;
+            $it->subtotal = $days * (int)$it->harga_per_malam;
+            if ($halfDay) { $it->subtotal = (int) round($it->subtotal * 0.5); }
+            $it->save();
+            $base += (int)$it->subtotal;
+        }
+
+        // Per-head dan diskon
+        $perHead = (bool)($order->per_head_mode ?? false);
+        $jumlahTamu = (int)($order->jumlah_tamu_total ?? 1);
+        if($perHead && $jumlahTamu>2){ $base += 50000 * ($jumlahTamu - 2); }
+        $base = max($base, 100000);
+        $after = $base;
+        if($order->discount_review){ $after = (int) round($after * 0.9); }
+        if($order->discount_follow){ $after = (int) round($after * 0.9); }
+        $diskonNom = max(0, $base - $after);
+
+        // Set total baru ke order
+        $order->total_harga = $after;
+        $order->diskon = $diskonNom;
+        $order->save();
+
+        // Rekonsiliasi ledger jika perlu
+        $newDp = (int)($order->dp_amount ?? 0);
+        $newTotal = (int)($order->total_harga ?? 0);
+        $newPayment = (string)($order->payment_status ?? 'dp');
+        if($oldPayment !== 'lunas' && $newPayment === 'lunas'){
+            $remaining = max(0, $newTotal - $newDp);
+            if($remaining > 0){
+                DB::table('cash_ledger')->insert([
+                    'booking_id'=>$order->id,
+                    'type'=>'dp_remaining_in',
+                    'amount'=>$remaining,
+                    'note'=>'Pelunasan sisa DP (pindah kamar)',
+                    'payment_method' => strtolower((string)($order->payment_method ?? '')) ?: null,
+                    'created_at'=>now(),
+                    'updated_at'=>now(),
+                ]);
+                $order->dp_amount = $newDp + $remaining;
+                $order->save();
+                $newDp = (int)$order->dp_amount;
+            }
+        }
+        if($newPayment === 'lunas' && $newTotal > $newDp){
+            $delta = $newTotal - $newDp;
+            DB::table('cash_ledger')->insert([
+                'booking_id'=>$order->id,
+                'type'=>'dp_remaining_in',
+                'amount'=>$delta,
+                'note'=>'Penyesuaian total (pindah kamar)',
+                'payment_method' => strtolower((string)($order->payment_method ?? '')) ?: null,
+                'created_at'=>now(),
+                'updated_at'=>now(),
+            ]);
+            $order->dp_amount = $newDp + $delta;
+            $order->save();
+        }
+        if($newPayment === 'lunas' && $newTotal < $newDp){
+            $delta = $newDp - $newTotal;
+            DB::table('cash_ledger')->insert([
+                'booking_id'=>$order->id,
+                'type'=>'dp_canceled',
+                'amount'=>$delta,
+                'note'=>'Koreksi total (pindah kamar)',
+                'payment_method' => strtolower((string)($order->payment_method ?? '')) ?: null,
+                'created_at'=>now(),
+                'updated_at'=>now(),
+            ]);
+            $order->dp_amount = $newDp - $delta;
+            $order->save();
+        }
+
+        // Log transfer history
+        BookingRoomTransfer::create([
+            'booking_id' => $order->id,
+            'booking_order_item_id' => $item->id,
+            'from_kamar_id' => $fromKamarId,
+            'to_kamar_id' => $newKamar->id,
+            'action' => 'move',
+            'old_price_per_malam' => $oldPricePerMalam,
+            'new_price_per_malam' => (int)$item->harga_per_malam,
+            'old_total' => $oldTotal,
+            'new_total' => (int)$order->total_harga,
+            'actor_user_id' => Auth::id(),
+            'note' => $request->get('note'),
+        ]);
+
+        if($request->wantsJson()){
+            return response()->json(['success'=>true,'order_id'=>$order->id,'new_total'=>$order->total_harga]);
+        }
+        $newRoomNo = $newKamar->nomor_kamar;
+        return back()->with(
+            'success',
+            'Kamar berhasil dipindahkan: '.($oldRoomNo ?? '-').' → '.($newRoomNo ?? '-').'. Total: Rp'.number_format((int)$order->total_harga,0,',','.')
+        );
+    }
+
+    /**
+     * Upgrade kamar: sama seperti pindah kamar namun memastikan harga baru >= harga lama.
+     * Input: item_id, new_kamar_id
+     */
+    public function upgradeRoom(Request $request, $orderId)
+    {
+        $data = $request->validate([
+            'item_id' => 'required|exists:booking_order_items,id',
+            'new_kamar_id' => 'required|exists:kamar,id',
+        ]);
+        $order = BookingOrder::with('items.kamar')->findOrFail($orderId);
+        $oldTotalBeforeUpgrade = (int)($order->total_harga ?? 0);
+        $item = $order->items->firstWhere('id', (int)$data['item_id']);
+        if(!$item){ return back()->with('error','Item booking tidak ditemukan di order ini'); }
+        $newKamar = Kamar::findOrFail((int)$data['new_kamar_id']);
+        if($item->kamar_id == $newKamar->id){ return back()->with('error','Kamar baru sama dengan kamar sekarang'); }
+        if((int)$newKamar->harga < (int)($item->kamar?->harga ?? $item->harga_per_malam ?? 0)){
+            return back()->with('error','Upgrade harus ke kamar dengan harga lebih tinggi atau sama');
+        }
+        // Logika upgrade: Ganti kamar_id dan gunakan HARGA BARU untuk item ini.
+        $start = Carbon::parse($order->tanggal_checkin);
+        $end = Carbon::parse($order->tanggal_checkout);
+        $rawDays = $start->copy()->startOfDay()->diffInDays($end->copy()->startOfDay());
+        $days = max($rawDays,1);
+        $halfDay = $start->isSameDay($end) && ($end->diffInMinutes($start) <= 360);
+
+        // Update item yang diupgrade: terapkan harga kamar BARU
+        $fromKamarId = $item->kamar_id;
+        $oldPricePerMalam = (int)($item->harga_per_malam ?? 0);
+        $item->kamar_id = $newKamar->id;
+        $item->harga_per_malam = (int)$newKamar->harga;
+        $item->malam = $days;
+        $item->subtotal = $days * (int)$item->harga_per_malam;
+        if ($halfDay) { $item->subtotal = (int) round($item->subtotal * 0.5); }
+        $item->save();
+
+        // Rehitung total: item lain TIDAK diubah harganya; hanya malam/subtotal disesuaikan
+        $order->load('items.kamar');
+        $base = 0;
+        foreach($order->items as $it){
+            // Jangan override harga_per_malam untuk item lain
+            if ($it->id !== $item->id) {
+                $it->malam = $days;
+                $it->subtotal = $days * (int)$it->harga_per_malam;
+                if ($halfDay) { $it->subtotal = (int) round($it->subtotal * 0.5); }
+                $it->save();
+            }
+            $base += (int)$it->subtotal;
+        }
+
+        // Per-head dan diskon
+        $perHead = (bool)($order->per_head_mode ?? false);
+        $jumlahTamu = (int)($order->jumlah_tamu_total ?? 1);
+        if($perHead && $jumlahTamu>2){ $base += 50000 * ($jumlahTamu - 2); }
+        $base = max($base, 100000);
+        $after = $base;
+        if($order->discount_review){ $after = (int) round($after * 0.9); }
+        if($order->discount_follow){ $after = (int) round($after * 0.9); }
+        $diskonNom = max(0, $base - $after);
+
+        $oldDp = (int)($order->dp_amount ?? 0);
+        $oldPayment = (string)($order->payment_status ?? 'dp');
+        $order->total_harga = $after;
+        $order->diskon = $diskonNom;
+        $order->save();
+
+        // Log transfer history for upgrade
+        BookingRoomTransfer::create([
+            'booking_id' => $order->id,
+            'booking_order_item_id' => $item->id,
+            'from_kamar_id' => $fromKamarId,
+            'to_kamar_id' => $newKamar->id,
+            'action' => 'upgrade',
+            'old_price_per_malam' => $oldPricePerMalam,
+            'new_price_per_malam' => (int)$item->harga_per_malam,
+            'old_total' => $oldTotalBeforeUpgrade,
+            'new_total' => (int)$order->total_harga,
+            'actor_user_id' => Auth::id(),
+            'note' => $request->get('note'),
+        ]);
+
+        // Rekonsiliasi ledger untuk upgrade
+        $newDp = (int)($order->dp_amount ?? 0);
+        $newTotal = (int)($order->total_harga ?? 0);
+        $newPayment = (string)($order->payment_status ?? 'dp');
+        if($oldPayment !== 'lunas' && $newPayment === 'lunas'){
+            $remaining = max(0, $newTotal - $newDp);
+            if($remaining > 0){
+                DB::table('cash_ledger')->insert([
+                    'booking_id'=>$order->id,
+                    'type'=>'dp_remaining_in',
+                    'amount'=>$remaining,
+                    'note'=>'Pelunasan sisa DP (upgrade kamar)',
+                    'payment_method' => strtolower((string)($order->payment_method ?? '')) ?: null,
+                    'created_at'=>now(),
+                    'updated_at'=>now(),
+                ]);
+                $order->dp_amount = $newDp + $remaining;
+                $order->save();
+                $newDp = (int)$order->dp_amount;
+            }
+        }
+        if($newPayment === 'lunas' && $newTotal > $newDp){
+            $delta = $newTotal - $newDp;
+            DB::table('cash_ledger')->insert([
+                'booking_id'=>$order->id,
+                'type'=>'dp_remaining_in',
+                'amount'=>$delta,
+                'note'=>'Penyesuaian total (upgrade kamar)',
+                'payment_method' => strtolower((string)($order->payment_method ?? '')) ?: null,
+                'created_at'=>now(),
+                'updated_at'=>now(),
+            ]);
+            $order->dp_amount = $newDp + $delta;
+            $order->save();
+        }
+        if($newPayment === 'lunas' && $newTotal < $newDp){
+            $delta = $newDp - $newTotal;
+            DB::table('cash_ledger')->insert([
+                'booking_id'=>$order->id,
+                'type'=>'dp_canceled',
+                'amount'=>$delta,
+                'note'=>'Koreksi total (upgrade kamar)',
+                'payment_method' => strtolower((string)($order->payment_method ?? '')) ?: null,
+                'created_at'=>now(),
+                'updated_at'=>now(),
+            ]);
+            $order->dp_amount = $newDp - $delta;
+            $order->save();
+        }
+
+        if($request->wantsJson()){
+            return response()->json(['success'=>true,'order_id'=>$order->id,'new_total'=>$order->total_harga]);
+        }
+        return back()->with('success','Kamar berhasil di-upgrade dan total diperbarui');
     }
 }
