@@ -215,11 +215,14 @@ class BookingController extends Controller
 
         try {
             DB::beginTransaction();
-            // Generate next daily booking number atomically (resets each day)
-            DB::statement("INSERT INTO booking_sequences (seq_date, counter, created_at, updated_at) VALUES (CURRENT_DATE, 1, NOW(), NOW()) ON DUPLICATE KEY UPDATE counter = LAST_INSERT_ID(counter + 1), updated_at = VALUES(updated_at)");
-            $seq = DB::selectOne("SELECT LAST_INSERT_ID() AS next_counter");
-            $nextCounter = (int)($seq->next_counter ?? 1);
-            $bookingNumber = 'BKG-' . now()->format('Ymd') . '-' . str_pad((string)$nextCounter, 4, '0', STR_PAD_LEFT);
+            // Generate monthly booking number in format: ym-#### based on count in current month
+            $prefix = now()->format('ym');
+            $monthlyCount = DB::table('booking')
+                ->whereYear('tanggal_checkin', now()->year)
+                ->whereMonth('tanggal_checkin', now()->month)
+                ->count();
+            $nextCounter = $monthlyCount + 1;
+            $bookingNumber = $prefix . '-' . str_pad((string)$nextCounter, 4, '0', STR_PAD_LEFT);
 
             $order = BookingOrder::create([
                 'pelanggan_id' => $data['pelanggan_id'],
