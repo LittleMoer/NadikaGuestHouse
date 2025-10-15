@@ -48,8 +48,8 @@
                 <tbody>
                 @forelse($orders as $order)
                     @php $meta = $order->status_meta; $channelLabelMap=['walkin'=>'Walk-In','agent1'=>'Agent 1','agent2'=>'Agent 2','traveloka'=>'Traveloka','cancel'=>'-']; $channelLabel=$channelLabelMap[$meta['channel']] ?? ucfirst($meta['channel']); @endphp
-                    <tr data-booking-id="{{ $order->id }}" data-show-url="{{ route('booking.show',$order->id) }}" data-payment="{{ $meta['payment'] }}" data-channel="{{ $meta['channel'] }}" style="background-color:#f5f5f5;color:black">
-                        <td class="id-stroke" style="font-weight:700;color:#000;text-shadow:none;">#{{ $order->order_code }}</td>
+                    <tr data-booking-id="{{ $order->id }}" data-show-url="{{ route('booking.show',$order->id) }}" style="background-color:#f5f5f5;color:#000 !important">
+                        <td style="font-weight:700;color:#000 !important;text-shadow:none !important;">#{{ $order->order_code }}</td>
                         <td>
                             <span class="badge" style="background:{{ $meta['background'] }};color:{{ $meta['text_color'] }};min-width:90px;display:inline-block;">{{ $meta['label'] }}</span>
                         </td>
