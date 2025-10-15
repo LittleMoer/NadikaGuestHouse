@@ -74,7 +74,11 @@
           <div class="card-header">Total & Pembayaran</div>
           <div class="card-body">
             @php
-              $roomTotal = (int)($order->items->sum('subtotal') ?? ($order->total_harga ?? 0));
+              $isTraveloka = ((int)($order->pemesanan ?? 0)) === 1;
+              // For Traveloka, follow manual total; otherwise use items sum (fallback to total_harga)
+              $roomTotal = $isTraveloka
+                ? (int)($order->total_harga ?? 0)
+                : (int)($order->items->sum('subtotal') ?? ($order->total_harga ?? 0));
               $cafeTotal = (int)($order->total_cafe ?? 0);
               $diskon    = (int)($order->diskon ?? 0);
               $biayaLain = (int)($order->biaya_tambahan ?? 0);
@@ -82,7 +86,7 @@
               $dp        = (int)($order->dp_amount ?? 0);
               $sisa      = max(0, $grand - $dp);
             @endphp
-            @if(((int)($order->pemesanan ?? 0)) === 1)
+            @if($isTraveloka)
             <div class="alert alert-info py-2" style="font-size:.9rem;">
               <strong>Harga Manual (Traveloka):</strong>
               Rp {{ number_format((int)($order->total_harga ?? 0),0,',','.') }}
@@ -151,8 +155,10 @@
                   <th>Nomor</th>
                   <th>Tipe</th>
                   <th class="text-center">Malam</th>
-                  <th class="text-end">Harga/mlm</th>
-                  <th class="text-end">Subtotal</th>
+                  @unless($isTraveloka)
+                    <th class="text-end">Harga/mlm</th>
+                    <th class="text-end">Subtotal</th>
+                  @endunless
                 </tr>
               </thead>
               <tbody>
@@ -161,8 +167,10 @@
                   <td>{{ $it->kamar->nomor_kamar ?? '-' }}</td>
                   <td>{{ $it->kamar->tipe ?? '-' }}</td>
                   <td class="text-center">{{ $it->malam }}</td>
-                  <td class="text-end">{{ number_format($it->harga_per_malam,0,',','.') }}</td>
-                  <td class="text-end">{{ number_format($it->subtotal,0,',','.') }}</td>
+                  @unless($isTraveloka)
+                    <td class="text-end">{{ number_format($it->harga_per_malam,0,',','.') }}</td>
+                    <td class="text-end">{{ number_format($it->subtotal,0,',','.') }}</td>
+                  @endunless
                 </tr>
               @endforeach
               </tbody>
