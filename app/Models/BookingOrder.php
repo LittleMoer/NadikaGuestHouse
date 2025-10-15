@@ -31,7 +31,9 @@ class BookingOrder extends Model
         'discount_follow',
         'extra_time', // values: none, h3(+35%), h6(+50%), h9(+85%), d1(+100%)
         'per_head_mode', // boolean-like 0/1
-        'biaya_tambahan'
+        'biaya_tambahan',
+        // new: human-friendly booking number that can reset per period
+        'booking_number'
     ];
 
     protected $casts = [
@@ -130,6 +132,11 @@ class BookingOrder extends Model
      */
     public function getOrderCodeAttribute(): string
     {
+        // Prefer stored booking_number when available for stability and reset capability
+        if (!empty($this->booking_number)) {
+            return (string)$this->booking_number;
+        }
+        // Fallback to legacy format based on id to preserve BC on older rows
         $ym = $this->tanggal_checkin ? $this->tanggal_checkin->format('Ym') : now()->format('Ym');
         $idPart = str_pad((string)($this->id ?? 0), 2, '0', STR_PAD_LEFT);
         return $ym . $idPart;

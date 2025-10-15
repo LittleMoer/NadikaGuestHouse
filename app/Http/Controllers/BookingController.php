@@ -215,6 +215,11 @@ class BookingController extends Controller
 
         try {
             DB::beginTransaction();
+            // Generate next daily booking number atomically (resets each day)
+            DB::statement("INSERT INTO booking_sequences (seq_date, counter, created_at, updated_at) VALUES (CURRENT_DATE, 1, NOW(), NOW()) ON DUPLICATE KEY UPDATE counter = LAST_INSERT_ID(counter + 1), updated_at = VALUES(updated_at)");
+            $seq = DB::selectOne("SELECT LAST_INSERT_ID() AS next_counter");
+            $nextCounter = (int)($seq->next_counter ?? 1);
+            $bookingNumber = 'BKG-' . now()->format('Ymd') . '-' . str_pad((string)$nextCounter, 4, '0', STR_PAD_LEFT);
 
             $order = BookingOrder::create([
                 'pelanggan_id' => $data['pelanggan_id'],
@@ -236,6 +241,8 @@ class BookingController extends Controller
                 'per_head_mode' => $perHeadMode,
                 'diskon' => $diskonNominal,
                 'biaya_tambahan' => $biayaTambahan > 0 ? $biayaTambahan : null,
+                // New human-friendly booking number
+                'booking_number' => $bookingNumber,
             ]);
 
             foreach($kamarList as $k){
