@@ -128,6 +128,8 @@ class BookingController extends Controller
             'dp_percentage'     => 'nullable|integer|min:0|max:100',
             'catatan'           => 'nullable|string',
             'biaya_tambahan'    => 'nullable|integer|min:0',
+            // manual total when Traveloka
+            'manual_total_harga'=> 'nullable|integer|min:0',
         ]);
         if ($validator->fails()) {
             return redirect()->route('booking.index')
@@ -135,6 +137,16 @@ class BookingController extends Controller
                 ->withInput();
         }
         $data = $validator->validated();
+
+        // Require manual total when Traveloka
+        if ((int)$data['pemesanan'] === 1) {
+            $manualVal = (int)($request->get('manual_total_harga') ?? 0);
+            if ($manualVal <= 0) {
+                return redirect()->route('booking.index')
+                    ->withErrors(['manual_total_harga' => 'Untuk pesanan Traveloka, Total Kamar (Rp) wajib diisi.'], 'booking_create')
+                    ->withInput();
+            }
+        }
 
         $kamarList = Kamar::whereIn('id',$data['kamar_ids'])->get();
         if($kamarList->count() !== count($data['kamar_ids'])){
@@ -206,6 +218,11 @@ class BookingController extends Controller
         if($discFollow){ $totalAfterDisc = (int) round($totalAfterDisc * 0.9); }
         $diskonNominal = max(0, $baseTotal - $totalAfterDisc);
         $totalOrder = $totalAfterDisc;
+        // For Traveloka (pemesanan==1), enforce manual room total if provided
+        if ((int)$data['pemesanan'] === 1) {
+            $manual = (int)($request->get('manual_total_harga') ?? 0);
+            $totalOrder = $manual;
+        }
 
         // DP nominal and payment status decision
         $dpAmount = (int)($request->get('dp_amount') ?? 0);
@@ -520,7 +537,15 @@ class BookingController extends Controller
             'per_head_mode'=>'nullable|boolean',
             'payment_method'=>'nullable|string|max:20',
             'biaya_tambahan'=>'nullable|integer|min:0',
+            'manual_total_harga'=>'nullable|integer|min:0',
         ]);
+        // Require manual total when Traveloka (edit)
+        if ((int)$request->get('pemesanan') === 1) {
+            $manualVal = (int)($request->get('manual_total_harga') ?? 0);
+            if ($manualVal <= 0) {
+                return redirect()->back()->withErrors(['manual_total_harga' => 'Untuk pesanan Traveloka, Total Kamar (Rp) wajib diisi.'])->withInput();
+            }
+        }
         // Optional new fields (won't error if absent from form)
         $dpPct = $request->get('dp_percentage');
         $start = Carbon::parse($data['tanggal_checkin']);
@@ -575,7 +600,13 @@ class BookingController extends Controller
         $order->tanggal_checkout = $end;
         $order->pemesanan = (int)$data['pemesanan'];
         $order->catatan = $data['catatan'] ?? null;
-        $order->total_harga = $after; // room total after modifiers
+        // For Traveloka (pemesanan==1), prefer manual total if provided; otherwise use auto calc
+        if ((int)$data['pemesanan'] === 1) {
+            $manual = (int)($data['manual_total_harga'] ?? $request->get('manual_total_harga') ?? 0);
+            $order->total_harga = $manual;
+        } else {
+            $order->total_harga = $after; // room total after modifiers
+        }
         $order->discount_review = $discReview;
         $order->discount_follow = $discFollow;
         // Store as 'none' to avoid enum mismatch; checkout already extended

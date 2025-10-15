@@ -90,15 +90,9 @@ class RekapController extends Controller
             ])
             ->get();
 
-        // Adjust display amount: for Traveloka bookings (pemesanan=1), apply 22% cut
-        // only to room-related entries (dp_in, dp_remaining_in). Cafe and cashback remain as is.
+        // Use raw amounts for display (no Traveloka percentage adjustment)
         $entries = $entries->map(function($e){
-            $amt = (int)($e->amount ?? 0);
-            $isTraveloka = ((int)($e->pemesanan ?? 0)) === 1;
-            if ($isTraveloka && in_array($e->type, ['dp_in','dp_remaining_in'])) {
-                $amt = (int) floor($amt * 0.78); // apply 22% cut
-            }
-            $e->display_amount = $amt;
+            $e->display_amount = (int)($e->amount ?? 0);
             return $e;
         });
 
@@ -131,7 +125,7 @@ class RekapController extends Controller
                   ->where(function($qq){ $qq->whereNull('b.discount_follow')->orWhere('b.discount_follow', false); });
             });
         }
-        // Compute grand total from adjusted entries to reflect Traveloka 22% policy in recap only
+        // Compute grand total from displayed entries (raw amounts)
         $cashGrand = (int) $entries->sum(function($e){ return (int)($e->display_amount ?? (int)($e->amount ?? 0)); });
 
         return view('rekap', [
@@ -197,23 +191,10 @@ class RekapController extends Controller
         $totalCafeIn = (int)($ledger['cafe_in'] ?? 0);
         $totalCashback = (int)($ledger['cashback_in'] ?? 0);
 
-        // Compute adjusted room income with 22% cut for Traveloka on room-related entries
-        $roomEntries = \DB::table('cash_ledger as l')
-            ->leftJoin('booking as b', 'b.id', '=', 'l.booking_id')
-            ->whereBetween('l.created_at', [$start, $end])
-            ->whereNull('l.deleted_at')
-            ->whereIn('l.type', ['dp_in','dp_remaining_in'])
-            ->select(['l.amount','b.pemesanan','l.type'])
-            ->get();
-        $totalKamar = 0;
-        foreach ($roomEntries as $re) {
-            $amt = (int)($re->amount ?? 0);
-            $isTraveloka = ((int)($re->pemesanan ?? 0)) === 1;
-            if ($isTraveloka) { $amt = (int) floor($amt * 0.78); }
-            $totalKamar += $amt;
-        }
+        // Compute room and grand totals using raw amounts (no Traveloka adjustment)
+        $totalKamar = (int)($totalDpIn + $totalDpRemaining);
         $totalCafe = (int)$totalCafeIn;
-        $grandTotal = $totalKamar + $totalCafe + (int)$totalCashback;
+        $grandTotal = (int)($totalKamar + $totalCafe + (int)$totalCashback);
         $cashGrand = $grandTotal;
 
         return view('rekap_print', [

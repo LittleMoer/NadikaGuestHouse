@@ -82,11 +82,14 @@ class DashboardController extends Controller
                 $coDay = $coDay->copy()->addDay();
             }
             foreach($order->items as $it){
+                $code = (string)($order->order_code ?? '');
+                $short = strlen($code) >= 3 ? substr($code, -3) : $code;
                 $items[] = [
                     'kamar_id' => $it->kamar_id,
                     'status' => $order->status, // 1..4
                     'booking_order_id' => $order->id,
                     'order_code' => $order->order_code,
+                    'order_code_short' => $short,
                     // status_code removed
                     'meta' => $meta,
                     'checkin' => $ciDay,
@@ -133,6 +136,7 @@ class DashboardController extends Controller
                             $segments[] = [
                                 'booking_order_id' => $row['booking_order_id'],
                                 'booking_code' => $row['order_code'] ?? null,
+                                'booking_code_short' => $row['order_code_short'] ?? null,
                                 'status' => $row['status'], // 1..4
                                 'payment' => $row['meta']['payment'] ?? null,
                                 'channel' => $row['meta']['channel'] ?? null,
@@ -151,6 +155,7 @@ class DashboardController extends Controller
                                 $slotMorning[] = [
                                     'booking_order_id' => $row['booking_order_id'],
                                     'booking_code' => $row['order_code'] ?? null,
+                                    'booking_code_short' => $row['order_code_short'] ?? null,
                                     'status' => $row['status'],
                                     'payment' => $row['meta']['payment'] ?? null,
                                     'background' => $row['meta']['background'] ?? null,
@@ -159,6 +164,7 @@ class DashboardController extends Controller
                                 $slotAfternoon[] = [
                                     'booking_order_id' => $row['booking_order_id'],
                                     'booking_code' => $row['order_code'] ?? null,
+                                    'booking_code_short' => $row['order_code_short'] ?? null,
                                     'status' => $row['status'],
                                     'payment' => $row['meta']['payment'] ?? null,
                                     'background' => $row['meta']['background'] ?? null,
@@ -170,6 +176,7 @@ class DashboardController extends Controller
                                     $slotMorning[] = [
                                         'booking_order_id' => $row['booking_order_id'],
                                         'booking_code' => $row['order_code'] ?? null,
+                                        'booking_code_short' => $row['order_code_short'] ?? null,
                                         'status' => $row['status'],
                                         'payment' => $row['meta']['payment'] ?? null,
                                         'background' => $row['meta']['background'] ?? null,
@@ -182,6 +189,7 @@ class DashboardController extends Controller
                                     $slotAfternoon[] = [
                                         'booking_order_id' => $row['booking_order_id'],
                                         'booking_code' => $row['order_code'] ?? null,
+                                        'booking_code_short' => $row['order_code_short'] ?? null,
                                         'status' => $row['status'],
                                         'payment' => $row['meta']['payment'] ?? null,
                                         'background' => $row['meta']['background'] ?? null,

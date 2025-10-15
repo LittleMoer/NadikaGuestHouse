@@ -113,7 +113,7 @@
                                                             @endphp
                                                             style="{{ $style }}">
                                                         <div class="{{ $payClass }} cell-inner">
-                                                            {{ $seg['booking_order_id'] ?? '' }}
+                                                            {{ $seg['booking_code_short'] ?? $seg['booking_order_id'] ?? '' }}
                                                         </div>
                                                     </td>
                                                 @else
@@ -131,7 +131,7 @@
                                                                 @endphp
                                                                 style="{{ $style }}">
                                                             <div class="{{ $payClass }} cell-inner" data-status="{{ $seg['status'] ?? '' }}">
-                                                                {{ $seg['booking_order_id'] ?? '' }}
+                                                                {{ $seg['booking_code_short'] ?? $seg['booking_order_id'] ?? '' }}
                                                             </div>
                                                         </td>
                                                     @else
@@ -171,7 +171,7 @@
                                                             @endphp
                                                             style="{{ $style }}">
                                                         <div class="{{ $payClass }} cell-inner">
-                                                            {{ $seg['booking_order_id'] ?? '' }}
+                                                            {{ $seg['booking_code_short'] ?? '' }}
                                                         </div>
                                                     </td>
                                                 @else

@@ -122,6 +122,19 @@
                     });
                 });
 
+                // Toggle manual total when Traveloka
+                (function(){
+                    const sel = document.querySelector('select[name="pemesanan"]');
+                    const wrap = document.getElementById('wrap_manual_total');
+                    const inp = document.querySelector('input[name="manual_total_harga"]');
+                    function apply(){
+                        const isTrav = sel && String(sel.value) === '1';
+                        if(wrap){ wrap.style.display = isTrav ? 'block':'none'; }
+                        if(inp){ inp.required = !!isTrav; if(!isTrav) inp.value=''; }
+                    }
+                    if(sel){ sel.addEventListener('change', apply); apply(); }
+                })();
+
                 // Client-side validation for booking create form
                 (function(){
                     const form = document.getElementById('formBookingCreate');
@@ -282,6 +295,15 @@
                                 <option value="2" {{ $oldPem=='2' ? 'selected' : '' }}>Agent 1</option>
                                 <option value="3" {{ $oldPem=='3' ? 'selected' : '' }}>Agent 2</option>
                             </select>
+                        </div>
+                        <div class="col-md-4 mb-3" id="wrap_manual_total" style="display:none;">
+                            <label class="form-label">Total Kamar (Rp)</label>
+                            <input type="text" name="manual_total_harga" class="form-control rupiah" value="{{ old('manual_total_harga', '') }}" placeholder="Wajib diisi untuk Traveloka" />
+                            @if ($errors->hasBag('booking_create'))
+                                @if ($errors->booking_create->has('manual_total_harga'))
+                                    <div class="text-danger" style="font-size:.7rem;">{{ $errors->booking_create->first('manual_total_harga') }}</div>
+                                @endif
+                            @endif
                         </div>
                         <div class="col-md-4 mb-3">
                             <label class="form-label">Status</label>

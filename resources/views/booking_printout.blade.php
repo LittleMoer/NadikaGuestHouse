@@ -175,6 +175,7 @@
       </div>
       <div class="col-right">
         @php
+          $isTraveloka = ((int)($order->pemesanan ?? 0)) === 1;
           $itemsSubtotal = (int) (collect($order->items)->sum('subtotal') ?? 0);
           $explicitTotal = (int) ($order->total_harga ?? 0);
           $baseSubtotal = $itemsSubtotal > 0 ? $itemsSubtotal : $explicitTotal;
@@ -185,13 +186,17 @@
         @endphp
         <div class="summary">
           <div class="section-title">Ringkasan Pembayaran</div>
-          <div class="row"><div class="label">Subtotal</div><div class="value">Rp {{ number_format($baseSubtotal,0,',','.') }}</div></div>
-          @if($diskon > 0)
-          <div class="row"><div class="label">Diskon</div><div class="value">- Rp {{ number_format($diskon,0,',','.') }}</div></div>
+          @if(!$isTraveloka)
+            <div class="row"><div class="label">Subtotal</div><div class="value">Rp {{ number_format($baseSubtotal,0,',','.') }}</div></div>
+            @if($diskon > 0)
+              <div class="row"><div class="label">Diskon</div><div class="value">- Rp {{ number_format($diskon,0,',','.') }}</div></div>
+            @endif
+            <div class="row total"><div class="label">Total</div><div class="value">Rp {{ number_format($totalAfterDiscount,0,',','.') }}</div></div>
+            <div class="row"><div class="label">Sudah Dibayar</div><div class="value">Rp {{ number_format($paid,0,',','.') }}</div></div>
+            <div class="row"><div class="label">Sisa</div><div class="value">Rp {{ number_format($remaining,0,',','.') }}</div></div>
+          @else
+            <div class="row"><div class="label">Informasi</div><div class="value">- Tidak menampilkan total untuk Traveloka -</div></div>
           @endif
-          <div class="row total"><div class="label">Total</div><div class="value">Rp {{ number_format($totalAfterDiscount,0,',','.') }}</div></div>
-          <div class="row"><div class="label">Sudah Dibayar</div><div class="value">Rp {{ number_format($paid,0,',','.') }}</div></div>
-          <div class="row"><div class="label">Sisa</div><div class="value">Rp {{ number_format($remaining,0,',','.') }}</div></div>
         </div>
       </div>
     </div>

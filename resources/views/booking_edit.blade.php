@@ -89,6 +89,19 @@
             if(errs.length){ e.preventDefault(); alert(errs.join('\n')); return false; }
           }, {capture:true});
         }
+
+        // Toggle manual total when Traveloka
+        (function(){
+          const sel = document.querySelector('select[name="pemesanan"]');
+          const wrap = document.getElementById('wrap_manual_total');
+          const inp = document.querySelector('input[name="manual_total_harga"]');
+          function apply(){
+            const isTrav = sel && String(sel.value) === '1';
+            if(wrap){ wrap.style.display = isTrav ? 'block':'none'; }
+            if(inp){ inp.required = !!isTrav; if(!isTrav) inp.value=''; }
+          }
+          if(sel){ sel.addEventListener('change', apply); apply(); }
+        })();
       });
     </script>
 
@@ -132,6 +145,13 @@
                 <option value=2 {{ old('pemesanan', $order->pemesanan)==='2' || old('pemesanan', $order->pemesanan)==2 ? 'selected' : '' }}>Agent 1</option>
                 <option value=3 {{ old('pemesanan', $order->pemesanan)==='3' || old('pemesanan', $order->pemesanan)==3 ? 'selected' : '' }}>Agent 2</option>
               </select>
+            </div>
+            <div class="col-md-4 mb-3" id="wrap_manual_total" style="display:none;">
+              <label class="form-label">Total Kamar (Rp)</label>
+              <input type="text" name="manual_total_harga" class="form-control rupiah" value="{{ old('manual_total_harga') }}" placeholder="Wajib diisi untuk Traveloka" />
+              @error('manual_total_harga')
+                <div class="text-danger" style="font-size:.7rem;">{{ $message }}</div>
+              @enderror
             </div>
             <div class="col-md-4 mb-3">
               <label class="form-label">Status</label>
