@@ -333,7 +333,9 @@
                 safe(EL.id, data.id); safe(EL.status, data.status_label); safe(EL.nama, data.pelanggan?.nama||'-'); safe(EL.telepon, data.pelanggan?.telepon||'-');
                 safe(EL.checkin, new Date(data.tanggal_checkin).toLocaleString()); safe(EL.checkout, new Date(data.tanggal_checkout).toLocaleString());
                 safe(EL.metode, data.status_meta?.channel==='walkin'?'Walk-In': (data.status_meta?.channel||'-'));
-                safe(EL.total, fmt(data.total_harga)); safe(EL.totalCafe, fmt(data.total_cafe)); safe(EL.grandTotal, fmt(data.grand_total)); safe(EL.catatan, data.catatan||'-');
+                const isTrav = (data.status_meta?.channel || '') === 'traveloka';
+                const totalLabel = isTrav ? (fmt(data.total_harga) + ' (Manual)') : fmt(data.total_harga);
+                safe(EL.total, totalLabel); safe(EL.totalCafe, fmt(data.total_cafe)); safe(EL.grandTotal, fmt(data.grand_total)); safe(EL.catatan, data.catatan||'-');
                     // Bind jumlah tamu to any present element (support both ids if existed)
                     const elJmlTot = document.getElementById('bd_jumlah_tamu_total'); if(elJmlTot){ elJmlTot.textContent = data.jumlah_tamu_total ?? '-'; }
                     const elJml = document.getElementById('bd_jumlah_tamu'); if(elJml){ elJml.textContent = data.jumlah_tamu_total ?? '-'; }

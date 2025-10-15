@@ -82,6 +82,12 @@
               $dp        = (int)($order->dp_amount ?? 0);
               $sisa      = max(0, $grand - $dp);
             @endphp
+            @if(((int)($order->pemesanan ?? 0)) === 1)
+            <div class="alert alert-info py-2" style="font-size:.9rem;">
+              <strong>Harga Manual (Traveloka):</strong>
+              Rp {{ number_format((int)($order->total_harga ?? 0),0,',','.') }}
+            </div>
+            @endif
             <div class="d-flex justify-content-between">
               <div><strong>Kamar</strong></div>
               <div>Rp {{ number_format($roomTotal,0,',','.') }}</div>
