@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Nota Booking #{{ $order->id }}</title>
+    <title>Nota Booking {{ isset($isMerged) && $isMerged ? ('Nota '.$bookingNumber.' ('.$mergeCount.' booking)') : ('#'.$order->id) }}</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 16px; color:#111; }
         .nota { max-width: 420px; margin: 0 auto; }
@@ -58,6 +58,9 @@
         </div>
 
         <div class="muted">Tanggal: {{ now()->format('d/m/Y H:i') }}</div>
+        @if(!empty($isMerged) && $isMerged)
+        <div class="muted">Nota: {{ $bookingNumber }} ({{ $mergeCount }} booking)</div>
+        @endif
         <div class="muted">Pelanggan: {{ $order->pelanggan?->nama ?? '-' }} ({{ $order->pelanggan?->telepon ?? '-' }})</div>
         <div class="muted">Check-in: {{ $order->tanggal_checkin->format('d/m/Y H:i') }}</div>
         <div class="muted">Check-out: {{ $order->tanggal_checkout->format('d/m/Y H:i') }}</div>

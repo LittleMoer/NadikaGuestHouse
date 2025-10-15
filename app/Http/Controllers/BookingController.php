@@ -130,6 +130,8 @@ class BookingController extends Controller
             'biaya_tambahan'    => 'nullable|integer|min:0',
             // manual total when Traveloka
             'manual_total_harga'=> 'nullable|integer|min:0',
+            // optional: reuse existing Nota number across multiple orders
+            'booking_number'    => 'nullable|string|max:20',
         ]);
         if ($validator->fails()) {
             return redirect()->route('booking.index')
@@ -232,14 +234,20 @@ class BookingController extends Controller
 
         try {
             DB::beginTransaction();
-            // Generate monthly booking number in format: ym-#### based on count in current month
-            $prefix = now()->format('ym');
-            $monthlyCount = DB::table('booking')
-                ->whereYear('tanggal_checkin', now()->year)
-                ->whereMonth('tanggal_checkin', now()->month)
-                ->count();
-            $nextCounter = $monthlyCount + 1;
-            $bookingNumber = $prefix . str_pad((string)$nextCounter, 3, '0', STR_PAD_LEFT);
+            // Determine Nota (booking_number): reuse provided value if present; else generate monthly sequence
+            $providedBookingNumber = trim((string)($request->get('booking_number') ?? ''));
+            if ($providedBookingNumber !== '') {
+                $bookingNumber = $providedBookingNumber;
+            } else {
+                // Generate monthly booking number in format: ym### based on count in current month
+                $prefix = now()->format('ym');
+                $monthlyCount = DB::table('booking')
+                    ->whereYear('tanggal_checkin', now()->year)
+                    ->whereMonth('tanggal_checkin', now()->month)
+                    ->count();
+                $nextCounter = $monthlyCount + 1;
+                $bookingNumber = $prefix . str_pad((string)$nextCounter, 3, '0', STR_PAD_LEFT);
+            }
 
             $order = BookingOrder::create([
                 'pelanggan_id' => $data['pelanggan_id'],
@@ -808,10 +816,27 @@ class BookingController extends Controller
     public function printNota(Request $request, $id)
     {
         $order = BookingOrder::with(['pelanggan','items.kamar','cafeOrders.items.product'])->findOrFail($id);
-        $roomTotal = (float)($order->total_harga ?? 0);
-        $cafeTotal = (float)($order->total_cafe ?? 0);
-        $diskon = (float)($order->diskon ?? 0);
-        $biayaTambahan = (float)($order->biaya_tambahan ?? 0);
+        // Detect siblings with the same booking_number (merged Nota)
+        $bookingNo = (string)($order->booking_number ?? '');
+        $siblings = collect();
+        if($bookingNo !== ''){
+            $siblings = BookingOrder::with(['items','cafeOrders'])
+                ->where('booking_number', $bookingNo)
+                ->orderBy('id')
+                ->get();
+        }
+        $isMerged = $siblings->count() > 1;
+        if($isMerged){
+            $roomTotal = (float) $siblings->sum(function($o){ return (int)($o->total_harga ?? 0); });
+            $cafeTotal = (float) $siblings->sum(function($o){ return (int)($o->total_cafe ?? 0); });
+            $diskon = (float) $siblings->sum(function($o){ return (int)($o->diskon ?? 0); });
+            $biayaTambahan = (float) $siblings->sum(function($o){ return (int)($o->biaya_tambahan ?? 0); });
+        } else {
+            $roomTotal = (float)($order->total_harga ?? 0);
+            $cafeTotal = (float)($order->total_cafe ?? 0);
+            $diskon = (float)($order->diskon ?? 0);
+            $biayaTambahan = (float)($order->biaya_tambahan ?? 0);
+        }
         $subtotal = $roomTotal + $cafeTotal;
         $grand = $subtotal - $diskon + $biayaTambahan;
         return view('nota', [
@@ -821,6 +846,9 @@ class BookingController extends Controller
             'diskon'=>$diskon,
             'biayaLain'=>$biayaTambahan,
             'grandTotal'=>$grand,
+            'isMerged' => $isMerged,
+            'mergeCount' => $isMerged ? $siblings->count() : 1,
+            'bookingNumber' => $bookingNo,
         ]);
     }
 
@@ -835,7 +863,39 @@ class BookingController extends Controller
     public function printout(Request $request, $id)
     {
         $order = BookingOrder::with(['pelanggan','items.kamar'])->findOrFail($id);
-        return view('booking_printout', ['order'=>$order]);
+        $bookingNo = (string)($order->booking_number ?? '');
+        $siblings = collect();
+        if($bookingNo !== ''){
+            $siblings = BookingOrder::with(['items.kamar'])
+                ->where('booking_number', $bookingNo)
+                ->orderBy('id')
+                ->get();
+        }
+        $isMerged = $siblings->count() > 1;
+        $mergedItems = collect();
+        $baseSubtotal = 0; $diskonTotal = 0; $paidTotal = 0; $biayaTambahanTotal = 0;
+        if($isMerged){
+            foreach($siblings as $s){
+                foreach(($s->items ?? []) as $it){ $mergedItems->push($it); }
+                // Prefer item subtotal sum; fallback to total_harga
+                $sumItems = (int) collect($s->items)->sum('subtotal');
+                $baseSubtotal += $sumItems > 0 ? $sumItems : (int)($s->total_harga ?? 0);
+                $diskonTotal += (int)($s->diskon ?? 0);
+                $paidTotal += (int)($s->dp_amount ?? 0);
+                $biayaTambahanTotal += (int)($s->biaya_tambahan ?? 0);
+            }
+        }
+        return view('booking_printout', [
+            'order'=>$order,
+            'isMerged'=>$isMerged,
+            'mergeCount'=>$isMerged ? $siblings->count() : 1,
+            'bookingNumber'=>$bookingNo,
+            'mergedItems'=>$isMerged ? $mergedItems : collect(),
+            'mergedBaseSubtotal'=>$isMerged ? $baseSubtotal : null,
+            'mergedDiskonTotal'=>$isMerged ? $diskonTotal : null,
+            'mergedPaidTotal'=>$isMerged ? $paidTotal : null,
+            'mergedBiayaTambahanTotal'=>$isMerged ? $biayaTambahanTotal : null,
+        ]);
     }
 
     /** Editable invoice for cafe portion linked to a booking */

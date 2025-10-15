@@ -41,11 +41,20 @@
             @if (session('success'))
             <div class="toast align-items-center text-bg-success border-0 mb-2" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="6000">
                 <div class="d-flex">
-                    <div class="toast-body">
+                <div class="toast-body">
                         {{ session('success') }}
                     </div>
                     <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
                 </div>
+            </div>
+            @endif
+            @if (session('error'))
+            <div class="toast text-bg-danger border-0 mb-2" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="false">
+                <div class="toast-header bg-danger text-white">
+                    <strong class="me-auto">Terjadi Kesalahan</strong>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+                <div class="toast-body">{{ session('error') }}</div>
             </div>
             @endif
             @if ($errors->hasBag('booking_create') && $errors->booking_create->any())
@@ -189,6 +198,12 @@
                         // mark as submitting and disable submit button
                         this.dataset.submitting = '1';
                         this.querySelectorAll('button[type="submit"], input[type="submit"]').forEach(b=> b.disabled = true);
+                        // If Nota filled, remember in localStorage for convenience
+                        try{
+                            const notaInp = document.getElementById('booking_number');
+                            const val = (notaInp?.value || '').trim();
+                            if(val){ localStorage.setItem('last_booking_number', val); }
+                        }catch(_){ }
                         return true;
                     }, {capture:true});
                 })();
@@ -220,6 +235,39 @@
                         if (fpOut) fpOut.setDate(end, true);
                     });
                 })();
+
+                // Nota helpers: Save/Use from localStorage for reusing Nota across multiple bookings
+                (function(){
+                    const inp = document.getElementById('booking_number');
+                    const btnUse = document.getElementById('btnUseSavedNota');
+                    const btnSave = document.getElementById('btnSaveNota');
+                    if(btnUse){
+                        btnUse.addEventListener('click', function(){
+                            try{
+                                const saved = localStorage.getItem('last_booking_number') || '';
+                                if(!saved){ alert('Belum ada Nota tersimpan.'); return; }
+                                if(inp){ inp.value = saved; inp.focus(); }
+                            }catch(_){ alert('Browser tidak mendukung penyimpanan lokal.'); }
+                        });
+                    }
+                    if(btnSave){
+                        btnSave.addEventListener('click', function(){
+                            try{
+                                const val = (inp?.value || '').trim();
+                                if(!val){ alert('Isi kolom Nota terlebih dahulu.'); return; }
+                                localStorage.setItem('last_booking_number', val);
+                                this.textContent = 'Tersimpan';
+                                setTimeout(()=>{ this.textContent = 'Simpan ke Browser'; }, 1200);
+                            }catch(_){ alert('Gagal menyimpan ke browser.'); }
+                        });
+                    }
+                    // If query has booking_number, auto set and save it for later convenience
+                    try{
+                        const q = new URLSearchParams(window.location.search);
+                        const qNota = q.get('booking_number');
+                        if(qNota && inp){ inp.value = qNota; localStorage.setItem('last_booking_number', qNota); }
+                    }catch(_){ }
+                })();
             });
         </script>
 
@@ -247,6 +295,15 @@
                                 </button>
                             </div>
                             
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Nota (Opsional)</label>
+                            <div class="input-group">
+                                <input type="text" name="booking_number" id="booking_number" class="form-control" value="{{ old('booking_number', request('booking_number','')) }}" placeholder="Isi untuk menggunakan Nota yang sama" />
+                                <button type="button" class="btn btn-outline-secondary" id="btnUseSavedNota">Pakai Nota Tersimpan</button>
+                                <button type="button" class="btn btn-outline-primary" id="btnSaveNota">Simpan ke Browser</button>
+                            </div>
+                            <small class="text-muted">Kosongkan untuk membuat Nota baru. Isi dengan nomor Nota yang sudah ada untuk menggabungkan beberapa booking di Nota yang sama.</small>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Pilih Kamar (Multi)</label>

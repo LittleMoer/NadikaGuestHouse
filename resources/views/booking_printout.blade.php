@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Booking Confirmation #{{ $order->id }}</title>
+  <title>Booking Confirmation {{ isset($isMerged) && $isMerged ? ('Nota '.$bookingNumber.' ('.$mergeCount.' booking)') : ('#'.$order->id) }}</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -156,14 +156,21 @@
             <div class="info-row"><div class="info-label">Nama Pengunjung</div><div class="info-value">: {{ $order->pelanggan?->nama ?? '-' }}</div></div>
             <div class="info-row"><div class="info-label">No. Identitas/SIM</div><div class="info-value">: {{ $order->pelanggan?->no_identitas ?? '-' }}</div></div>
             <div class="info-row"><div class="info-label">No. HP</div><div class="info-value">: {{ $order->pelanggan?->telepon ?? '-' }}</div></div>
-            <div class="info-row"><div class="info-label">Check-in</div><div class="info-value">: {{ $order->tanggal_checkin->format('d/m/Y H:i') }} WIB</div></div>
-            <div class="info-row"><div class="info-label">Check-out</div><div class="info-value">: {{ $order->tanggal_checkout->format('d/m/Y H:i') }} WIB</div></div>
+            @if(!empty($isMerged) && $isMerged)
+              <div class="info-row"><div class="info-label">Nota</div><div class="info-value">: {{ $bookingNumber }} ({{ $mergeCount }} booking)</div></div>
+            @else
+              <div class="info-row"><div class="info-label">Check-in</div><div class="info-value">: {{ $order->tanggal_checkin->format('d/m/Y H:i') }} WIB</div></div>
+              <div class="info-row"><div class="info-label">Check-out</div><div class="info-value">: {{ $order->tanggal_checkout->format('d/m/Y H:i') }} WIB</div></div>
+            @endif
             <div class="info-row"><div class="info-label">Jumlah Tamu</div><div class="info-value">: {{ $order->jumlah_tamu_total ?? '0' }} orang</div></div>
             <div class="info-row"><div class="info-label">Jaminan</div><div class="info-value">: {{ $order->pelanggan?->jenis_identitas ?? '-' }}</div></div>
             <div class="info-row">
               <div class="info-label">Jenis Kamar Disewa</div>
               <div class="info-value">:
-                {{ collect($order->items)->map(function($it){
+                @php
+                  $listItems = (!empty($isMerged) && $isMerged) ? ($mergedItems ?? collect()) : collect($order->items);
+                @endphp
+                {{ $listItems->map(function($it){
                     $no = $it->kamar?->nomor_kamar ?? '-';
                     $tipe = $it->kamar?->tipe ?? '-';
                     return $no.' ('.$tipe.')';
@@ -176,20 +183,31 @@
       <div class="col-right">
         @php
           $isTraveloka = ((int)($order->pemesanan ?? 0)) === 1;
-          $itemsSubtotal = (int) (collect($order->items)->sum('subtotal') ?? 0);
-          $explicitTotal = (int) ($order->total_harga ?? 0);
-          $baseSubtotal = $itemsSubtotal > 0 ? $itemsSubtotal : $explicitTotal;
-          $diskon = (int) ($order->diskon ?? 0);
-          $totalAfterDiscount = max(0, $baseSubtotal - $diskon);
-          $paid = (int) ($order->dp_amount ?? 0);
+          if(!empty($isMerged) && $isMerged){
+            $baseSubtotal = (int)($mergedBaseSubtotal ?? 0);
+            $diskon = (int)($mergedDiskonTotal ?? 0);
+            $paid = (int)($mergedPaidTotal ?? 0);
+            $biayaTambahan = (int)($mergedBiayaTambahanTotal ?? 0);
+          } else {
+            $itemsSubtotal = (int) (collect($order->items)->sum('subtotal') ?? 0);
+            $explicitTotal = (int) ($order->total_harga ?? 0);
+            $baseSubtotal = $itemsSubtotal > 0 ? $itemsSubtotal : $explicitTotal;
+            $diskon = (int) ($order->diskon ?? 0);
+            $paid = (int) ($order->dp_amount ?? 0);
+            $biayaTambahan = (int) ($order->biaya_tambahan ?? 0);
+          }
+          $totalAfterDiscount = max(0, $baseSubtotal - $diskon + ($biayaTambahan ?? 0));
           $remaining = max(0, $totalAfterDiscount - $paid);
         @endphp
         <div class="summary">
-          <div class="section-title">Ringkasan Pembayaran</div>
+          <div class="section-title">Ringkasan Pembayaran {{ (!empty($isMerged) && $isMerged) ? '(Gabungan Nota '.$bookingNumber.')' : '' }}</div>
           @if(!$isTraveloka)
             <div class="row"><div class="label">Subtotal</div><div class="value">Rp {{ number_format($baseSubtotal,0,',','.') }}</div></div>
             @if($diskon > 0)
               <div class="row"><div class="label">Diskon</div><div class="value">- Rp {{ number_format($diskon,0,',','.') }}</div></div>
+            @endif
+            @if(($biayaTambahan ?? 0) > 0)
+              <div class="row"><div class="label">Biaya Lain</div><div class="value">+ Rp {{ number_format($biayaTambahan,0,',','.') }}</div></div>
             @endif
             <div class="row total"><div class="label">Total</div><div class="value">Rp {{ number_format($totalAfterDiscount,0,',','.') }}</div></div>
             <div class="row"><div class="label">Sudah Dibayar</div><div class="value">Rp {{ number_format($paid,0,',','.') }}</div></div>

@@ -20,12 +20,41 @@
             </div>
         </div>
 
-        @if (session('success'))
-            <div class="alert alert-success py-2 px-3">{{ session('success') }}</div>
-        @endif
-        @if (session('error'))
-            <div class="alert alert-danger py-2 px-3">{{ session('error') }}</div>
-        @endif
+        <!-- Toasts: Success & Error (including booking_create bag from create form) -->
+        <div class="position-fixed top-0 end-0 p-3" style="z-index: 2000;">
+            @if (session('success'))
+            <div class="toast align-items-center text-bg-success border-0 mb-2" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="6000">
+                <div class="d-flex">
+                    <div class="toast-body">{{ session('success') }}</div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            </div>
+            @endif
+            @if (session('error'))
+            <div class="toast text-bg-danger border-0 mb-2" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="false">
+                <div class="toast-header bg-danger text-white">
+                    <strong class="me-auto">Terjadi Kesalahan</strong>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+                <div class="toast-body">{{ session('error') }}</div>
+            </div>
+            @endif
+            @if ($errors->hasBag('booking_create') && $errors->booking_create->any())
+            <div class="toast text-bg-danger border-0" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="false">
+                <div class="toast-header bg-danger text-white">
+                    <strong class="me-auto">Terjadi Kesalahan</strong>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+                <div class="toast-body">
+                    <ul class="mb-0" style="padding-left: 18px;">
+                        @foreach ($errors->booking_create->all() as $err)
+                            <li>{{ $err }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            </div>
+            @endif
+        </div>
 
         <!-- Orders Table -->
         <style>
@@ -230,6 +259,14 @@
         <!-- Unified Scripts (Refactored) -->
         <script>
         document.addEventListener('DOMContentLoaded', function(){
+            // Show any Bootstrap toasts (success/errors)
+            try {
+                const toastElList = [].slice.call(document.querySelectorAll('.toast'));
+                toastElList.forEach(function(toastEl){
+                    const t = new bootstrap.Toast(toastEl);
+                    t.show();
+                });
+            } catch(e) { /* ignore */ }
             // Enable client-side pagination with DataTables if available
             if(window.jQuery && jQuery.fn.DataTable){
                 jQuery('#tabel-booking').DataTable({
