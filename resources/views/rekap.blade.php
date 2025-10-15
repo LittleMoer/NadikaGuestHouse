@@ -98,7 +98,7 @@
             @forelse($entries ?? [] as $e)
               <tr>
                 <td>{{ $i++ }}</td>
-                <td>{{ $e->booking_id ? ('#'.$e->booking_id) : '-' }}</td>
+                <td>{{ $e->booking_id ? ('#'.($e->booking_number ?? $e->booking_id)) : '-' }}</td>
                 <td>{{ $e->pelanggan_nama ?? '-' }}</td>
                 <td>{{ $e->booking_created_at ? \Carbon\Carbon::parse($e->booking_created_at)->format('d/m/Y H:i') : '-' }}</td>
                 <td>{{ $e->tanggal_checkin ? \Carbon\Carbon::parse($e->tanggal_checkin)->format('d/m/Y H:i') : '-' }}</td>

@@ -65,7 +65,7 @@
         @forelse($orders as $o)
           @php $meta = $o->status_meta; @endphp
           <tr>
-            <td>{{ $o->id }}</td>
+            <td>{{ $o->booking_number ?? $o->id }}</td>
             <td>{{ optional($o->pelanggan)->nama ?? '-' }}</td>
             <td>{{ optional($o->tanggal_checkin)->format('Y-m-d H:i') }}</td>
             <td>{{ optional($o->tanggal_checkout)->format('Y-m-d H:i') }}</td>

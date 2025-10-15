@@ -71,11 +71,12 @@ class RekapController extends Controller
             ->orderBy('l.created_at','asc')
             ->groupBy(
                 'l.id','l.booking_id','p.nama','l.payment_method','b.pemesanan','l.type','l.note','l.amount','l.created_at',
-                'b.created_at','b.tanggal_checkin','b.tanggal_checkout'
+                'b.created_at','b.tanggal_checkin','b.tanggal_checkout','b.booking_number'
             )
             ->select([
                 'l.id as ledger_id',
                 'l.booking_id',
+                'b.booking_number',
                 'p.nama as pelanggan_nama',
                 'l.payment_method',
                 'b.pemesanan',
