@@ -222,7 +222,7 @@ class BookingController extends Controller
                 ->whereMonth('tanggal_checkin', now()->month)
                 ->count();
             $nextCounter = $monthlyCount + 1;
-            $bookingNumber = $prefix . str_pad((string)$nextCounter, 4, '0', STR_PAD_LEFT);
+            $bookingNumber = $prefix . str_pad((string)$nextCounter, 3, '0', STR_PAD_LEFT);
 
             $order = BookingOrder::create([
                 'pelanggan_id' => $data['pelanggan_id'],
