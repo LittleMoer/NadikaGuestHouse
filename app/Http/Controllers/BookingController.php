@@ -239,13 +239,19 @@ class BookingController extends Controller
             if ($providedBookingNumber !== '') {
                 $bookingNumber = $providedBookingNumber;
             } else {
-                // Generate monthly booking number in format: ym### based on count in current month
+                // Generate monthly booking number in format: ym###, finding the highest existing number
                 $prefix = now()->format('ym');
-                $monthlyCount = DB::table('booking')
-                    ->whereYear('tanggal_checkin', now()->year)
-                    ->whereMonth('tanggal_checkin', now()->month)
-                    ->count();
-                $nextCounter = $monthlyCount + 1;
+                $lastBooking = DB::table('booking')
+                    ->where('booking_number', 'LIKE', $prefix . '%')
+                    ->orderByRaw('CAST(SUBSTRING(booking_number, 5) AS UNSIGNED) DESC')
+                    ->first(['booking_number']);
+                
+                $nextCounter = 1;
+                if ($lastBooking && !empty($lastBooking->booking_number)) {
+                    // Extract the numeric part and increment
+                    $lastNumber = (int)substr($lastBooking->booking_number, 4);
+                    $nextCounter = $lastNumber + 1;
+                }
                 $bookingNumber = $prefix . str_pad((string)$nextCounter, 3, '0', STR_PAD_LEFT);
             }
 
