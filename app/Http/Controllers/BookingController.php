@@ -132,6 +132,8 @@ class BookingController extends Controller
             'manual_total_harga'=> 'nullable|integer|min:0',
             // optional: reuse existing Nota number across multiple orders
             'booking_number'    => 'nullable|string|max:20',
+            // Owner-only manual discount (not saved, only for calculation)
+            'discount_manual_percentage' => 'nullable|integer|min:0|max:100',
         ]);
         if ($validator->fails()) {
             return redirect()->route('booking.index')
@@ -213,12 +215,21 @@ class BookingController extends Controller
         }
         $baseTotal = max($baseTotal, 100000);
         // Discounts: review (10%), follow (10%), sequential if both
-        $discReview = $request->boolean('discount_review');
-        $discFollow = $request->boolean('discount_follow');
-        $totalAfterDisc = $baseTotal;
-        if($discReview){ $totalAfterDisc = (int) round($totalAfterDisc * 0.9); }
-        if($discFollow){ $totalAfterDisc = (int) round($totalAfterDisc * 0.9); }
-        $diskonNominal = max(0, $baseTotal - $totalAfterDisc);
+        $manualDiscountPct = (auth()->check() && auth()->user()->isOwner()) ? (int)($data['discount_manual_percentage'] ?? 0) : 0;
+        $diskonNominal = 0;
+        $discReview = false;
+        $discFollow = false;
+        if ($manualDiscountPct > 0) {
+            $diskonNominal = (int) round($baseTotal * ($manualDiscountPct / 100));
+        } else {
+            $discReview = $request->boolean('discount_review');
+            $discFollow = $request->boolean('discount_follow');
+            $totalAfterDisc = $baseTotal;
+            if($discReview){ $totalAfterDisc = (int) round($totalAfterDisc * 0.9); }
+            if($discFollow){ $totalAfterDisc = (int) round($totalAfterDisc * 0.9); }
+            $diskonNominal = max(0, $baseTotal - $totalAfterDisc);
+        }
+        $totalAfterDisc = $baseTotal - $diskonNominal;
         $totalOrder = $totalAfterDisc;
         // For Traveloka (pemesanan==1), enforce manual room total if provided
         if ((int)$data['pemesanan'] === 1) {
@@ -274,7 +285,6 @@ class BookingController extends Controller
                 'extra_time' => 'none',
                 'per_head_mode' => $perHeadMode,
                 'diskon' => $diskonNominal,
-                'biaya_tambahan' => $biayaTambahan > 0 ? $biayaTambahan : null,
                 // New human-friendly booking number
                 'booking_number' => $bookingNumber,
             ]);
@@ -552,6 +562,8 @@ class BookingController extends Controller
             'payment_method'=>'nullable|string|max:20',
             'biaya_tambahan'=>'nullable|integer|min:0',
             'manual_total_harga'=>'nullable|integer|min:0',
+            // Owner-only manual discount (not saved, only for calculation)
+            'discount_manual_percentage' => 'nullable|integer|min:0|max:100',
         ]);
         // Require manual total when Traveloka (edit)
         if ((int)$request->get('pemesanan') === 1) {
@@ -600,13 +612,22 @@ class BookingController extends Controller
         if($perHead && $jumlahTamu>2){ $base += 50000 * ($jumlahTamu - 2); }
         $base = max($base, 100000);
         // Discounts
-        $discReview = (bool)($data['discount_review'] ?? $order->discount_review ?? false);
-        $discFollow = (bool)($data['discount_follow'] ?? $order->discount_follow ?? false);
-        $after = $base;
-        if($discReview){ $after = (int) round($after * 0.9); }
-        if($discFollow){ $after = (int) round($after * 0.9); }
-        $diskonNom = max(0, $base - $after);
-
+        $manualDiscountPct = (auth()->check() && auth()->user()->isOwner()) ? (int)($data['discount_manual_percentage'] ?? 0) : 0;
+        $diskonNom = 0;
+        $discReview = false;
+        $discFollow = false;
+        if ($manualDiscountPct > 0) {
+            $diskonNom = (int) round($base * ($manualDiscountPct / 100));
+        } else {
+            $discReview = (bool)($data['discount_review'] ?? $order->discount_review ?? false);
+            $discFollow = (bool)($data['discount_follow'] ?? $order->discount_follow ?? false);
+            $afterDisc = $base;
+            if($discReview){ $afterDisc = (int) round($afterDisc * 0.9); }
+            if($discFollow){ $afterDisc = (int) round($afterDisc * 0.9); }
+            $diskonNom = max(0, $base - $afterDisc);
+        }
+        $after = $base - $diskonNom;
+        
         // Apply editable fields
         if(isset($data['pelanggan_id'])) $order->pelanggan_id = $data['pelanggan_id'];
         if(isset($data['jumlah_tamu_total'])) $order->jumlah_tamu_total = $data['jumlah_tamu_total'];
@@ -626,7 +647,6 @@ class BookingController extends Controller
         // Store as 'none' to avoid enum mismatch; checkout already extended
         $order->extra_time = 'none';
         $order->per_head_mode = $perHead;
-        $order->diskon = $diskonNom;
         if(isset($data['biaya_tambahan'])){ $order->biaya_tambahan = (int)$data['biaya_tambahan']; }
         // Payment handling
         if(isset($data['dp_amount'])){ $order->dp_amount = (int)$data['dp_amount']; }

@@ -458,6 +458,13 @@
                               <input class="form-check-input" type="checkbox" name="discount_follow" id="disc_follow" value="1" {{ old('discount_follow') ? 'checked' : '' }}>
                               <label class="form-check-label" for="disc_follow">Follow Sosmed (10%)</label>
                             </div>
+                            @if(auth()->check() && auth()->user()->isOwner())
+                            <div class="mt-3">
+                                <label class="form-label">Diskon Manual (%)</label>
+                                <input type="number" name="discount_manual_percentage" class="form-control" value="{{ old('discount_manual_percentage') }}" min="0" max="100" step="1" placeholder="0-100">
+                                <small class="text-muted">Mengabaikan diskon lain jika diisi.</small>
+                            </div>
+                            @endif
                         </div>
                         <div class="col-md-4 mb-3">
                             <label class="form-label">Tambahan Waktu</label>
