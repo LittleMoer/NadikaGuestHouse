@@ -379,9 +379,6 @@
                             <div id="durasi_hari_custom_wrap" style="display: none; margin-top: 6px;">
                                 <input type="number" id="durasi_hari_custom" class="form-control" placeholder="Isi durasi (hari)" step="0.5" min="0.5">
                             </div>
-                            <select id="durasi_hari" class="form-control">
-                                <small class="text-muted">Waktu otomatis mengikuti slot Pagi 06-12 dan Siang 12-18.</small>
-                            </select>
                             <small class="text-muted">Waktu otomatis mengikuti slot Pagi 06-12 dan Siang 12-18.</small>
                         </div>
                         <div class="col-md-4 mb-3">
