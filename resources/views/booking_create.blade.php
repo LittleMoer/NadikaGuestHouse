@@ -213,13 +213,49 @@
                     const sel = document.getElementById('durasi_hari');
                     const inpIn = document.querySelector('input[name="tanggal_checkin"]');
                     const inpOut = document.querySelector('input[name="tanggal_checkout"]');
+                    const customDurasiWrap = document.getElementById('durasi_hari_custom_wrap');
+                    const customDurasiInput = document.getElementById('durasi_hari_custom');
+
                     sel.addEventListener('change', function(){
-                        if(!inpIn || !inpOut) return;
                         const val = this.value;
-                        if(!val) return;
+                        if (val === 'custom') {
+                            customDurasiWrap.style.display = 'block';
+                            customDurasiInput.focus();
+                            return;
+                        } else {
+                            customDurasiWrap.style.display = 'none';
+                        }
+
+                        if(!inpIn || !inpOut || !val) return;
+
                         const num = parseFloat(val);
+                        if (isNaN(num)) return;
+
                         const base = (fpIn?.selectedDates?.[0]) || (inpIn.value ? new Date(inpIn.value) : new Date());
                         // Normalize start base: for 0.5 day use 06:00; otherwise start at 12:00
+                        let start;
+                        if(num === 0.5){
+                            start = new Date(base.getFullYear(), base.getMonth(), base.getDate(), 6, 0, 0, 0);
+                            var end = new Date(base.getFullYear(), base.getMonth(), base.getDate(), 12, 0, 0, 0);
+                        } else {
+                            start = new Date(base.getFullYear(), base.getMonth(), base.getDate(), 12, 0, 0, 0);
+                            const fullDays = Math.floor(num);
+                            const hasHalf = (num - fullDays) >= 0.5;
+                            const hoursToAdd = fullDays * 24 + (hasHalf ? 6 : 0);
+                            var end = new Date(start.getTime() + hoursToAdd * 60 * 60 * 1000);
+                        }
+                        if (fpIn) fpIn.setDate(start, true);
+                        if (fpOut) fpOut.setDate(end, true);
+                    });
+
+                    customDurasiInput.addEventListener('input', function() {
+                        const val = this.value;
+                        if(!inpIn || !inpOut || !val) return;
+
+                        const num = parseFloat(val);
+                        if (isNaN(num) || num <= 0) return;
+
+                        const base = (fpIn?.selectedDates?.[0]) || (inpIn.value ? new Date(inpIn.value) : new Date());
                         let start;
                         if(num === 0.5){
                             start = new Date(base.getFullYear(), base.getMonth(), base.getDate(), 6, 0, 0, 0);
@@ -338,11 +374,13 @@
                                 <option value="3">3 hari</option>
                                 <option value="4">4 hari</option>
                                 <option value="5">5 hari</option>
-                                <option value="6">6 hari</option>
-                                <option value="7">7 hari</option>
-                                <option value="8">8 hari</option>
-                                <option value="9">9 hari</option>
-                                <option value="10">10 hari</option>
+                                <option value="custom">Lainnya...</option>
+                            </select>
+                            <div id="durasi_hari_custom_wrap" style="display: none; margin-top: 6px;">
+                                <input type="number" id="durasi_hari_custom" class="form-control" placeholder="Isi durasi (hari)" step="0.5" min="0.5">
+                            </div>
+                            <select id="durasi_hari" class="form-control">
+                                <small class="text-muted">Waktu otomatis mengikuti slot Pagi 06-12 dan Siang 12-18.</small>
                             </select>
                             <small class="text-muted">Waktu otomatis mengikuti slot Pagi 06-12 dan Siang 12-18.</small>
                         </div>
