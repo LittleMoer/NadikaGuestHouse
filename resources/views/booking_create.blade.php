@@ -336,6 +336,13 @@
                                 <option value="1.5">1.5 hari (12:00 - 18:00 esok)</option>
                                 <option value="2">2 hari</option>
                                 <option value="3">3 hari</option>
+                                <option value="4">4 hari</option>
+                                <option value="5">5 hari</option>
+                                <option value="6">6 hari</option>
+                                <option value="7">7 hari</option>
+                                <option value="8">8 hari</option>
+                                <option value="9">9 hari</option>
+                                <option value="10">10 hari</option>
                             </select>
                             <small class="text-muted">Waktu otomatis mengikuti slot Pagi 06-12 dan Siang 12-18.</small>
                         </div>
