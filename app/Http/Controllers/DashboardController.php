@@ -214,6 +214,7 @@ class DashboardController extends Controller
                     'slot_afternoon' => $slotAfternoon,
                 ];
                 // Monthly total: count as occupied if ANY usage on this day (morning or afternoon slot exists)
+                // or a segment crosses noon (full-day), so half-day and check-out days are included.
                 $dayStart = $carbonDate->copy()->startOfDay();
                 $noon = $dayStart->copy()->addHours(12);
                 $dayEnd = $dayStart->copy()->addDay();
