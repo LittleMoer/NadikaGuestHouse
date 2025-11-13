@@ -15,7 +15,7 @@
         .header .contact { font-size: 14px; margin-top: 5px; }
         .muted { color:#555; font-size:.8rem; }
         table { width:100%; border-collapse: collapse; margin-top:10px; }
-        th, td { padding:6px 0; font-size:.9rem; }
+        th, td { padding:4px 0; font-size:.85rem; vertical-align: top; }
         thead th { font-weight: 600; border-bottom: 1px solid #ddd; }
         .right { text-align:right; }
         .divider { border-top:1px dashed #999; margin:8px 0; }
@@ -25,8 +25,8 @@
         @media print { 
             .print-btn { display:none; }
             @page {
-                size: A5 landscape;
-                margin: 10mm;
+                size: A4 portrait;
+                margin: 0;
             }
             body {
                 width: 100%;
@@ -69,35 +69,59 @@
         <div class="divider"></div>
         <table>
             <thead>
-                <tr>
-                    <th style="text-align:left;">Item</th>
-                    <th class="right">Subtotal</th>
-                </tr>
+                <tr><th colspan="2" style="text-align:left;padding-bottom:4px;">Rincian</th></tr>
             </thead>
             <tbody>
+                @if($roomItems->count() > 0)
+                    @foreach($roomItems as $it)
+                    <tr>
+                        <td>Kamar {{ $it->kamar?->nomor_kamar }} ({{ $it->malam }} malam)</td>
+                        <td class="right">Rp {{ number_format($it->subtotal,0,',','.') }}</td>
+                    </tr>
+                    @endforeach
+                @endif
+                @if($cafeItems->count() > 0)
+                    @foreach($cafeItems as $it)
+                    <tr>
+                        <td>Cafe: {{ $it->product?->nama }} ({{ $it->qty }}x)</td>
+                        <td class="right">Rp {{ number_format($it->subtotal,0,',','.') }}</td>
+                    </tr>
+                    @endforeach
+                @endif
+            </tbody>
+        </table>
+        <div class="divider"></div>
+        <table>
+            <tbody>
                 <tr>
-                    <td>Total Kamar</td>
-                    <td class="right">Rp {{ number_format($roomTotal,0,',','.') }}</td>
+                    <td>Subtotal</td>
+                    <td class="right">Rp {{ number_format($subtotal,0,',','.') }}</td>
                 </tr>
-                <tr>
-                    <td>Total Cafe</td>
-                    <td class="right">Rp {{ number_format($cafeTotal,0,',','.') }}</td>
-                </tr>
-                <tr>
-                    <td>Total Sebelum Diskon</td>
-                    <td class="right">Rp {{ number_format($roomTotal + $cafeTotal,0,',','.') }}</td>
-                </tr>
+                @if($diskon > 0)
                 <tr>
                     <td>Diskon</td>
-                    <td class="right">Rp {{ number_format($diskon,0,',','.') }}</td>
+                    <td class="right">- Rp {{ number_format($diskon,0,',','.') }}</td>
                 </tr>
+                @endif
+                @if($biayaLain > 0)
                 <tr>
                     <td>Biaya Lain</td>
-                    <td class="right">Rp {{ number_format($biayaLain,0,',','.') }}
+                    <td class="right">+ Rp {{ number_format($biayaLain,0,',','.') }}</td>
                 </tr>
+                @endif
                 <tr class="total-row">
                     <td>Total Akhir</td>
                     <td class="right">Rp {{ number_format($grandTotal,0,',','.') }}</td>
+                </tr>
+                @if($paidTotal > 0)
+                <tr>
+                    <td>Sudah Dibayar</td>
+                    <td class="right">Rp {{ number_format($paidTotal,0,',','.') }}</td>
+                </tr>
+                @endif
+                <tr class="total-row">
+                    <td>Sisa Pembayaran</td>
+                    <td class="right">Rp {{ number_format($remaining,0,',','.') }}</td>
                 </tr>
             </tbody>
         </table>

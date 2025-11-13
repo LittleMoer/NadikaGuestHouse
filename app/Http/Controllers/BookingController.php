@@ -856,32 +856,44 @@ class BookingController extends Controller
         $bookingNo = (string)($order->booking_number ?? '');
         $siblings = collect();
         if($bookingNo !== ''){
-            $siblings = BookingOrder::with(['items','cafeOrders'])
+            $siblings = BookingOrder::with(['items.kamar','cafeOrders.items.product'])
                 ->where('booking_number', $bookingNo)
                 ->orderBy('id')
                 ->get();
         }
         $isMerged = $siblings->count() > 1;
+        $roomItems = collect();
+        $cafeItems = collect();
+
         if($isMerged){
             $roomTotal = (float) $siblings->sum(function($o){ return (int)($o->total_harga ?? 0); });
             $cafeTotal = (float) $siblings->sum(function($o){ return (int)($o->total_cafe ?? 0); });
             $diskon = (float) $siblings->sum(function($o){ return (int)($o->diskon ?? 0); });
             $biayaTambahan = (float) $siblings->sum(function($o){ return (int)($o->biaya_tambahan ?? 0); });
+            $paidTotal = (float) $siblings->sum(function($o){ return (int)($o->dp_amount ?? 0); });
+            foreach($siblings as $s){
+                foreach($s->items as $it) { $roomItems->push($it); }
+                foreach($s->cafeOrders as $co) { foreach($co->items as $cit) { $cafeItems->push($cit); } }
+            }
         } else {
             $roomTotal = (float)($order->total_harga ?? 0);
             $cafeTotal = (float)($order->total_cafe ?? 0);
             $diskon = (float)($order->diskon ?? 0);
             $biayaTambahan = (float)($order->biaya_tambahan ?? 0);
+            $paidTotal = (float)($order->dp_amount ?? 0);
+            $roomItems = $order->items;
+            foreach($order->cafeOrders as $co) { foreach($co->items as $cit) { $cafeItems->push($cit); } }
         }
         $subtotal = $roomTotal + $cafeTotal;
         $grand = $subtotal - $diskon + $biayaTambahan;
+        $remaining = max(0, $grand - $paidTotal);
+
         return view('nota', [
             'order'=>$order,
-            'roomTotal'=>$roomTotal,
-            'cafeTotal'=>$cafeTotal,
-            'diskon'=>$diskon,
-            'biayaLain'=>$biayaTambahan,
-            'grandTotal'=>$grand,
+            'roomItems' => $roomItems,
+            'cafeItems' => $cafeItems,
+            'subtotal' => $subtotal, 'diskon' => $diskon, 'biayaLain' => $biayaTambahan, 'grandTotal' => $grand,
+            'paidTotal' => $paidTotal, 'remaining' => $remaining,
             'isMerged' => $isMerged,
             'mergeCount' => $isMerged ? $siblings->count() : 1,
             'bookingNumber' => $bookingNo,

@@ -24,8 +24,8 @@
     @media print {
       .print-btn,.controls{display:none;}
       @page {
-        size: A5 landscape;
-        margin: 10mm;
+        size: A4 portrait;
+        margin: 0;
       }
       body {
         width: 100%;
