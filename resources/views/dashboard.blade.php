@@ -19,7 +19,7 @@
         <div class="dash-legend">
             <div class="legend-title">Keterangan</div>
             <div class="legend-items">
-                <div class="legend-item"><span class="legend-badge">Pagi</span><span class="legend-text">00:00 – 11:59</span></div>
+                <div class="legend-item"><span class="legend-badge">Pagi</span><span class="legend-text">06:00 – 11:59</span></div>
                 <div class="legend-item"><span class="legend-badge">Siang</span><span class="legend-text">12:00 – 23:59</span></div>
                 <div class="legend-sep"></div>
                 <div class="legend-item"><span class="legend-dot" style="color:#faed00;background:#1f2937;">ID</span><span class="legend-text">DP</span></div>

@@ -68,19 +68,16 @@ class DashboardController extends Controller
             $coDay = Carbon::parse($order->tanggal_checkout)->startOfDay();
             $ciAt = Carbon::parse($order->tanggal_checkin);
             $coAt = Carbon::parse($order->tanggal_checkout);
-            // If checkout has any time after 00:00 on its calendar day, include that day
-            // so the morning half-day (e.g., 06:00-12:00) can be rendered.
-            // EXCEPTION: exact noon-to-noon (12:00 → next day 12:00) should NOT include checkout day.
-            $includeCheckoutDay = false;
-            if ($coDay->equalTo($ciDay)) {
-                $includeCheckoutDay = true;
-            } elseif ($coAt->gt($coDay)) {
-                $isNoonToNoon = ($ciAt->format('H:i') === '12:00') && $coAt->equalTo($coDay->copy()->addHours(12));
-                $includeCheckoutDay = !$isNoonToNoon;
+            // Range untuk loop dashboard: [checkin_day, checkout_day)
+            // Jika checkout adalah 18:00 (belum tengah malam), checkout_day tetap included
+            // Logic: jika checkout tepat di tengah malam (00:00), jangan include checkout day
+            $coDay_endExclusive = $coDay->copy(); // default: checkout day tidak included
+            if ($coAt->gt($coDay)) {
+                // Checkout punya waktu sisa di hari itu (tidak tengah malam), jadi include hari checkout
+                $coDay_endExclusive = $coDay->copy()->addDay();
             }
-            if ($includeCheckoutDay) {
-                $coDay = $coDay->copy()->addDay();
-            }
+            // Gunakan ini untuk range loop
+            $coDay = $coDay_endExclusive->copy()->subDay(); // untuk display/comparison
             foreach($order->items as $it){
                 $code = (string)($order->order_code ?? '');
                 $short = strlen($code) >= 3 ? substr($code, -3) : $code;
@@ -124,10 +121,10 @@ class DashboardController extends Controller
                             // Hitung porsi (fraction) dari hari ini yang ditempati oleh segmen ini
                             $dayStart = $carbonDate->copy()->startOfDay();
                             $dayEnd = $dayStart->copy()->addDay();
-                            $morningStart = $dayStart->copy()->addHours(6);
-                            $morningEnd = $dayStart->copy()->addHours(12);
-                            $afternoonStart = $dayStart->copy()->addHours(12);
-                            $afternoonEnd = $dayStart->copy()->addHours(18);
+                            $morningStart = $dayStart->copy()->addHours(12);
+                            $morningEnd = $dayStart->copy()->addHours(18);
+                            $afternoonStart = $dayStart->copy()->addHours(6);
+                            $afternoonEnd = $dayStart->copy()->addHours(12);
                             $segStart = $row['checkin_at']->greaterThan($dayStart) ? $row['checkin_at'] : $dayStart;
                             $segEnd = $row['checkout_at']->lessThan($dayEnd) ? $row['checkout_at'] : $dayEnd;
                             $duration = max(0, $segEnd->diffInSeconds($segStart));
@@ -150,7 +147,7 @@ class DashboardController extends Controller
                             // Special case: 12:00 today -> >= 12:00 next day should paint FULL day on this date
                             $rawIn = $row['checkin_at'];
                             $rawOut = $row['checkout_at'];
-                            $noonToNextDayOrMore = ($rawIn->equalTo($afternoonStart) && $rawOut->gte($afternoonStart->copy()->addDay()));
+                            $noonToNextDayOrMore = ($rawIn->equalTo($morningStart) && $rawOut->gte($morningStart->copy()->addDay()));
                             if ($noonToNextDayOrMore) {
                                 $slotMorning[] = [
                                     'booking_order_id' => $row['booking_order_id'],
@@ -206,8 +203,8 @@ class DashboardController extends Controller
                                 // Day 1: morning + afternoon (merged as FULL day)
                                 // Day 2: only afternoon (morning should be suppressed)
                                 $isCheckoutDay = $carbonDate->isSameDay($dayEnd);
-                                $checkoutAt18 = $rawOut->equalTo($afternoonEnd);
-                                $checkInAt12 = $rawIn->equalTo($afternoonStart);
+                                $checkoutAt18 = $rawOut->equalTo($morningEnd);
+                                $checkInAt12 = $rawIn->equalTo($morningStart);
                                 $checkInWasPreviousDay = $rawIn->isSameDay($dayStart->copy()->subDay());
                                 if ($isCheckoutDay && $checkoutAt18 && $checkInWasPreviousDay && $checkInAt12) {
                                     // This is the 1.5 day booking checkout day
