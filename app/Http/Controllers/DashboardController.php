@@ -132,6 +132,10 @@ class DashboardController extends Controller
                             $morningStart = $dayStart->copy()->addHours(12);
                             $morningEnd = $dayStart->copy()->addHours(17);
                             $afternoonStart = $dayStart->copy()->addHours(19);
+                            $dayEndExclusive = $dayStart->copy()->addDay(); // 24 hours later
+                            $morningStart = $dayStart->copy()->addHours(6);
+                            $morningEnd = $dayStart->copy()->addHours(12);
+                            $afternoonStart = $dayStart->copy()->addHours(12);
                             $afternoonEnd = $dayStart->copy()->addHours(24); // End of day (exclusive)
                             
                             $segStart = $rawIn->greaterThan($dayStart) ? $rawIn : $dayStart;
@@ -156,6 +160,13 @@ class DashboardController extends Controller
                             // Special case: 12:00 today -> >= 12:00 next day should paint FULL day on this date
                             $noonToNextDayOrMore = ($rawIn->equalTo($afternoonStart) && $rawOut->gte($afternoonStart->copy()->addDay()));
                             if ($noonToNextDayOrMore) {
+                            // Custom logic based on user request
+                            $isCheckinDay = $rawIn->isSameDay($carbonDate);
+                            $startsAtNoon = $rawIn->format('H:i:s') === '12:00:00';
+                            $startsAtMidnight = $rawIn->format('H:i:s') === '00:00:00';
+
+                            if ($isCheckinDay && $startsAtNoon) {
+                                // If starts at 12:00, force fill MORNING slot
                                 $slotMorning[] = [
                                     'booking_order_id' => $row['booking_order_id'],
                                     'booking_code' => $row['order_code'] ?? null,
@@ -165,6 +176,8 @@ class DashboardController extends Controller
                                     'background' => $row['meta']['background'] ?? null,
                                     'text_color' => $row['meta']['text_color'] ?? null,
                                 ];
+                            } elseif ($isCheckinDay && $startsAtMidnight) {
+                                // If starts at 00:00, force fill AFTERNOON slot
                                 $slotAfternoon[] = [
                                     'booking_order_id' => $row['booking_order_id'],
                                     'booking_code' => $row['order_code'] ?? null,
@@ -176,6 +189,7 @@ class DashboardController extends Controller
                                 ];
                             } else {
                                 // Check for morning slot overlap (06:00 - 12:00)
+                                // Standard overlap logic for all other cases
                                 if ($segEnd > $morningStart && $segStart < $morningEnd) {
                                     $slotMorning[] = [
                                         'booking_order_id' => $row['booking_order_id'],
