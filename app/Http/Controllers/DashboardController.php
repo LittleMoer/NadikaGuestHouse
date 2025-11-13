@@ -129,10 +129,10 @@ class DashboardController extends Controller
                             // Hitung porsi (fraction) dari hari ini yang ditempati oleh segmen ini
                             // Re-define dayEnd to be exclusive for diff calculation (next day 00:00)
                             $dayEndExclusive = $dayStart->copy()->addDay();
-                            $morningStart = $dayStart->copy()->addHours(6);
-                            $morningEnd = $dayStart->copy()->addHours(12);
-                            $afternoonStart = $dayStart->copy()->addHours(12);
-                            $afternoonEnd = $dayStart->copy()->addHours(24); // End of day (exclusive)
+                            $morningStart = $dayStart->copy()->addHours(12);
+                            $morningEnd = $dayStart->copy()->addHours(24);
+                            $afternoonStart = $dayStart->copy()->addHours(01);
+                            $afternoonEnd = $dayStart->copy()->addHours(12); // End of day (exclusive)
                             
                             $segStart = $rawIn->greaterThan($dayStart) ? $rawIn : $dayStart;
                             $segEnd = $rawOut->lessThan($dayEndExclusive) ? $rawOut : $dayEndExclusive;
