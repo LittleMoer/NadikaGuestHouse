@@ -19,33 +19,28 @@ class DashboardController extends Controller
         $start = Carbon::create($tahun, $bulan, 1)->startOfDay();
         $end = (clone $start)->endOfMonth()->endOfDay();
 
-        // Ambil semua kamar (tanpa urutan abjad tipe agar bisa diurutkan kustom)
+        // Ambil semua kamar
         $kamarList = Kamar::all();
         $jenisKamar = $kamarList->pluck('tipe')->unique()->values();
-        // Custom LTR order for tipe kamar
-        // Put 'non ac' and 'hall' at the very end (HALL as the last)
+
+        // Urutan custom tipe kamar
         $preferred = ['family','superior','twin','standar','standar eco'];
         $prefMap = collect($preferred)->mapWithKeys(fn($v,$i)=> [strtolower(trim($v))=>$i+1])->all();
         $orderedJenisKamar = $jenisKamar->sortBy(function($t) use ($prefMap){
-            $keyRaw = (string)$t;
-            $key = strtolower(trim($keyRaw));
-            // Force terminal positions
-            if ($key === 'non ac') { return sprintf('%06d-%s', 999998, $key); }
-            if ($key === 'hall')   { return sprintf('%06d-%s', 999999, $key); }
-            // Preferred ones get small priority numbers
+            $key = strtolower(trim((string)$t));
+            if ($key === 'non ac') return sprintf('%06d-%s', 999998, $key);
+            if ($key === 'hall')   return sprintf('%06d-%s', 999999, $key);
             if (array_key_exists($key, $prefMap)) {
                 return sprintf('%06d-%s', $prefMap[$key], $key);
             }
-            // Unknowns come after preferred but before NON AC
             return sprintf('%06d-%s', 900000, $key);
         })->values();
-        // Kamar digrup per tipe dan diurutkan natural berdasarkan nomor_kamar
+
         $kamarGrouped = $kamarList->groupBy('tipe')->map(function($group){
             return $group->sortBy('nomor_kamar', SORT_NATURAL)->values();
         });
 
-        // Ambil semua booking yang overlapped dengan bulan ini (status 1..4)
-        // Tujuan: menampilkan SEMUA data booking pada tabel dashboard bulan terkait
+        // Ambil booking aktif di bulan ini
         $activeOrders = BookingOrder::with(['items' => function($q){ $q->with('kamar'); }, 'pelanggan'])
             ->whereIn('status',[1,2,3,4])
             ->where(function($q) use ($start,$end){
@@ -58,36 +53,27 @@ class DashboardController extends Controller
             })
             ->get();
 
-        // Flatten items with reference to parent order status & dates + meta from payment_status+pemesanan
+        // Normalisasi items
         $items = [];
         foreach($activeOrders as $order){
-            $meta = $order->status_meta; // unified
-            // Normalize to day-level range. If check-in and check-out are the same calendar day,
-            // extend checkout to next day's 00:00 so the day is included in [checkin, checkout).
+            $meta = $order->status_meta;
             $ciDay = Carbon::parse($order->tanggal_checkin)->startOfDay();
             $coDay = Carbon::parse($order->tanggal_checkout)->startOfDay();
             $ciAt = Carbon::parse($order->tanggal_checkin);
             $coAt = Carbon::parse($order->tanggal_checkout);
-            // Range untuk loop dashboard: [checkin_day, checkout_day)
-            // Jika checkout adalah 18:00 (belum tengah malam), checkout_day tetap included
-            // Logic: jika checkout tepat di tengah malam (00:00), jangan include checkout day
-            $coDay_endExclusive = $coDay->copy(); // default: checkout day tidak included
-            if ($coAt->gt($coDay)) {
-                // Checkout punya waktu sisa di hari itu (tidak tengah malam), jadi include hari checkout
-                $coDay_endExclusive = $coDay->copy()->addDay();
-            }
-            // Gunakan ini untuk range loop
-            $coDay = $coDay_endExclusive->copy()->subDay(); // untuk display/comparison
+            $coDay_endExclusive = $coDay->copy();
+            if ($coAt->gt($coDay)) $coDay_endExclusive = $coDay->copy()->addDay();
+            $coDay = $coDay_endExclusive->copy()->subDay();
+
             foreach($order->items as $it){
                 $code = (string)($order->order_code ?? '');
                 $short = strlen($code) >= 3 ? substr($code, -3) : $code;
                 $items[] = [
                     'kamar_id' => $it->kamar_id,
-                    'status' => $order->status, // 1..4
+                    'status' => $order->status,
                     'booking_order_id' => $order->id,
                     'order_code' => $order->order_code,
                     'order_code_short' => $short,
-                    // status_code removed
                     'meta' => $meta,
                     'checkin' => $ciDay,
                     'checkout' => $coDay,
@@ -96,16 +82,16 @@ class DashboardController extends Controller
                 ];
             }
         }
-        // Group items by kamar_id for faster lookup
+
         $itemsByKamar = collect($items)->groupBy('kamar_id');
 
-        // Siapkan list tanggal harian
+        // Daftar tanggal bulan ini
         $tanggalList = [];
         for ($cursor = $start->copy(); $cursor->lte($end); $cursor->addDay()) {
             $tanggalList[] = $cursor->format('Y-m-d');
         }
 
-    $statusBooking = []; // [tanggal][kamar_id] => ['status'=>kode, 'booking_id'=>id]
+        $statusBooking = [];
         $totalKamarTerisiBulan = 0;
 
         foreach ($tanggalList as $tgl) {
@@ -115,29 +101,21 @@ class DashboardController extends Controller
                 $slotMorning = [];
                 $slotAfternoon = [];
                 $isOccupied = false;
+
                 if(isset($itemsByKamar[$kamar->id])){
                     foreach($itemsByKamar[$kamar->id] as $row){
-                        // Use raw checkin/checkout times for precise overlap check
                         $rawIn = $row['checkin_at'];
                         $rawOut = $row['checkout_at'];
                         $dayStart = $carbonDate->copy()->startOfDay();
                         $dayEnd = $carbonDate->copy()->endOfDay();
 
-                        // Check if the booking range [rawIn, rawOut) overlaps with the current day's range [dayStart, dayEnd].
-                        // The condition is: booking starts before day ends AND booking ends after day starts.
                         if ($rawIn < $dayEnd && $rawOut > $dayStart) {
-                            // Hitung porsi (fraction) dari hari ini yang ditempati oleh segmen ini
-                            // Re-define dayEnd to be exclusive for diff calculation (next day 00:00)
                             $dayEndExclusive = $dayStart->copy()->addDay();
-                            $morningStart = $dayStart->copy()->addHours(12);
-                            $morningEnd = $dayStart->copy()->addHours(17);
-                            $afternoonStart = $dayStart->copy()->addHours(19);
-                            $dayEndExclusive = $dayStart->copy()->addDay(); // 24 hours later
                             $morningStart = $dayStart->copy()->addHours(6);
                             $morningEnd = $dayStart->copy()->addHours(12);
                             $afternoonStart = $dayStart->copy()->addHours(12);
-                            $afternoonEnd = $dayStart->copy()->addHours(24); // End of day (exclusive)
-                            
+                            $afternoonEnd = $dayStart->copy()->addHours(24);
+
                             $segStart = $rawIn->greaterThan($dayStart) ? $rawIn : $dayStart;
                             $segEnd = $rawOut->lessThan($dayEndExclusive) ? $rawOut : $dayEndExclusive;
                             $duration = max(0, $segEnd->diffInSeconds($segStart));
@@ -147,7 +125,7 @@ class DashboardController extends Controller
                                 'booking_order_id' => $row['booking_order_id'],
                                 'booking_code' => $row['order_code'] ?? null,
                                 'booking_code_short' => $row['order_code_short'] ?? null,
-                                'status' => $row['status'], // 1..4
+                                'status' => $row['status'],
                                 'payment' => $row['meta']['payment'] ?? null,
                                 'channel' => $row['meta']['channel'] ?? null,
                                 'background' => $row['meta']['background'] ?? null,
@@ -157,27 +135,13 @@ class DashboardController extends Controller
                                 'fraction' => $fraction,
                             ];
 
-                            // Special case: 12:00 today -> >= 12:00 next day should paint FULL day on this date
-                            $noonToNextDayOrMore = ($rawIn->equalTo($afternoonStart) && $rawOut->gte($afternoonStart->copy()->addDay()));
-                            if ($noonToNextDayOrMore) {
-                            // Custom logic based on user request
+                            // === Logic slot diperbarui ===
                             $isCheckinDay = $rawIn->isSameDay($carbonDate);
                             $startsAtNoon = $rawIn->format('H:i:s') === '12:00:00';
                             $startsAtMidnight = $rawIn->format('H:i:s') === '00:00:00';
 
                             if ($isCheckinDay && $startsAtNoon) {
-                                // If starts at 12:00, force fill MORNING slot
-                                $slotMorning[] = [
-                                    'booking_order_id' => $row['booking_order_id'],
-                                    'booking_code' => $row['order_code'] ?? null,
-                                    'booking_code_short' => $row['order_code_short'] ?? null,
-                                    'status' => $row['status'],
-                                    'payment' => $row['meta']['payment'] ?? null,
-                                    'background' => $row['meta']['background'] ?? null,
-                                    'text_color' => $row['meta']['text_color'] ?? null,
-                                ];
-                            } elseif ($isCheckinDay && $startsAtMidnight) {
-                                // If starts at 00:00, force fill AFTERNOON slot
+                                // Booking jam 12:00 isi slot sore
                                 $slotAfternoon[] = [
                                     'booking_order_id' => $row['booking_order_id'],
                                     'booking_code' => $row['order_code'] ?? null,
@@ -187,9 +151,19 @@ class DashboardController extends Controller
                                     'background' => $row['meta']['background'] ?? null,
                                     'text_color' => $row['meta']['text_color'] ?? null,
                                 ];
+                            } elseif ($isCheckinDay && $startsAtMidnight) {
+                                // Booking jam 00:00 isi slot pagi
+                                $slotMorning[] = [
+                                    'booking_order_id' => $row['booking_order_id'],
+                                    'booking_code' => $row['order_code'] ?? null,
+                                    'booking_code_short' => $row['order_code_short'] ?? null,
+                                    'status' => $row['status'],
+                                    'payment' => $row['meta']['payment'] ?? null,
+                                    'background' => $row['meta']['background'] ?? null,
+                                    'text_color' => $row['meta']['text_color'] ?? null,
+                                ];
                             } else {
-                                // Check for morning slot overlap (06:00 - 12:00)
-                                // Standard overlap logic for all other cases
+                                // Overlap normal
                                 if ($segEnd > $morningStart && $segStart < $morningEnd) {
                                     $slotMorning[] = [
                                         'booking_order_id' => $row['booking_order_id'],
@@ -201,7 +175,6 @@ class DashboardController extends Controller
                                         'text_color' => $row['meta']['text_color'] ?? null,
                                     ];
                                 }
-                                // Check for afternoon slot overlap (12:00 - 24:00)
                                 if ($segEnd > $afternoonStart && $segStart < $afternoonEnd) {
                                     $slotAfternoon[] = [
                                         'booking_order_id' => $row['booking_order_id'],
@@ -214,14 +187,14 @@ class DashboardController extends Controller
                                     ];
                                 }
                             }
+
                             if($row['status'] == 2) $isOccupied = true;
                         }
                     }
                 }
-                // Urutkan segmen berdasarkan waktu check-in aktual (terlebih dahulu tampil di atas)
+
                 usort($segments, function($a,$b){
-                    if($a['checkin_at'] == $b['checkin_at']) return 0;
-                    return ($a['checkin_at'] < $b['checkin_at']) ? -1 : 1;
+                    return $a['checkin_at'] <=> $b['checkin_at'];
                 });
 
                 $statusBooking[$tgl][$kamar->id] = [
@@ -229,10 +202,9 @@ class DashboardController extends Controller
                     'occ' => $isOccupied ? 'occupied' : (count($segments) ? 'booked' : 'empty'),
                     'slot_morning' => $slotMorning,
                     'slot_afternoon' => $slotAfternoon,
-                    'is_multi_day' => count($segments) > 0 && isset($segments[0]) && $segments[0]['checkout_at']->gt($carbonDate->copy()->addDay()), // Flag if this is a multi-day booking
+                    'is_multi_day' => count($segments) > 0 && isset($segments[0]) && $segments[0]['checkout_at']->gt($carbonDate->copy()->addDay()),
                 ];
-                // Monthly total: count as occupied if ANY usage on this day (morning or afternoon slot exists)
-                // or a segment crosses noon (full-day), so half-day and check-out days are included.
+
                 $dayStart = $carbonDate->copy()->startOfDay();
                 $noon = $dayStart->copy()->addHours(12);
                 $dayEnd = $dayStart->copy()->addDay();
@@ -240,7 +212,8 @@ class DashboardController extends Controller
                 $hasAfternoon = !empty($slotAfternoon);
                 $coversNoon = false;
                 foreach($segments as $sg){
-                    $s = $sg['checkin_at'] ?? $dayStart; $e = $sg['checkout_at'] ?? $dayEnd;
+                    $s = $sg['checkin_at'] ?? $dayStart;
+                    $e = $sg['checkout_at'] ?? $dayEnd;
                     if($s < $noon && $e > $noon){ $coversNoon = true; break; }
                 }
                 if($coversNoon || $hasMorning || $hasAfternoon){
@@ -249,7 +222,6 @@ class DashboardController extends Controller
             }
         }
 
-        // Data navigasi bulan sebelumnya / berikutnya
         $prevMonth = $bulan - 1 < 1 ? 12 : $bulan - 1;
         $prevYear = $bulan - 1 < 1 ? $tahun - 1 : $tahun;
         $nextMonth = $bulan + 1 > 12 ? 1 : $bulan + 1;
