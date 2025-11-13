@@ -125,9 +125,6 @@ class DashboardController extends Controller
                             $dayStart = $carbonDate->copy()->startOfDay();
                             $dayEnd = $dayStart->copy()->addDay();
                             $morningStart = $dayStart->copy()->addHours(6);
-                            $morningEnd = $dayStart->copy()->addHours(12);
-                            $afternoonStart = $dayStart->copy()->addHours(12);
-                            $afternoonEnd = $dayStart->copy()->addHours(18);
                             $segStart = $row['checkin_at']->greaterThan($dayStart) ? $row['checkin_at'] : $dayStart;
                             $segEnd = $row['checkout_at']->lessThan($dayEnd) ? $row['checkout_at'] : $dayEnd;
                             $duration = max(0, $segEnd->diffInSeconds($segStart));
@@ -147,11 +144,22 @@ class DashboardController extends Controller
                                 'fraction' => $fraction,
                             ];
 
-                            // Special case: 12:00 today -> >= 12:00 next day should paint FULL day on this date
                             $rawIn = $row['checkin_at'];
                             $rawOut = $row['checkout_at'];
-                            $noonToNextDayOrMore = ($rawIn->equalTo($afternoonStart) && $rawOut->gte($afternoonStart->copy()->addDay()));
-                            if ($noonToNextDayOrMore) {
+
+                            $currentDayStart = $carbonDate->copy()->startOfDay();
+
+                            // Slot Pagi: 06:00 - 11:59
+                            $morningSlotStart = $currentDayStart->copy()->addHours(6);
+                            $morningSlotEnd = $currentDayStart->copy()->addHours(12); // Exclusive, so up to 11:59:59
+
+                            // Slot Sore: 12:00 - 23:59
+                            $afternoonSlotStart = $currentDayStart->copy()->addHours(12);
+                            $afternoonSlotEnd = $currentDayStart->copy()->addHours(24); // Exclusive, so up to 23:59:59 (which is 00:00 next day)
+
+                            // Check for Morning Slot overlap
+                            // Booking overlaps if its end time is after slot start AND its start time is before slot end
+                            if ($rawOut->greaterThan($morningSlotStart) && $rawIn->lessThan($morningSlotEnd)) {
                                 $slotMorning[] = [
                                     'booking_order_id' => $row['booking_order_id'],
                                     'booking_code' => $row['order_code'] ?? null,
@@ -161,6 +169,10 @@ class DashboardController extends Controller
                                     'background' => $row['meta']['background'] ?? null,
                                     'text_color' => $row['meta']['text_color'] ?? null,
                                 ];
+                            }
+
+                            // Check for Afternoon Slot overlap
+                            if ($rawOut->greaterThan($afternoonSlotStart) && $rawIn->lessThan($afternoonSlotEnd)) {
                                 $slotAfternoon[] = [
                                     'booking_order_id' => $row['booking_order_id'],
                                     'booking_code' => $row['order_code'] ?? null,
@@ -170,33 +182,8 @@ class DashboardController extends Controller
                                     'background' => $row['meta']['background'] ?? null,
                                     'text_color' => $row['meta']['text_color'] ?? null,
                                 ];
-                            } else {
-                                // Overlap-based marking
-                                if ($segEnd > $morningStart && $segStart < $morningEnd) {
-                                    $slotMorning[] = [
-                                        'booking_order_id' => $row['booking_order_id'],
-                                        'booking_code' => $row['order_code'] ?? null,
-                                        'booking_code_short' => $row['order_code_short'] ?? null,
-                                        'status' => $row['status'],
-                                        'payment' => $row['meta']['payment'] ?? null,
-                                        'background' => $row['meta']['background'] ?? null,
-                                        'text_color' => $row['meta']['text_color'] ?? null,
-                                    ];
-                                }
-                                // Suppress next-day afternoon for pattern: 12:00 day-1 -> 18:00 this day
-                                $suppressThisAfternoon = ($rawIn->equalTo($dayStart->copy()->subDay()->addHours(12)) && $rawOut->equalTo($afternoonEnd));
-                                if ($segEnd > $afternoonStart && $segStart < $afternoonEnd && !$suppressThisAfternoon) {
-                                    $slotAfternoon[] = [
-                                        'booking_order_id' => $row['booking_order_id'],
-                                        'booking_code' => $row['order_code'] ?? null,
-                                        'booking_code_short' => $row['order_code_short'] ?? null,
-                                        'status' => $row['status'],
-                                        'payment' => $row['meta']['payment'] ?? null,
-                                        'background' => $row['meta']['background'] ?? null,
-                                        'text_color' => $row['meta']['text_color'] ?? null,
-                                    ];
-                                }
                             }
+
                             if($row['status'] == 2) $isOccupied = true;
                         }
                     }
