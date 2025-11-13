@@ -124,10 +124,10 @@ class DashboardController extends Controller
                             // Hitung porsi (fraction) dari hari ini yang ditempati oleh segmen ini
                             $dayStart = $carbonDate->copy()->startOfDay();
                             $dayEnd = $dayStart->copy()->addDay();
-                            $morningStart = $dayStart->copy()->addHours(12);
-                            $morningEnd = $dayStart->copy()->addHours(18);
-                            $afternoonStart = $dayStart->copy()->addHours(18);
-                            $afternoonEnd = $dayStart->copy()->addHours(12);
+                            $morningStart = $dayStart->copy()->addHours(00);
+                            $morningEnd = $dayStart->copy()->addHours(12);
+                            $afternoonStart = $dayStart->copy()->addHours(12);
+                            $afternoonEnd = $dayStart->copy()->addHours(18);
                             $segStart = $row['checkin_at']->greaterThan($dayStart) ? $row['checkin_at'] : $dayStart;
                             $segEnd = $row['checkout_at']->lessThan($dayEnd) ? $row['checkout_at'] : $dayEnd;
                             $duration = max(0, $segEnd->diffInSeconds($segStart));
