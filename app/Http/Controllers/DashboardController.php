@@ -183,9 +183,21 @@ class DashboardController extends Controller
                                         'text_color' => $row['meta']['text_color'] ?? null,
                                     ];
                                 }
-                                // Suppress next-day afternoon for pattern: 12:00 day-1 -> 18:00 this day
-                                $suppressThisAfternoon = ($rawIn->equalTo($dayStart->copy()->subDay()->addHours(12)) && $rawOut->equalTo($afternoonEnd));
-                                if ($segEnd > $afternoonStart && $segStart < $afternoonEnd && !$suppressThisAfternoon) {
+                                // For afternoon: only show if checkout is AFTER afternoon (not exactly at 18:00)
+                                // or if check-in is on this day and extends past afternoon
+                                $showAfternoon = false;
+                                if ($segEnd > $afternoonStart && $segStart < $afternoonEnd) {
+                                    // Check if this is the "day before checkout" and checkout is at exactly 18:00 (1.5 day case)
+                                    // In that case, DON'T show afternoon on this day
+                                    $isCheckoutDay = $rawOut->isSameDay($dayEnd);
+                                    $checkoutAt18 = $rawOut->equalTo($afternoonEnd);
+                                    if ($isCheckoutDay && $checkoutAt18) {
+                                        $showAfternoon = false; // Suppress afternoon if checkout is exactly 18:00
+                                    } else {
+                                        $showAfternoon = true;
+                                    }
+                                }
+                                if ($showAfternoon) {
                                     $slotAfternoon[] = [
                                         'booking_order_id' => $row['booking_order_id'],
                                         'booking_code' => $row['order_code'] ?? null,
