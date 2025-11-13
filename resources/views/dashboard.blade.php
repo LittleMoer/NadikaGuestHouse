@@ -80,19 +80,24 @@
                                                     $slotAfternoon = $cell['slot_afternoon'] ?? [];
                                                     $hasMorning = !empty($slotMorning);
                                                     $hasAfternoon = !empty($slotAfternoon);
-                                                    // Full-day merge only if SAME booking covers both slots, or a single segment crosses noon
-                                                    $coversNoon = false;
+                                                    // Full-day merge only if SAME booking covers both morning (12:00-18:00) and afternoon (06:00-12:00) slots
+                                                    // OR a single segment covers the full 06:00-18:00 range
+                                                    $coversFullRange = false;
                                                     if(!empty($segments)){
-                                                        $dayStart = \Carbon\Carbon::parse($tanggal.' 00:00:00');
-                                                        $noon = $dayStart->copy()->addHours(12);
-                                                        $dayEnd = $dayStart->copy()->addDay();
+                                                        $dayStart = \Carbon\Carbon::parse($tanggal.' 06:00:00');
+                                                        $dayEnd = $dayStart->copy()->addHours(12); // 18:00
                                                         foreach($segments as $sg){
-                                                            $s = $sg['checkin_at'] ?? $dayStart; $e = $sg['checkout_at'] ?? $dayEnd;
-                                                            if($s->lt($noon) && $e->gt($noon)){ $coversNoon = true; break; }
+                                                            $s = $sg['checkin_at'] ?? $dayStart; 
+                                                            $e = $sg['checkout_at'] ?? $dayEnd;
+                                                            // Check if segment covers the full 06:00-18:00 range
+                                                            if($s->lte($dayStart) && $e->gte($dayEnd)){ 
+                                                                $coversFullRange = true; 
+                                                                break; 
+                                                            }
                                                         }
                                                     }
                                                     $sameOrderBoth = ($hasMorning && $hasAfternoon && (($slotMorning[0]['booking_order_id'] ?? null) === ($slotAfternoon[0]['booking_order_id'] ?? null)));
-                                                    $fullDay = $sameOrderBoth || $coversNoon;
+                                                    $fullDay = $sameOrderBoth || $coversFullRange;
                                                     // Hitung total terisi harian: full-day ATAU ada segmen pagi/siang
                                                     if($fullDay || $hasMorning || $hasAfternoon){ $totalTerisi++; }
                                                 @endphp
