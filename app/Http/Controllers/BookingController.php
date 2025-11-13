@@ -835,15 +835,53 @@ class BookingController extends Controller
      */
     public function destroy(Request $request, $id)
     {
-        $order = BookingOrder::with(['items','cafeOrders.items'])->findOrFail($id);
-        // Hapus hierarki manual (jika belum cascade di DB)
-        foreach($order->cafeOrders as $co){ $co->items()->delete(); $co->delete(); }
-        $order->items()->delete();
-        $order->delete();
-        if($request->wantsJson()){
-            return response()->json(['success'=>true,'deleted_id'=>$id]);
+        DB::beginTransaction();
+        try {
+            $order = BookingOrder::with(['items','cafeOrders.items'])->findOrFail($id);
+            $bookingNumberToDelete = $order->booking_number;
+
+            // Hapus hierarki manual (jika belum cascade di DB)
+            foreach($order->cafeOrders as $co){ $co->items()->delete(); $co->delete(); }
+            $order->items()->delete();
+            $order->delete();
+
+            // Logika untuk mengurutkan ulang booking_number
+            if ($bookingNumberToDelete && strlen($bookingNumberToDelete) >= 7) {
+                $prefix = substr($bookingNumberToDelete, 0, 4); // e.g., '2405'
+                $deletedCounter = (int)substr($bookingNumberToDelete, 4);
+
+                // Ambil semua booking setelah yang dihapus dalam periode yang sama
+                $subsequentOrders = BookingOrder::where('booking_number', 'LIKE', $prefix . '%')
+                    ->whereRaw('CAST(SUBSTRING(booking_number, 5) AS UNSIGNED) > ?', [$deletedCounter])
+                    ->orderBy('booking_number', 'asc')
+                    ->get();
+
+                foreach ($subsequentOrders as $subOrder) {
+                    $currentCounter = (int)substr($subOrder->booking_number, 4);
+                    $newCounter = $currentCounter - 1;
+                    $newBookingNumber = $prefix . str_pad($newCounter, 3, '0', STR_PAD_LEFT);
+                    
+                    // Update booking_number
+                    $subOrder->booking_number = $newBookingNumber;
+                    $subOrder->save();
+                }
+            }
+
+            DB::commit();
+
+            if($request->wantsJson()){
+                return response()->json(['success'=>true,'deleted_id'=>$id]);
+            }
+            return redirect()->back()->with('success','Booking dihapus dan nomor nota diurutkan ulang.');
+
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            \Log::error('Delete booking failed', ['message' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            if($request->wantsJson()){
+                return response()->json(['success'=>false, 'message'=>'Gagal menghapus booking.'], 500);
+            }
+            return redirect()->back()->with('error','Terjadi kesalahan saat menghapus booking.');
         }
-        return redirect()->back()->with('success','Booking dihapus');
     }
 
     /**

@@ -136,7 +136,7 @@
 <body>
   <div class="wrap">
     <div class="wifi-info">
-      ID:{{ now()->format('Ym') }}{{ $order->id }}<br>
+      ID:{{ $order->formatted_id }}<br>
       PASSWORD WIFI ATAS: nginapdulu<br>
       Gedung belakang: nadikaguestb2025
     </div>

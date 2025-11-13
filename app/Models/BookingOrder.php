@@ -141,4 +141,17 @@ class BookingOrder extends Model
         $idPart = str_pad((string)($this->id ?? 0), 2, '0', STR_PAD_LEFT);
         return $ym . $idPart;
     }
+
+    /**
+     * Custom formatted ID for display on notas.
+     * Format: (pemesanan)(yy)(mm)(padded_id)
+     */
+    public function getFormattedIdAttribute(): string
+    {
+        $pemesanan = (int)($this->pemesanan ?? 0);
+        $year = $this->tanggal_checkin ? $this->tanggal_checkin->format('y') : now()->format('y');
+        $month = $this->tanggal_checkin ? $this->tanggal_checkin->format('m') : now()->format('m');
+        $idPart = str_pad((string)($this->id ?? 0), 4, '0', STR_PAD_LEFT);
+        return "{$pemesanan}{$year}{$month}{$idPart}";
+    }
 }

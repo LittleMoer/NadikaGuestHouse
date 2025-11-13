@@ -148,7 +148,10 @@
             </div>
             <div class="col-md-4 mb-3" id="wrap_manual_total" style="display:none;">
               <label class="form-label">Total Kamar (Rp)</label>
-              <input type="text" name="manual_total_harga" class="form-control rupiah" value="{{ old('manual_total_harga') }}" placeholder="Wajib diisi untuk Traveloka" />
+              @php
+                $manualTotalValue = ((int)($order->pemesanan ?? 0) === 1) ? (int)($order->total_harga ?? 0) : '';
+              @endphp
+              <input type="text" name="manual_total_harga" class="form-control rupiah" value="{{ old('manual_total_harga', $manualTotalValue) }}" placeholder="Wajib diisi untuk Traveloka" />
               @error('manual_total_harga')
                 <div class="text-danger" style="font-size:.7rem;">{{ $message }}</div>
               @enderror
@@ -172,7 +175,7 @@
             </div>
             <div class="col-md-4 mb-3">
               <label class="form-label">Metode Pelunasan</label>
-              @php $pelOld = old('pelunasan_payment_method'); @endphp
+              @php $pelOld = old('pelunasan_payment_method', $order->pelunasan_payment_method); @endphp
               <select name="pelunasan_payment_method" class="form-control">
                 <option value="">- Pilih -</option>
                 <option value="cash" {{ $pelOld==='cash' ? 'selected' : '' }}>Cash</option>
@@ -215,12 +218,12 @@
               @if(auth()->check() && auth()->user()->isOwner())
               <div class="mt-3">
                   <label class="form-label">Diskon Manual (%)</label>
-                  <input type="number" name="discount_manual_percentage" class="form-control" value="{{ old('discount_manual_percentage') }}" min="0" max="100" step="1" placeholder="0-100">
+                  <input type="number" name="discount_manual_percentage" class="form-control" value="{{ old('discount_manual_percentage', '') }}" min="0" max="100" step="1" placeholder="0-100">
                   <small class="text-muted">Mengabaikan diskon % lain jika diisi. Nilai tidak tersimpan.</small>
               </div>
               <div class="mt-2">
                   <label class="form-label">Diskon Manual (Rp)</label>
-                  <input type="text" name="discount_manual_nominal" class="form-control rupiah" value="{{ old('discount_manual_nominal') }}" placeholder="0">
+                  <input type="text" name="discount_manual_nominal" class="form-control rupiah" value="{{ old('discount_manual_nominal', '') }}" placeholder="0">
                   <small class="text-muted">Prioritas tertinggi. Mengabaikan semua diskon lain jika diisi. Nilai tidak tersimpan.</small>
               </div>
               @endif
