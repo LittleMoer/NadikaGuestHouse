@@ -125,6 +125,10 @@ class DashboardController extends Controller
                             $morningEnd = $dayStart->copy()->addHours(18);
                             $afternoonStart = $dayStart->copy()->addHours(6);
                             $afternoonEnd = $dayStart->copy()->addHours(12);
+                            $morningStart = $dayStart->copy()->addHours(6);
+                            $morningEnd = $dayStart->copy()->addHours(12);
+                            $afternoonStart = $dayStart->copy()->addHours(12);
+                            $afternoonEnd = $dayStart->copy()->addHours(24); // End of day
                             $segStart = $row['checkin_at']->greaterThan($dayStart) ? $row['checkin_at'] : $dayStart;
                             $segEnd = $row['checkout_at']->lessThan($dayEnd) ? $row['checkout_at'] : $dayEnd;
                             $duration = max(0, $segEnd->diffInSeconds($segStart));
@@ -148,6 +152,7 @@ class DashboardController extends Controller
                             $rawIn = $row['checkin_at'];
                             $rawOut = $row['checkout_at'];
                             $noonToNextDayOrMore = ($rawIn->equalTo($morningStart) && $rawOut->gte($morningStart->copy()->addDay()));
+                            $noonToNextDayOrMore = ($rawIn->equalTo($afternoonStart) && $rawOut->gte($afternoonStart->copy()->addDay()));
                             if ($noonToNextDayOrMore) {
                                 $slotMorning[] = [
                                     'booking_order_id' => $row['booking_order_id'],
@@ -170,6 +175,7 @@ class DashboardController extends Controller
                             } else {
                                 // Overlap-based marking
                                 if ($segEnd > $morningStart && $segStart < $morningEnd) {
+                                if ($segEnd > $afternoonStart && $segStart < $afternoonEnd) {
                                     $slotMorning[] = [
                                         'booking_order_id' => $row['booking_order_id'],
                                         'booking_code' => $row['order_code'] ?? null,
@@ -185,8 +191,12 @@ class DashboardController extends Controller
                                 $showAfternoon = false;
                                 if ($segEnd > $afternoonStart && $segStart < $afternoonEnd) {
                                     $showAfternoon = true;
+                                $showMorning = false;
+                                if ($segEnd > $morningStart && $segStart < $morningEnd) {
+                                    $showMorning = true;
                                 }
                                 if ($showAfternoon) {
+                                if ($showMorning) {
                                     $slotAfternoon[] = [
                                         'booking_order_id' => $row['booking_order_id'],
                                         'booking_code' => $row['order_code'] ?? null,
@@ -205,8 +215,11 @@ class DashboardController extends Controller
                                 $isCheckoutDay = $carbonDate->isSameDay($dayEnd);
                                 $checkoutAt18 = $rawOut->equalTo($morningEnd);
                                 $checkInAt12 = $rawIn->equalTo($morningStart);
+                                $checkoutAt18 = $rawOut->format('H:i') === '18:00';
+                                $checkInAt12 = $rawIn->format('H:i') === '12:00';
                                 $checkInWasPreviousDay = $rawIn->isSameDay($dayStart->copy()->subDay());
                                 if ($isCheckoutDay && $checkoutAt18 && $checkInWasPreviousDay && $checkInAt12) {
+                                if ($isCheckoutDay && $checkoutAt18 && $checkInWasPreviousDay) {
                                     // This is the 1.5 day booking checkout day
                                     // Remove morning slot if it was added
                                     $slotMorning = [];
@@ -227,6 +240,7 @@ class DashboardController extends Controller
                     'occ' => $isOccupied ? 'occupied' : (count($segments) ? 'booked' : 'empty'),
                     'slot_morning' => $slotMorning,
                     'slot_afternoon' => $slotAfternoon,
+                    'is_multi_day' => count($segments) > 0 && isset($segments[0]) && $segments[0]['checkout_at']->gt($carbonDate->copy()->addDay()), // Flag if this is a multi-day booking
                 ];
                 // Monthly total: count as occupied if ANY usage on this day (morning or afternoon slot exists)
                 // or a segment crosses noon (full-day), so half-day and check-out days are included.
