@@ -130,7 +130,7 @@ class DashboardController extends Controller
                             // Re-define dayEnd to be exclusive for diff calculation (next day 00:00)
                             $dayEndExclusive = $dayStart->copy()->addDay();
                             $morningStart = $dayStart->copy()->addHours(12);
-                            $morningEnd = $dayStart->copy()->addHours(18);
+                            $morningEnd = $dayStart->copy()->addHours(17);
                             $afternoonStart = $dayStart->copy()->addHours(19);
                             $afternoonEnd = $dayStart->copy()->addHours(24); // End of day (exclusive)
                             
