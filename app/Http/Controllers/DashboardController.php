@@ -24,49 +24,53 @@ class DashboardController extends Controller
         $jenisKamar = $kamarList->pluck('tipe')->unique()->values();
 
         // Urutan custom tipe kamar
-        $preferred = ['family','superior','twin','standar','standar eco'];
-        $prefMap = collect($preferred)->mapWithKeys(fn($v,$i)=> [strtolower(trim($v))=>$i+1])->all();
-        $orderedJenisKamar = $jenisKamar->sortBy(function($t) use ($prefMap){
-            $key = strtolower(trim((string)$t));
-            if ($key === 'non ac') return sprintf('%06d-%s', 999998, $key);
-            if ($key === 'hall')   return sprintf('%06d-%s', 999999, $key);
+        $preferred = ['family', 'superior', 'twin', 'standar', 'standar eco'];
+        $prefMap = collect($preferred)->mapWithKeys(fn($v, $i) => [strtolower(trim($v)) => $i + 1])->all();
+        $orderedJenisKamar = $jenisKamar->sortBy(function ($t) use ($prefMap) {
+            $key = strtolower(trim((string) $t));
+            if ($key === 'non ac')
+                return sprintf('%06d-%s', 999998, $key);
+            if ($key === 'hall')
+                return sprintf('%06d-%s', 999999, $key);
             if (array_key_exists($key, $prefMap)) {
                 return sprintf('%06d-%s', $prefMap[$key], $key);
             }
             return sprintf('%06d-%s', 900000, $key);
         })->values();
 
-        $kamarGrouped = $kamarList->groupBy('tipe')->map(function($group){
+        $kamarGrouped = $kamarList->groupBy('tipe')->map(function ($group) {
             return $group->sortBy('nomor_kamar', SORT_NATURAL)->values();
         });
 
         // Ambil booking aktif di bulan ini
-        $activeOrders = BookingOrder::with(['items' => function($q){ $q->with('kamar'); }, 'pelanggan'])
-            ->whereIn('status',[1,2,3,4])
-            ->where(function($q) use ($start,$end){
-                $q->whereBetween('tanggal_checkin', [$start,$end])
-                  ->orWhereBetween('tanggal_checkout', [$start,$end])
-                  ->orWhere(function($qq) use ($start,$end){
-                      $qq->where('tanggal_checkin','<=',$start)
-                         ->where('tanggal_checkout','>=',$end);
-                  });
+        $activeOrders = BookingOrder::with(['items' => function ($q) {
+            $q->with('kamar'); }, 'pelanggan'])
+            ->whereIn('status', [1, 2, 3, 4])
+            ->where(function ($q) use ($start, $end) {
+                $q->whereBetween('tanggal_checkin', [$start, $end])
+                    ->orWhereBetween('tanggal_checkout', [$start, $end])
+                    ->orWhere(function ($qq) use ($start, $end) {
+                        $qq->where('tanggal_checkin', '<=', $start)
+                            ->where('tanggal_checkout', '>=', $end);
+                    });
             })
             ->get();
 
         // Normalisasi items
         $items = [];
-        foreach($activeOrders as $order){
+        foreach ($activeOrders as $order) {
             $meta = $order->status_meta;
             $ciDay = Carbon::parse($order->tanggal_checkin)->startOfDay();
             $coDay = Carbon::parse($order->tanggal_checkout)->startOfDay();
             $ciAt = Carbon::parse($order->tanggal_checkin);
             $coAt = Carbon::parse($order->tanggal_checkout);
             $coDay_endExclusive = $coDay->copy();
-            if ($coAt->gt($coDay)) $coDay_endExclusive = $coDay->copy()->addDay();
+            if ($coAt->gt($coDay))
+                $coDay_endExclusive = $coDay->copy()->addDay();
             $coDay = $coDay_endExclusive->copy()->subDay();
 
-            foreach($order->items as $it){
-                $code = (string)($order->order_code ?? '');
+            foreach ($order->items as $it) {
+                $code = (string) ($order->order_code ?? '');
                 $short = strlen($code) >= 3 ? substr($code, -3) : $code;
                 $items[] = [
                     'kamar_id' => $it->kamar_id,
@@ -102,8 +106,8 @@ class DashboardController extends Controller
                 $slotAfternoon = [];
                 $isOccupied = false;
 
-                if(isset($itemsByKamar[$kamar->id])){
-                    foreach($itemsByKamar[$kamar->id] as $row){
+                if (isset($itemsByKamar[$kamar->id])) {
+                    foreach ($itemsByKamar[$kamar->id] as $row) {
                         $rawIn = $row['checkin_at'];
                         $rawOut = $row['checkout_at'];
                         $dayStart = $carbonDate->copy()->startOfDay();
@@ -137,11 +141,13 @@ class DashboardController extends Controller
 
                             // === Logic slot diperbarui ===
                             $isCheckinDay = $rawIn->isSameDay($carbonDate);
+                            $isCheckoutDay = $rawOut->isSameDay($carbonDate);
                             $startsAtNoon = $rawIn->format('H:i:s') === '12:00:00';
                             $startsAtMidnight = $rawIn->format('H:i:s') === '00:00:00';
 
+                            // Hari check-in
                             if ($isCheckinDay && $startsAtNoon) {
-                                // Booking jam 12:00 isi slot sore
+                                // Hari pertama isi slot sore
                                 $slotAfternoon[] = [
                                     'booking_order_id' => $row['booking_order_id'],
                                     'booking_code' => $row['order_code'] ?? null,
@@ -152,7 +158,7 @@ class DashboardController extends Controller
                                     'text_color' => $row['meta']['text_color'] ?? null,
                                 ];
                             } elseif ($isCheckinDay && $startsAtMidnight) {
-                                // Booking jam 00:00 isi slot pagi
+                                // Hari pertama jam 00:00 isi slot pagi
                                 $slotMorning[] = [
                                     'booking_order_id' => $row['booking_order_id'],
                                     'booking_code' => $row['order_code'] ?? null,
@@ -163,8 +169,29 @@ class DashboardController extends Controller
                                     'text_color' => $row['meta']['text_color'] ?? null,
                                 ];
                             } else {
-                                // Overlap normal
-                                if ($segEnd > $morningStart && $segStart < $morningEnd) {
+                                // Hari-hari di antara checkin dan checkout (inap tengah)
+                                if ($carbonDate->gt($rawIn->copy()->startOfDay()) && $carbonDate->lt($rawOut->copy()->startOfDay())) {
+                                    // Hari penuh di tengah periode
+                                    $slotMorning[] = [
+                                        'booking_order_id' => $row['booking_order_id'],
+                                        'booking_code' => $row['order_code'] ?? null,
+                                        'booking_code_short' => $row['order_code_short'] ?? null,
+                                        'status' => $row['status'],
+                                        'payment' => $row['meta']['payment'] ?? null,
+                                        'background' => $row['meta']['background'] ?? null,
+                                        'text_color' => $row['meta']['text_color'] ?? null,
+                                    ];
+                                    $slotAfternoon[] = [
+                                        'booking_order_id' => $row['booking_order_id'],
+                                        'booking_code' => $row['order_code'] ?? null,
+                                        'booking_code_short' => $row['order_code_short'] ?? null,
+                                        'status' => $row['status'],
+                                        'payment' => $row['meta']['payment'] ?? null,
+                                        'background' => $row['meta']['background'] ?? null,
+                                        'text_color' => $row['meta']['text_color'] ?? null,
+                                    ];
+                                } elseif ($isCheckoutDay) {
+                                    // Hari checkout hanya isi pagi (sebelum jam 12)
                                     $slotMorning[] = [
                                         'booking_order_id' => $row['booking_order_id'],
                                         'booking_code' => $row['order_code'] ?? null,
@@ -175,25 +202,14 @@ class DashboardController extends Controller
                                         'text_color' => $row['meta']['text_color'] ?? null,
                                     ];
                                 }
-                                if ($segEnd > $afternoonStart && $segStart < $afternoonEnd) {
-                                    $slotAfternoon[] = [
-                                        'booking_order_id' => $row['booking_order_id'],
-                                        'booking_code' => $row['order_code'] ?? null,
-                                        'booking_code_short' => $row['order_code_short'] ?? null,
-                                        'status' => $row['status'],
-                                        'payment' => $row['meta']['payment'] ?? null,
-                                        'background' => $row['meta']['background'] ?? null,
-                                        'text_color' => $row['meta']['text_color'] ?? null,
-                                    ];
-                                }
                             }
-
-                            if($row['status'] == 2) $isOccupied = true;
+                            if ($row['status'] == 2)
+                                $isOccupied = true;
                         }
                     }
                 }
 
-                usort($segments, function($a,$b){
+                usort($segments, function ($a, $b) {
                     return $a['checkin_at'] <=> $b['checkin_at'];
                 });
 
@@ -211,12 +227,15 @@ class DashboardController extends Controller
                 $hasMorning = !empty($slotMorning);
                 $hasAfternoon = !empty($slotAfternoon);
                 $coversNoon = false;
-                foreach($segments as $sg){
+                foreach ($segments as $sg) {
                     $s = $sg['checkin_at'] ?? $dayStart;
                     $e = $sg['checkout_at'] ?? $dayEnd;
-                    if($s < $noon && $e > $noon){ $coversNoon = true; break; }
+                    if ($s < $noon && $e > $noon) {
+                        $coversNoon = true;
+                        break;
+                    }
                 }
-                if($coversNoon || $hasMorning || $hasAfternoon){
+                if ($coversNoon || $hasMorning || $hasAfternoon) {
                     $totalKamarTerisiBulan++;
                 }
             }
@@ -228,9 +247,19 @@ class DashboardController extends Controller
         $nextYear = $bulan + 1 > 12 ? $tahun + 1 : $tahun;
 
         return view('dashboard', compact(
-            'bulan','tahun','prevMonth','prevYear','nextMonth','nextYear',
-            'kamarList','jenisKamar','orderedJenisKamar','kamarGrouped',
-            'tanggalList','statusBooking','totalKamarTerisiBulan'
+            'bulan',
+            'tahun',
+            'prevMonth',
+            'prevYear',
+            'nextMonth',
+            'nextYear',
+            'kamarList',
+            'jenisKamar',
+            'orderedJenisKamar',
+            'kamarGrouped',
+            'tanggalList',
+            'statusBooking',
+            'totalKamarTerisiBulan'
         ));
     }
 }
