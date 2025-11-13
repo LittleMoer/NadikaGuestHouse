@@ -851,12 +851,12 @@ class BookingController extends Controller
      */
     public function printNota(Request $request, $id)
     {
-        $order = BookingOrder::with(['pelanggan','items.kamar','cafeOrders.items.product'])->findOrFail($id);
+        $order = BookingOrder::with(['pelanggan','items.kamar','items.order','cafeOrders.items.product'])->findOrFail($id);
         // Detect siblings with the same booking_number (merged Nota)
         $bookingNo = (string)($order->booking_number ?? '');
         $siblings = collect();
         if($bookingNo !== ''){
-            $siblings = BookingOrder::with(['items.kamar','cafeOrders.items.product'])
+            $siblings = BookingOrder::with(['items.kamar','items.order','cafeOrders.items.product'])
                 ->where('booking_number', $bookingNo)
                 ->orderBy('id')
                 ->get();

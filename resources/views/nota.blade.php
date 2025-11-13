@@ -15,7 +15,6 @@
         .header .contact { font-size: 14px; margin-top: 5px; }
         .muted { color:#555; font-size:.8rem; }
         table { width:100%; border-collapse: collapse; margin-top:10px; }
-        th, td { padding:4px 0; font-size:.85rem; vertical-align: top; }
         th, td { padding:2px 0; font-size:.85rem; vertical-align: top; }
         thead th { font-weight: 600; border-bottom: 1px solid #ddd; }
         .right { text-align:right; }
