@@ -117,16 +117,25 @@ class DashboardController extends Controller
                 $isOccupied = false;
                 if(isset($itemsByKamar[$kamar->id])){
                     foreach($itemsByKamar[$kamar->id] as $row){
-                        if($carbonDate->gte($row['checkin']) && $carbonDate->lt($row['checkout'])){
+                        // Use raw checkin/checkout times for precise overlap check
+                        $rawIn = $row['checkin_at'];
+                        $rawOut = $row['checkout_at'];
+                        $dayStart = $carbonDate->copy()->startOfDay();
+                        $dayEnd = $carbonDate->copy()->endOfDay();
+
+                        // Check if the booking range [rawIn, rawOut) overlaps with the current day's range [dayStart, dayEnd].
+                        // The condition is: booking starts before day ends AND booking ends after day starts.
+                        if ($rawIn < $dayEnd && $rawOut > $dayStart) {
                             // Hitung porsi (fraction) dari hari ini yang ditempati oleh segmen ini
-                            $dayStart = $carbonDate->copy()->startOfDay();
-                            $dayEnd = $dayStart->copy()->addDay();
+                            // Re-define dayEnd to be exclusive for diff calculation (next day 00:00)
+                            $dayEndExclusive = $dayStart->copy()->addDay();
                             $morningStart = $dayStart->copy()->addHours(6);
                             $morningEnd = $dayStart->copy()->addHours(12);
                             $afternoonStart = $dayStart->copy()->addHours(12);
-                            $afternoonEnd = $dayStart->copy()->addHours(24); // End of day
-                            $segStart = $row['checkin_at']->greaterThan($dayStart) ? $row['checkin_at'] : $dayStart;
-                            $segEnd = $row['checkout_at']->lessThan($dayEnd) ? $row['checkout_at'] : $dayEnd;
+                            $afternoonEnd = $dayStart->copy()->addHours(24); // End of day (exclusive)
+                            
+                            $segStart = $rawIn->greaterThan($dayStart) ? $rawIn : $dayStart;
+                            $segEnd = $rawOut->lessThan($dayEndExclusive) ? $rawOut : $dayEndExclusive;
                             $duration = max(0, $segEnd->diffInSeconds($segStart));
                             $fraction = $duration > 0 ? min(1, $duration / 86400) : 0;
 
@@ -145,8 +154,6 @@ class DashboardController extends Controller
                             ];
 
                             // Special case: 12:00 today -> >= 12:00 next day should paint FULL day on this date
-                            $rawIn = $row['checkin_at'];
-                            $rawOut = $row['checkout_at'];
                             $noonToNextDayOrMore = ($rawIn->equalTo($afternoonStart) && $rawOut->gte($afternoonStart->copy()->addDay()));
                             if ($noonToNextDayOrMore) {
                                 $slotMorning[] = [
