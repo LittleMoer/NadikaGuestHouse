@@ -16,6 +16,7 @@
         .muted { color:#555; font-size:.8rem; }
         table { width:100%; border-collapse: collapse; margin-top:10px; }
         th, td { padding:4px 0; font-size:.85rem; vertical-align: top; }
+        th, td { padding:2px 0; font-size:.85rem; vertical-align: top; }
         thead th { font-weight: 600; border-bottom: 1px solid #ddd; }
         .right { text-align:right; }
         .divider { border-top:1px dashed #999; margin:8px 0; }
@@ -25,6 +26,7 @@
         .terms h3 { font-size: .9rem; margin-bottom: 8px; font-weight: bold; }
         .terms ul { padding-left: 18px; margin: 0; }
         .terms li { margin-bottom: 4px; }
+        .item-detail { font-size: .75rem; color: #555; padding-left: 10px; }
 
         .print-btn { margin: 12px 0; }
         @media print { 
@@ -82,6 +84,11 @@
                     <tr>
                         <td>Kamar {{ $it->kamar?->nomor_kamar }} ({{ $it->malam }} malam)</td>
                         <td class="right">Rp {{ number_format($it->subtotal,0,',','.') }}</td>
+                    </tr>
+                    <tr class="item-detail-row">
+                        <td colspan="2" class="item-detail">
+                            {{ $it->kamar?->tipe }} | {{ \Carbon\Carbon::parse($it->order?->tanggal_checkin)->format('d/m H:i') }} - {{ \Carbon\Carbon::parse($it->order?->tanggal_checkout)->format('d/m H:i') }}
+                        </td>
                     </tr>
                     @endforeach
                 @endif
