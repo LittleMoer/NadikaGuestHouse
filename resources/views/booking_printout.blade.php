@@ -72,6 +72,7 @@
     .terms { margin-top: 18px; font-size: 18px; }
     .terms h3 {
       font-size: 16px;
+      color: red;
       margin-bottom: 10px;
     }
     .terms ul {
@@ -135,6 +136,10 @@
 </head>
 <body>
   <div class="wrap">
+    <div style="text-align: center; font-weight: bold; margin-bottom: 15px; font-size: 1.1rem; color: #d32f2f;">
+      "makan tanpa nota akan dapat diskon"
+    </div>
+
     <div class="wifi-info">
       ID:{{ $order->formatted_id }}<br>
       PASSWORD WIFI ATAS: nginapdulu<br>

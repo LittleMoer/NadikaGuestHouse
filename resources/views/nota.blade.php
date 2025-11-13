@@ -22,7 +22,7 @@
         .total-row td { font-weight:700; border-top:1px solid #000; padding-top:8px; }
         .meta { margin-top:8px; font-size:.8rem; }
         .terms { margin-top: 18px; font-size: .8rem; }
-        .terms h3 { font-size: .9rem; margin-bottom: 8px; font-weight: bold; }
+        .terms h3 { font-size: .9rem; margin-bottom: 8px; font-weight: bold; color: red; }
         .terms ul { padding-left: 18px; margin: 0; }
         .terms li { margin-bottom: 4px; }
         .item-detail { font-size: .75rem; color: #555; padding-left: 10px; }
@@ -50,6 +50,10 @@
 </head>
 <body>
     <div class="nota">
+        <div style="text-align: center; font-weight: bold; margin-bottom: 15px; font-size: 1.1rem; color: #d32f2f;">
+            "makan tanpa nota akan dapat diskon"
+        </div>
+
         <div class="wifi-info">
             ID:{{ $order->formatted_id }}<br>
             PASSWORD WIFI ATAS: nginapdulu<br>

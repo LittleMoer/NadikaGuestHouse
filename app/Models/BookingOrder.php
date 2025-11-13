@@ -148,10 +148,17 @@ class BookingOrder extends Model
      */
     public function getFormattedIdAttribute(): string
     {
-        $pemesanan = (int)($this->pemesanan ?? 0);
+        $prefixMap = [
+            0 => 'WLK', // Walk-in
+            1 => 'TRV', // Traveloka
+            2 => 'ANA', // Agent 1
+            3 => 'ANB', // Agent 2
+        ];
+        $prefix = $prefixMap[(int)($this->pemesanan ?? 0)] ?? 'XXX';
         $year = $this->tanggal_checkin ? $this->tanggal_checkin->format('y') : now()->format('y');
         $month = $this->tanggal_checkin ? $this->tanggal_checkin->format('m') : now()->format('m');
         $idPart = str_pad((string)($this->id ?? 0), 4, '0', STR_PAD_LEFT);
-        return "{$pemesanan}{$year}{$month}{$idPart}";
+
+        return "{$prefix}{$year}{$month}{$idPart}";
     }
 }
