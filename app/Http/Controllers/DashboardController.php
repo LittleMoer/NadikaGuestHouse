@@ -168,8 +168,8 @@ class DashboardController extends Controller
                                     'text_color' => $row['meta']['text_color'] ?? null,
                                 ];
                             } else {
-                                // Overlap-based marking
-                                if ($segEnd > $afternoonStart && $segStart < $afternoonEnd) {
+                                // Check for morning slot overlap (06:00 - 12:00)
+                                if ($segEnd > $morningStart && $segStart < $morningEnd) {
                                     $slotMorning[] = [
                                         'booking_order_id' => $row['booking_order_id'],
                                         'booking_code' => $row['order_code'] ?? null,
@@ -180,13 +180,8 @@ class DashboardController extends Controller
                                         'text_color' => $row['meta']['text_color'] ?? null,
                                     ];
                                 }
-                                // For afternoon: show if overlaps afternoon slot
-                                // EXCEPT: if this is checkout day AND checkout is at 18:00, suppress morning but SHOW afternoon
-                                $showMorning = false;
-                                if ($segEnd > $morningStart && $segStart < $morningEnd) {
-                                    $showMorning = true;
-                                }
-                                if ($showMorning) {
+                                // Check for afternoon slot overlap (12:00 - 24:00)
+                                if ($segEnd > $afternoonStart && $segStart < $afternoonEnd) {
                                     $slotAfternoon[] = [
                                         'booking_order_id' => $row['booking_order_id'],
                                         'booking_code' => $row['order_code'] ?? null,
@@ -196,20 +191,6 @@ class DashboardController extends Controller
                                         'background' => $row['meta']['background'] ?? null,
                                         'text_color' => $row['meta']['text_color'] ?? null,
                                     ];
-                                }
-                                
-                                // Special handling for checkout day at 18:00: suppress morning on checkout day
-                                // Check-in at 12:00 day 1 -> checkout at 18:00 day 2 = 1.5 day booking
-                                // Day 1: morning + afternoon (merged as FULL day)
-                                // Day 2: only afternoon (morning should be suppressed)
-                                $isCheckoutDay = $carbonDate->isSameDay($dayEnd);
-                                $checkoutAt18 = $rawOut->format('H:i') === '18:00';
-                                $checkInAt12 = $rawIn->format('H:i') === '12:00';
-                                $checkInWasPreviousDay = $rawIn->isSameDay($dayStart->copy()->subDay());
-                                if ($isCheckoutDay && $checkoutAt18 && $checkInWasPreviousDay) {
-                                    // This is the 1.5 day booking checkout day
-                                    // Remove morning slot if it was added
-                                    $slotMorning = [];
                                 }
                             }
                             if($row['status'] == 2) $isOccupied = true;
