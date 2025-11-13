@@ -86,6 +86,7 @@
                                                     // 2. A single segment covers the full 06:00-18:00 range, OR
                                                     // 3. Multi-day booking on check-in day (has morning slot and extends beyond today)
                                                     $coversFullRange = false;
+                                                    $isHalfDayCheckoutToday = false; // Flag for 1.5 day logic
                                                     if(!empty($segments)){
                                                         $dayStart = \Carbon\Carbon::parse($tanggal.' 06:00:00');
                                                         $dayEnd = $dayStart->copy()->addHours(12); // 18:00
@@ -97,10 +98,15 @@
                                                                 $coversFullRange = true; 
                                                                 break; 
                                                             }
+                                                            // Check if this segment is a half-day checkout on the current day
+                                                            if (($sg['is_half_day_checkout'] ?? false) && $s->format('Y-m-d') === $tanggal) {
+                                                                $isHalfDayCheckoutToday = true;
+                                                            }
                                                         }
                                                     }
                                                     $sameOrderBoth = ($hasMorning && $hasAfternoon && (($slotMorning[0]['booking_order_id'] ?? null) === ($slotAfternoon[0]['booking_order_id'] ?? null)));
-                                                    $fullDay = $sameOrderBoth || $coversFullRange || ($isMultiDay && $hasMorning);
+                                                    // A cell is fullDay if it covers both slots AND is NOT a half-day checkout on this day
+                                                    $fullDay = ($sameOrderBoth || $coversFullRange || ($isMultiDay && $hasMorning)) && !$isHalfDayCheckoutToday;
                                                     // Hitung total terisi harian: full-day ATAU ada segmen pagi/siang
                                                     if($fullDay || $hasMorning || $hasAfternoon){ $totalTerisi++; }
                                                 @endphp
@@ -161,11 +167,20 @@
                                                 @php
                                                     $cell = $statusBooking[$tanggal][$kamar->id] ?? ['segments'=>[], 'occ'=>'empty'];
                                                     $slotAfternoon = $cell['slot_afternoon'] ?? [];
+                                                    // Check if any segment for this kamar on this day is a half-day checkout
+                                                    $isHalfDayCheckoutForKamar = false;
+                                                    foreach ($cell['segments'] as $seg) {
+                                                        if ($seg['is_half_day_checkout'] ?? false) {
+                                                            $isHalfDayCheckoutForKamar = true;
+                                                            break;
+                                                        }
+                                                    }
                                                 @endphp
                                                 @if(!empty($mergedRooms[$kamar->id] ?? false))
                                                     @continue
                                                 @endif
-                                                @if(!empty($slotAfternoon))
+                                                {{-- If it's a half-day checkout for this kamar on this day, the afternoon slot should be empty --}}
+                                                @if(!empty($slotAfternoon) && !$isHalfDayCheckoutForKamar)
                                                     @php $seg = $slotAfternoon[0]; $payClass = ((($seg['payment'] ?? '')==='lunas') ? 'pay-lunas' : 'pay-dp'); @endphp
                                                     <td class="status-cell dash-booking-cell border-dark"
                                                             data-status="{{ $seg['status'] ?? '' }}"
