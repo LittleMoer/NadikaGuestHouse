@@ -130,6 +130,12 @@ class DashboardController extends Controller
                             $duration = max(0, $segEnd->diffInSeconds($segStart));
                             $fraction = $duration > 0 ? min(1, $duration / 86400) : 0;
 
+                            // Determine if this segment is a half-day checkout on the current date
+                            $isHalfDayCheckout = false;
+                            if ($row['checkout_at']->format('Y-m-d H:i') === $carbonDate->format('Y-m-d').' 12:00') {
+                                $isHalfDayCheckout = true;
+                            }
+
                             $segments[] = [
                                 'booking_order_id' => $row['booking_order_id'],
                                 'booking_code' => $row['order_code'] ?? null,
@@ -142,6 +148,7 @@ class DashboardController extends Controller
                                 'checkin_at' => $row['checkin_at'],
                                 'checkout_at' => $row['checkout_at'],
                                 'fraction' => $fraction,
+                                'is_half_day_checkout' => $isHalfDayCheckout, // Add this flag
                             ];
 
                             $rawIn = $row['checkin_at'];
@@ -168,11 +175,13 @@ class DashboardController extends Controller
                                     'payment' => $row['meta']['payment'] ?? null,
                                     'background' => $row['meta']['background'] ?? null,
                                     'text_color' => $row['meta']['text_color'] ?? null,
+                                    'is_half_day_checkout' => $isHalfDayCheckout, // Add this flag
                                 ];
                             }
 
                             // Check for Afternoon Slot overlap
-                            if ($rawOut->greaterThan($afternoonSlotStart) && $rawIn->lessThan($afternoonSlotEnd)) {
+                            // Only add to afternoon slot if it's NOT a half-day checkout on this specific day
+                            if ($rawOut->greaterThan($afternoonSlotStart) && $rawIn->lessThan($afternoonSlotEnd) && !$isHalfDayCheckout) {
                                 $slotAfternoon[] = [
                                     'booking_order_id' => $row['booking_order_id'],
                                     'booking_code' => $row['order_code'] ?? null,
@@ -181,6 +190,7 @@ class DashboardController extends Controller
                                     'payment' => $row['meta']['payment'] ?? null,
                                     'background' => $row['meta']['background'] ?? null,
                                     'text_color' => $row['meta']['text_color'] ?? null,
+                                    'is_half_day_checkout' => $isHalfDayCheckout, // Add this flag
                                 ];
                             }
 
