@@ -81,32 +81,46 @@
                                                     $isMultiDay = $cell['is_multi_day'] ?? false;
                                                     $hasMorning = !empty($slotMorning);
                                                     $hasAfternoon = !empty($slotAfternoon);
-                                                    // Full-day merge if:
-                                                    // 1. SAME booking covers both morning and afternoon slots, OR
-                                                    // 2. A single segment covers the full 06:00-18:00 range, OR
-                                                    // 3. Multi-day booking on check-in day (has morning slot and extends beyond today)
-                                                    $coversFullRange = false;
-                                                    $isHalfDayCheckoutToday = false; // Flag for 1.5 day logic
+                                                    
+                                                    $isHalfDayCheckoutToday = false;
+                                                    $isCheckinDay = false;
+                                                    $isIntermediateDay = false;
+
                                                     if(!empty($segments)){
-                                                        $dayStart = \Carbon\Carbon::parse($tanggal.' 06:00:00');
-                                                        $dayEnd = $dayStart->copy()->addHours(12); // 18:00
                                                         foreach($segments as $sg){
-                                                            $s = $sg['checkin_at'] ?? $dayStart; 
-                                                            $e = $sg['checkout_at'] ?? $dayEnd;
-                                                            // Check if segment covers the full 06:00-18:00 range
-                                                            if($s->lte($dayStart) && $e->gte($dayEnd)){ 
-                                                                $coversFullRange = true; 
-                                                                break; 
-                                                            }
                                                             // Check if this segment is a half-day checkout on the current day
-                                                            if (($sg['is_half_day_checkout'] ?? false) && $s->format('Y-m-d') === $tanggal) {
+                                                            if (($sg['is_half_day_checkout'] ?? false) && $sg['checkout_at']->format('Y-m-d') === $tanggal) {
                                                                 $isHalfDayCheckoutToday = true;
+                                                            }
+                                                            // Check if this is the check-in day for this segment
+                                                            if ($sg['checkin_at']->format('Y-m-d') === $tanggal) {
+                                                                $isCheckinDay = true;
+                                                            }
+                                                            // Check if this is an intermediate day (not check-in, not check-out, but within booking range)
+                                                            if ($sg['checkin_at']->format('Y-m-d') < $tanggal && $sg['checkout_at']->format('Y-m-d') > $tanggal) {
+                                                                $isIntermediateDay = true;
                                                             }
                                                         }
                                                     }
-                                                    $sameOrderBoth = ($hasMorning && $hasAfternoon && (($slotMorning[0]['booking_order_id'] ?? null) === ($slotAfternoon[0]['booking_order_id'] ?? null)));
-                                                    // A cell is fullDay if it covers both slots AND is NOT a half-day checkout on this day
-                                                    $fullDay = ($sameOrderBoth || $coversFullRange || ($isMultiDay && $hasMorning)) && !$isHalfDayCheckoutToday;
+
+                                                    // Determine if the cell should be merged (rowspan=2)
+                                                    $fullDay = false;
+                                                    if ($isMultiDay) {
+                                                        if ($isCheckinDay) {
+                                                            // If it's the check-in day of a multi-day booking, it's always full day
+                                                            $fullDay = true;
+                                                        } elseif ($isIntermediateDay) {
+                                                            // If it's an intermediate day of a multi-day booking, it's full day
+                                                            $fullDay = true;
+                                                        } elseif ($hasMorning && $hasAfternoon && !$isHalfDayCheckoutToday) {
+                                                            // If it's the checkout day of a multi-day booking, and checkout is after noon
+                                                            $fullDay = true;
+                                                        }
+                                                    } else {
+                                                        // For single-day bookings, it's full day if both slots are occupied
+                                                        $fullDay = $hasMorning && $hasAfternoon;
+                                                    }
+                                                    
                                                     // Hitung total terisi harian: full-day ATAU ada segmen pagi/siang
                                                     if($fullDay || $hasMorning || $hasAfternoon){ $totalTerisi++; }
                                                 @endphp
@@ -170,7 +184,7 @@
                                                     // Check if any segment for this kamar on this day is a half-day checkout
                                                     $isHalfDayCheckoutForKamar = false;
                                                     foreach ($cell['segments'] as $seg) {
-                                                        if ($seg['is_half_day_checkout'] ?? false) {
+                                                        if (($seg['is_half_day_checkout'] ?? false) && $seg['checkout_at']->format('Y-m-d') === $tanggal) {
                                                             $isHalfDayCheckoutForKamar = true;
                                                             break;
                                                         }

@@ -96,6 +96,7 @@ class DashboardController extends Controller
                     'checkout' => $coDay,
                     'checkin_at' => $ciAt,
                     'checkout_at' => $coAt,
+                    'is_multi_day_booking' => $coDay->greaterThan($ciDay), // Add this flag
                 ];
             }
         }
@@ -118,6 +119,7 @@ class DashboardController extends Controller
                 $slotMorning = [];
                 $slotAfternoon = [];
                 $isOccupied = false;
+                $isMultiDayBookingForCell = false; // Aggregate multi-day status for the cell
                 if(isset($itemsByKamar[$kamar->id])){
                     foreach($itemsByKamar[$kamar->id] as $row){
                         if($carbonDate->gte($row['checkin']) && $carbonDate->lt($row['checkout'])){
@@ -135,6 +137,10 @@ class DashboardController extends Controller
                             if ($row['checkout_at']->format('Y-m-d H:i') === $carbonDate->format('Y-m-d').' 12:00') {
                                 $isHalfDayCheckout = true;
                             }
+                            
+                            if ($row['is_multi_day_booking']) {
+                                $isMultiDayBookingForCell = true;
+                            }
 
                             $segments[] = [
                                 'booking_order_id' => $row['booking_order_id'],
@@ -149,6 +155,7 @@ class DashboardController extends Controller
                                 'checkout_at' => $row['checkout_at'],
                                 'fraction' => $fraction,
                                 'is_half_day_checkout' => $isHalfDayCheckout, // Add this flag
+                                'is_multi_day_booking' => $row['is_multi_day_booking'], // Pass multi-day status
                             ];
 
                             $rawIn = $row['checkin_at'];
@@ -176,6 +183,7 @@ class DashboardController extends Controller
                                     'background' => $row['meta']['background'] ?? null,
                                     'text_color' => $row['meta']['text_color'] ?? null,
                                     'is_half_day_checkout' => $isHalfDayCheckout, // Add this flag
+                                    'is_multi_day_booking' => $row['is_multi_day_booking'], // Pass multi-day status
                                 ];
                             }
 
@@ -191,6 +199,7 @@ class DashboardController extends Controller
                                     'background' => $row['meta']['background'] ?? null,
                                     'text_color' => $row['meta']['text_color'] ?? null,
                                     'is_half_day_checkout' => $isHalfDayCheckout, // Add this flag
+                                    'is_multi_day_booking' => $row['is_multi_day_booking'], // Pass multi-day status
                                 ];
                             }
 
@@ -209,6 +218,7 @@ class DashboardController extends Controller
                     'occ' => $isOccupied ? 'occupied' : (count($segments) ? 'booked' : 'empty'),
                     'slot_morning' => $slotMorning,
                     'slot_afternoon' => $slotAfternoon,
+                    'is_multi_day' => $isMultiDayBookingForCell, // Pass aggregated multi-day status
                 ];
                 // Monthly total: count as occupied if ANY usage on this day (morning or afternoon slot exists)
                 // or a segment crosses noon (full-day), so half-day and check-out days are included.
