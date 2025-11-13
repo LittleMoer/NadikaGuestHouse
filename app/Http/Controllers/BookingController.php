@@ -113,6 +113,7 @@ class BookingController extends Controller
         $request->merge([
             'dp_amount' => $toInt($request->get('dp_amount')),
             'biaya_tambahan' => $toInt($request->get('biaya_tambahan')),
+            'discount_manual_nominal' => $toInt($request->get('discount_manual_nominal')),
         ]);
         $validator = \Validator::make($request->all(), [
             'pelanggan_id'      => 'required|exists:pelanggan,id',
@@ -134,6 +135,7 @@ class BookingController extends Controller
             'booking_number'    => 'nullable|string|max:20',
             // Owner-only manual discount (not saved, only for calculation)
             'discount_manual_percentage' => 'nullable|integer|min:0|max:100',
+            'discount_manual_nominal' => 'nullable|integer|min:0',
         ]);
         if ($validator->fails()) {
             return redirect()->route('booking.index')
@@ -215,11 +217,14 @@ class BookingController extends Controller
         }
         $baseTotal = max($baseTotal, 100000);
         // Discounts: review (10%), follow (10%), sequential if both
+        $manualDiscountNominal = (auth()->check() && auth()->user()->isOwner()) ? (int)($data['discount_manual_nominal'] ?? 0) : 0;
         $manualDiscountPct = (auth()->check() && auth()->user()->isOwner()) ? (int)($data['discount_manual_percentage'] ?? 0) : 0;
         $diskonNominal = 0;
         $discReview = false;
         $discFollow = false;
-        if ($manualDiscountPct > 0) {
+        if ($manualDiscountNominal > 0) {
+            $diskonNominal = $manualDiscountNominal;
+        } elseif ($manualDiscountPct > 0) {
             $diskonNominal = (int) round($baseTotal * ($manualDiscountPct / 100));
         } else {
             $discReview = $request->boolean('discount_review');
@@ -539,6 +544,7 @@ class BookingController extends Controller
         $request->merge([
             'dp_amount' => $toInt($request->get('dp_amount')),
             'biaya_tambahan' => $toInt($request->get('biaya_tambahan')),
+            'discount_manual_nominal' => $toInt($request->get('discount_manual_nominal')),
         ]);
         $order = BookingOrder::with(['items.kamar','cafeOrders'])->findOrFail($id);
         // Capture old values for ledger reconciliation
@@ -564,6 +570,7 @@ class BookingController extends Controller
             'manual_total_harga'=>'nullable|integer|min:0',
             // Owner-only manual discount (not saved, only for calculation)
             'discount_manual_percentage' => 'nullable|integer|min:0|max:100',
+            'discount_manual_nominal' => 'nullable|integer|min:0',
         ]);
         // Require manual total when Traveloka (edit)
         if ((int)$request->get('pemesanan') === 1) {
@@ -612,11 +619,14 @@ class BookingController extends Controller
         if($perHead && $jumlahTamu>2){ $base += 50000 * ($jumlahTamu - 2); }
         $base = max($base, 100000);
         // Discounts
+        $manualDiscountNominal = (auth()->check() && auth()->user()->isOwner()) ? (int)($data['discount_manual_nominal'] ?? 0) : 0;
         $manualDiscountPct = (auth()->check() && auth()->user()->isOwner()) ? (int)($data['discount_manual_percentage'] ?? 0) : 0;
         $diskonNom = 0;
         $discReview = false;
         $discFollow = false;
-        if ($manualDiscountPct > 0) {
+        if ($manualDiscountNominal > 0) {
+            $diskonNom = $manualDiscountNominal;
+        } elseif ($manualDiscountPct > 0) {
             $diskonNom = (int) round($base * ($manualDiscountPct / 100));
         } else {
             $discReview = (bool)($data['discount_review'] ?? $order->discount_review ?? false);

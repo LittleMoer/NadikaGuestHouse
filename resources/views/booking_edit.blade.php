@@ -216,7 +216,12 @@
               <div class="mt-3">
                   <label class="form-label">Diskon Manual (%)</label>
                   <input type="number" name="discount_manual_percentage" class="form-control" value="{{ old('discount_manual_percentage') }}" min="0" max="100" step="1" placeholder="0-100">
-                  <small class="text-muted">Mengabaikan diskon lain jika diisi. Nilai tidak tersimpan.</small>
+                  <small class="text-muted">Mengabaikan diskon % lain jika diisi. Nilai tidak tersimpan.</small>
+              </div>
+              <div class="mt-2">
+                  <label class="form-label">Diskon Manual (Rp)</label>
+                  <input type="text" name="discount_manual_nominal" class="form-control rupiah" value="{{ old('discount_manual_nominal') }}" placeholder="0">
+                  <small class="text-muted">Prioritas tertinggi. Mengabaikan semua diskon lain jika diisi. Nilai tidak tersimpan.</small>
               </div>
               @endif
             </div>
