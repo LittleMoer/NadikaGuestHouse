@@ -165,10 +165,10 @@ class DashboardController extends Controller
 
                             // Slot Pagi: 06:00 - 11:59
                             $morningSlotStart = $currentDayStart->copy()->addHours(6);
-                            $morningSlotEnd = $currentDayStart->copy()->addHours(12); // Exclusive, so up to 11:59:59
+                            $morningSlotEnd = $currentDayStart->copy()->addHours(18); // Exclusive, so up to 11:59:59
 
                             // Slot Sore: 12:00 - 23:59
-                            $afternoonSlotStart = $currentDayStart->copy()->addHours(12);
+                            $afternoonSlotStart = $currentDayStart->copy()->addHours(18);
                             $afternoonSlotEnd = $currentDayStart->copy()->addHours(24); // Exclusive, so up to 23:59:59 (which is 00:00 next day)
 
                             // Check for Morning Slot overlap
