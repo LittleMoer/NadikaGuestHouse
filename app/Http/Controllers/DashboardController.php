@@ -121,10 +121,6 @@ class DashboardController extends Controller
                             // Hitung porsi (fraction) dari hari ini yang ditempati oleh segmen ini
                             $dayStart = $carbonDate->copy()->startOfDay();
                             $dayEnd = $dayStart->copy()->addDay();
-                            $morningStart = $dayStart->copy()->addHours(12);
-                            $morningEnd = $dayStart->copy()->addHours(18);
-                            $afternoonStart = $dayStart->copy()->addHours(6);
-                            $afternoonEnd = $dayStart->copy()->addHours(12);
                             $morningStart = $dayStart->copy()->addHours(6);
                             $morningEnd = $dayStart->copy()->addHours(12);
                             $afternoonStart = $dayStart->copy()->addHours(12);
@@ -151,7 +147,6 @@ class DashboardController extends Controller
                             // Special case: 12:00 today -> >= 12:00 next day should paint FULL day on this date
                             $rawIn = $row['checkin_at'];
                             $rawOut = $row['checkout_at'];
-                            $noonToNextDayOrMore = ($rawIn->equalTo($morningStart) && $rawOut->gte($morningStart->copy()->addDay()));
                             $noonToNextDayOrMore = ($rawIn->equalTo($afternoonStart) && $rawOut->gte($afternoonStart->copy()->addDay()));
                             if ($noonToNextDayOrMore) {
                                 $slotMorning[] = [
@@ -174,7 +169,6 @@ class DashboardController extends Controller
                                 ];
                             } else {
                                 // Overlap-based marking
-                                if ($segEnd > $morningStart && $segStart < $morningEnd) {
                                 if ($segEnd > $afternoonStart && $segStart < $afternoonEnd) {
                                     $slotMorning[] = [
                                         'booking_order_id' => $row['booking_order_id'],
@@ -188,14 +182,10 @@ class DashboardController extends Controller
                                 }
                                 // For afternoon: show if overlaps afternoon slot
                                 // EXCEPT: if this is checkout day AND checkout is at 18:00, suppress morning but SHOW afternoon
-                                $showAfternoon = false;
-                                if ($segEnd > $afternoonStart && $segStart < $afternoonEnd) {
-                                    $showAfternoon = true;
                                 $showMorning = false;
                                 if ($segEnd > $morningStart && $segStart < $morningEnd) {
                                     $showMorning = true;
                                 }
-                                if ($showAfternoon) {
                                 if ($showMorning) {
                                     $slotAfternoon[] = [
                                         'booking_order_id' => $row['booking_order_id'],
@@ -213,12 +203,9 @@ class DashboardController extends Controller
                                 // Day 1: morning + afternoon (merged as FULL day)
                                 // Day 2: only afternoon (morning should be suppressed)
                                 $isCheckoutDay = $carbonDate->isSameDay($dayEnd);
-                                $checkoutAt18 = $rawOut->equalTo($morningEnd);
-                                $checkInAt12 = $rawIn->equalTo($morningStart);
                                 $checkoutAt18 = $rawOut->format('H:i') === '18:00';
                                 $checkInAt12 = $rawIn->format('H:i') === '12:00';
                                 $checkInWasPreviousDay = $rawIn->isSameDay($dayStart->copy()->subDay());
-                                if ($isCheckoutDay && $checkoutAt18 && $checkInWasPreviousDay && $checkInAt12) {
                                 if ($isCheckoutDay && $checkoutAt18 && $checkInWasPreviousDay) {
                                     // This is the 1.5 day booking checkout day
                                     // Remove morning slot if it was added
