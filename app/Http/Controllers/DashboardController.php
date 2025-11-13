@@ -126,7 +126,7 @@ class DashboardController extends Controller
                             $dayEnd = $dayStart->copy()->addDay();
                             $morningStart = $dayStart->copy()->addHours(12);
                             $morningEnd = $dayStart->copy()->addHours(18);
-                            $afternoonStart = $dayStart->copy()->addHours(6);
+                            $afternoonStart = $dayStart->copy()->addHours(18);
                             $afternoonEnd = $dayStart->copy()->addHours(12);
                             $segStart = $row['checkin_at']->greaterThan($dayStart) ? $row['checkin_at'] : $dayStart;
                             $segEnd = $row['checkout_at']->lessThan($dayEnd) ? $row['checkout_at'] : $dayEnd;
