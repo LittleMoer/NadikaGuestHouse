@@ -201,6 +201,48 @@
         <div class="mb-3">
           <label class="block mb-1 font-medium">Nama</label>
           <input type="text" name="nama" id="edit_nama" class="form-control" value="{{ old('nama') }}" required>
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="block mb-1 font-medium">Nama</label>
+            <input type="text" name="nama" id="edit_nama" class="form-control" value="{{ old('nama') }}" required>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="block mb-1 font-medium">Telepon</label>
+            <input type="text" name="telepon" id="edit_telepon" class="form-control" value="{{ old('telepon') }}" required>
+          </div>
+          <div class="col-12 mb-3">
+            <label class="block mb-1 font-medium">Alamat</label>
+            <input type="text" name="alamat" id="edit_alamat" class="form-control" value="{{ old('alamat') }}" required>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="block mb-1 font-medium">Jenis Identitas</label>
+            <select name="jenis_identitas" id="edit_jenis_identitas" class="form-control">
+              <option value="" {{ old('jenis_identitas')==='' ? 'selected' : '' }}>Pilih jenis</option>
+              <option value="KTP" {{ old('jenis_identitas')==='KTP' ? 'selected' : '' }}>KTP</option>
+              <option value="SIM" {{ old('jenis_identitas')==='SIM' ? 'selected' : '' }}>SIM</option>
+              <option value="Kartu Pelajar" {{ old('jenis_identitas')==='Kartu Pelajar' ? 'selected' : '' }}>Kartu Pelajar</option>
+            </select>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="block mb-1 font-medium">Nomor Identitas</label>
+            <input type="text" name="nomor_identitas" id="edit_nomor_identitas" class="form-control" value="{{ old('nomor_identitas') }}">
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="block mb-1 font-medium">Tempat Lahir</label>
+            <input type="text" name="tempat_lahir" id="edit_tempat_lahir" class="form-control" value="{{ old('tempat_lahir') }}">
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="block mb-1 font-medium">Tanggal Lahir</label>
+            <input type="date" name="tanggal_lahir" id="edit_tanggal_lahir" class="form-control" value="{{ old('tanggal_lahir') }}">
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="block mb-1 font-medium">Kewarganegaraan</label>
+            <input type="text" name="kewarganegaraan" id="edit_kewarganegaraan" class="form-control" value="{{ old('kewarganegaraan') }}">
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="block mb-1 font-medium">Email</label>
+            <input type="email" name="email" id="edit_email" class="form-control" value="{{ old('email') }}">
+          </div>
         </div>
         <div class="mb-3">
           <label class="block mb-1 font-medium">Email</label>
