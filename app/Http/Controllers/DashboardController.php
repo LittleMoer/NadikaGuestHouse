@@ -1,3 +1,16 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use App\Models\Kamar;
+use App\Models\Booking; // legacy (sementara mungkin masih dipakai di tempat lain)
+use App\Models\BookingOrder;
+use App\Models\BookingOrderItem;
+use Carbon\Carbon;
+
+class DashboardController extends Controller
+{
 public function index(Request $request)
 {
     $now = Carbon::now();
@@ -148,3 +161,5 @@ public function index(Request $request)
         'totalKamarTerisiBulan'
     ));
 }
+}
+?>
