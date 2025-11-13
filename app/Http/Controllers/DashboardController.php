@@ -114,10 +114,10 @@ class DashboardController extends Controller
                             $startsAtNoon = $rawIn->format('H:i:s') === '12:00:00';
                             $startsAtMidnight = $rawIn->format('H:i:s') === '00:00:00';
 
-                            $morningStart = $dayStart->copy()->addHours(6);
-                            $morningEnd   = $dayStart->copy()->addHours(12);
-                            $afternoonStart = $dayStart->copy()->addHours(12);
-                            $afternoonEnd   = $dayStart->copy()->addHours(24);
+                            $morningStart = $dayStart->copy()->addHours(12);
+                            $morningEnd   = $dayStart->copy()->addHours(18);
+                            $afternoonStart = $dayStart->copy()->addHours(18);
+                            $afternoonEnd   = $dayStart->copy()->addHours(12);
 
                             // === LOGIKA INTI ===
                             if ($isCheckinDay && $startsAtNoon) {
