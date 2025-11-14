@@ -138,7 +138,7 @@
                 {{-- Untuk Traveloka, biaya tambahan ditampilkan terpisah di bawah total --}}
                 @if($isTraveloka && $biayaLain > 0)
                     <tr>
-                        <td>Biaya Tambahan (Bayar di Tempat)</td>
+                        <td>Biaya langsung</td>
                         <td class="right">Rp {{ number_format($biayaLain,0,',','.') }}</td>
                     </tr>
                 @endif
