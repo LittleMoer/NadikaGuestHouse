@@ -165,11 +165,11 @@
   <!-- Salinan untuk Tamu -->
   <div class="wrap">
     <div class="copy-identifier">
-      SALINAN UNTUK TAMU
+      Bukti Pengembalian Deposit
     </div>
 
     <div class="wifi-info">
-      ID:{{ $order->formatted_id }}<br>
+      <span style="color: red;">ID:{{ $order->formatted_id }}</span><br>
       PASSWORD WIFI ATAS: nginapdulu<br>
       Gedung belakang: nadikaguestb2025
     </div>
@@ -273,7 +273,7 @@
     </div>
 
     <div class="bottom-right-warning">
-      "makan tanpa nota akan dapat diskon"<br>
+      "Yang tidak dilampiri nota diskon 50%"<br>
       "JANGAN SAMPAI HILANG"
     </div>
   </div>
@@ -297,7 +297,7 @@
     </div>
 
     <div class="wifi-info">
-      ID:{{ $order->formatted_id }}<br>
+      <span style="color: red;">ID:{{ $order->formatted_id }}</span><br>
       PASSWORD WIFI ATAS: nginapdulu<br>
       Gedung belakang: nadikaguestb2025
     </div>
@@ -369,7 +369,7 @@
     </div>
 
     <div class="bottom-right-warning">
-      "makan tanpa nota akan dapat diskon"<br>
+       "Yang tidak dilampiri nota diskon 50%"<br>
       "JANGAN SAMPAI HILANG"
     </div>
   </div>
