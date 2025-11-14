@@ -95,6 +95,15 @@
       margin: 50px 0 10px;
       border-top: 1px solid #000;
     }
+    .bottom-right-warning {
+      position: absolute;
+      bottom: 15px;
+      right: 15px;
+      text-align: right;
+      font-weight: bold;
+      font-size: 0.9rem;
+      color: #d32f2f;
+    }
     .page-break {
       page-break-after: always;
     }
@@ -118,7 +127,8 @@
       .wrap {
         max-width: none;
         margin: 0;
-        padding: 4mm; /* tighter padding */
+        padding: 0; /* remove all padding/margin */
+        position: relative; /* Needed for absolute positioning of children */
       }
       .header h1 { font-size: 24px; }
       .header .address, .header .contact { font-size: 12px; }
@@ -142,6 +152,12 @@
         margin-bottom: 8px;
         padding-bottom: 4px;
       }
+      .bottom-right-warning {
+        font-size: 0.8rem;
+        bottom: 5mm;
+        right: 5mm;
+        line-height: 1.2;
+      }
     }
   </style>
 </head>
@@ -150,10 +166,6 @@
   <div class="wrap">
     <div class="copy-identifier">
       SALINAN UNTUK TAMU
-    </div>
-    <div style="text-align: center; font-weight: bold; margin-bottom: 15px; font-size: 1.1rem; color: #d32f2f;">
-      "makan tanpa nota akan dapat diskon"<br>
-      "JANGAN SAMPAI HILANG"
     </div>
 
     <div class="wifi-info">
@@ -259,6 +271,11 @@
         <li>Guest house berhak membatalkan reservasi jika tamu melanggar ketentuan.</li>
       </ul>
     </div>
+
+    <div class="bottom-right-warning">
+      "makan tanpa nota akan dapat diskon"<br>
+      "JANGAN SAMPAI HILANG"
+    </div>
   </div>
   <script>
     // Auto-open print dialog when the page loads
@@ -277,10 +294,6 @@
   <div class="wrap">
     <div class="copy-identifier" style="color: #0d47a1;">
       SALINAN UNTUK RESEPSIONIS
-    </div>
-    <div style="text-align: center; font-weight: bold; margin-bottom: 15px; font-size: 1.1rem; color: #d32f2f;">
-      "makan tanpa nota akan dapat diskon"<br>
-      "JANGAN SAMPAI HILANG"
     </div>
 
     <div class="wifi-info">
@@ -353,6 +366,11 @@
           @endif
         </div>
       </div>
+    </div>
+
+    <div class="bottom-right-warning">
+      "makan tanpa nota akan dapat diskon"<br>
+      "JANGAN SAMPAI HILANG"
     </div>
   </div>
   <script>
