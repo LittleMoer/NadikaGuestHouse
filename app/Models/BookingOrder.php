@@ -161,4 +161,22 @@ class BookingOrder extends Model
 
         return "{$prefix}{$year}{$month}{$idPart}";
     }
+
+    /**
+     * Computed attribute: Sisa pembayaran setelah DP.
+     * Berguna untuk ditampilkan di nota/invoice.
+     *
+     * @return int
+     */
+    public function getSisaPembayaranAttribute(): int
+    {
+        // Jika status pembayaran sudah 'lunas', maka tidak ada sisa pembayaran.
+        if ($this->payment_status === 'lunas') {
+            return 0;
+        }
+
+        // Sisa pembayaran adalah total harga dikurangi jumlah DP yang sudah dibayar.
+        $sisa = (int)$this->total_harga - (int)$this->dp_amount;
+        return max(0, $sisa); // Pastikan hasilnya tidak negatif
+    }
 }
