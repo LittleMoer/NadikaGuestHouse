@@ -118,17 +118,21 @@
         <div class="divider"></div>
         <table>
             @php
-                // Gunakan accessor dari model BookingOrder
-                $dpAmount = (int)($order->dp_amount ?? 0);
-                $jumlahPelunasan = (int)($order->jumlah_pelunasan ?? 0);
-                $sisaPembayaran = (int)($order->sisa_pembayaran ?? 0);
+                $isLunas = $order->payment_status === 'lunas';
+                $totalPaid = (int)($order->total_paid ?? 0);
+                $sisaPembayaran = (int)($order->sisa_pembayaran ?? 0); // Accessor
+                $dpAmount = (int)($order->dp_amount ?? 0); // Accessor
+                $jumlahPelunasan = $isLunas ? ($totalPaid - $dpAmount) : 0;
 
                 // Untuk nota gabungan, kita pakai variabel dari controller
                 if ($isMerged) {
-                    $dpAmount = (int)$paidTotal;
-                    $sisaPembayaran = (int)$remaining;
-                    // Pelunasan di nota gabungan adalah selisih jika sudah lunas
                     $isLunasMerged = collect($siblings)->every(fn($s) => $s->payment_status === 'lunas');
+                    $totalPaid = (int)$paidTotal;
+                    $sisaPembayaran = (int)$remaining;
+                    // Di nota gabungan, DP adalah total yang sudah dibayar dikurangi sisa (jika sudah lunas)
+                    // atau total yang sudah dibayar jika belum lunas.
+                    // Untuk lebih mudah, kita anggap semua yang sudah dibayar sebelum pelunasan adalah DP.
+                    $dpAmount = $isLunasMerged ? ($totalPaid - $sisaPembayaran) : $totalPaid;
                     $jumlahPelunasan = $isLunasMerged ? $sisaPembayaran : 0;
                 }
             @endphp
@@ -155,11 +159,19 @@
                     <td class="right">Rp {{ number_format($grandTotal,0,',','.') }}</td>
                 </tr>
 
+                @if($dpAmount > 0)
                 <tr>
-                    <td>Total Dibayar</td>
+                    <td>Uang Muka (DP)</td>
                     <td class="right">Rp {{ number_format($dpAmount, 0, ',', '.') }}</td>
                 </tr>
+                @endif
 
+                @if($jumlahPelunasan > 0)
+                <tr>
+                    <td>Pelunasan</td>
+                    <td class="right">Rp {{ number_format($jumlahPelunasan, 0, ',', '.') }}</td>
+                </tr>
+                @endif
                 <tr class="total-row grand-total">
                     <td>Sisa Pembayaran</td>
                     <td class="right">Rp {{ number_format($sisaPembayaran, 0, ',', '.') }}</td>
