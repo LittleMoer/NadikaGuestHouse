@@ -113,7 +113,7 @@
     @media print {
       @page {
         size: A4 portrait;
-        margin: 0.5cm; /* Add margin to prevent content being cut off */
+        margin: 0.3cm; /* Add margin to prevent content being cut off */
       }
       body {
         width: 100%;
