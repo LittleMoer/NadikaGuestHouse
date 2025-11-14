@@ -122,7 +122,7 @@
         padding: 0;
         font-size: 16px; /* compact for A5 fit */
         line-height: 1.3;   /* slightly tighter */
-        zoom: 0.85; /* scale to 85% for printing */
+        zoom: 0.90; /* scale to 85% for printing */
       }
       .wrap {
         max-width: none;
