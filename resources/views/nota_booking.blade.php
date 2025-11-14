@@ -44,10 +44,6 @@
 </head>
 <body>
   <div class="wrap">
-        <div style="text-align: center; font-weight: bold; margin-bottom: 15px; font-size: 1.1rem; color: #d32f2f;">
-            "makan tanpa nota akan dapat diskon"
-        </div>
-
         <div class="wifi-info">
             ID:{{ $order->formatted_id }}<br>
             PASSWORD WIFI ATAS: nginapdulu<br>
@@ -104,6 +100,11 @@
     <div class="controls">
       <label>Catatan:</label>
       <input type="text" id="catatan" placeholder="tuliskan catatan di nota" style="flex:1 1 300px;"/>
+    </div>
+      
+    <div class="bottom-right-warning">
+      "Transaksi yang tidak dilampiri nota diskon 50%"<br>
+      "JANGAN SAMPAI HILANG"
     </div>
 
     <div class="print-btn">

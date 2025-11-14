@@ -373,7 +373,7 @@
     </div>
 
     <div class="bottom-right-warning">
-       "Yang tidak dilampiri nota diskon 50%"<br>
+      "Transaksi yang tidak dilampiri nota diskon 50%"<br>
       "JANGAN SAMPAI HILANG"
     </div>
   </div>
