@@ -123,7 +123,8 @@
                 @endif
                 @if($biayaLain > 0)
                 <tr>
-                    <td>Biaya Lain</td>
+                    <td>Biaya Lain {{ isset($isTraveloka) && $isTraveloka ? '(di luar Traveloka)' : '' }}</td>
+                    <td>{{ isset($isTraveloka) && $isTraveloka ? 'Biaya Langsung' : 'Biaya Lain' }}</td>
                     <td class="right">+ Rp {{ number_format($biayaLain,0,',','.') }}</td>
                 </tr>
                 @endif
@@ -139,7 +140,13 @@
                 @endif
                 <tr class="total-row">
                     <td>Sisa Pembayaran</td>
-                    <td class="right">Rp {{ number_format($remaining,0,',','.') }}</td>
+                    <td class="right">Rp 
+                        @if(isset($isTraveloka) && $isTraveloka)
+                            {{ number_format($remaining + $biayaLain,0,',','.') }}
+                        @else
+                            {{ number_format($remaining,0,',','.') }}
+                        @endif
+                    </td>
                 </tr>
             </tbody>
         </table>

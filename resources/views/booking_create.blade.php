@@ -408,6 +408,11 @@
                             @endif
                         </div>
                         <div class="col-md-4 mb-3">
+                            <label class="form-label">Biaya Tambahan (Rp)</label>
+                            <input type="text" name="biaya_tambahan" class="form-control rupiah" value="{{ old('biaya_tambahan', 0) }}" placeholder="Biaya lain-lain" />
+                            <small class="text-muted">Opsional, akan ditambahkan ke grand total.</small>
+                        </div>
+                        <div class="col-md-4 mb-3">
                             <label class="form-label">Status</label>
                             <select name="status" class="form-control">
                                 <option value="1" {{ old('status')=='1' ? 'selected' : '' }}>Dipesan</option>
@@ -431,11 +436,6 @@
                                 <option value="qris" {{ $dpPmOld==='qris' ? 'selected' : '' }}>QRIS</option>
                                 <option value="card" {{ $dpPmOld==='card' ? 'selected' : '' }}>Kartu</option>
                             </select>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">Biaya Tambahan (Rp)</label>
-                            <input type="text" name="biaya_tambahan" class="form-control rupiah" value="{{ old('biaya_tambahan', 0) }}" placeholder="Biaya lain-lain" />
-                            <small class="text-muted">Opsional, akan ditambahkan ke grand total.</small>
                         </div>
                         <div class="col-md-4 mb-3">
                             <label class="form-label">Metode Pembayaran</label>

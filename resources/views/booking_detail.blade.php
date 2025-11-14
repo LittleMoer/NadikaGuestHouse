@@ -82,7 +82,7 @@
               $cafeTotal = (int)($order->total_cafe ?? 0);
               $diskon    = (int)($order->diskon ?? 0);
               $biayaLain = (int)($order->biaya_tambahan ?? 0);
-              $grand     = max(0, ($roomTotal + $cafeTotal) - $diskon + $biayaLain);
+              $grand     = max(0, ($roomTotal + $cafeTotal) - $diskon + ($isTraveloka ? 0 : $biayaLain));
               $dp        = (int)($order->dp_amount ?? 0);
               $sisa      = max(0, $grand - $dp);
             @endphp
@@ -100,10 +100,12 @@
               <div><strong>Cafe</strong></div>
               <div>Rp {{ number_format($cafeTotal,0,',','.') }}</div>
             </div>
+            @if(!$isTraveloka)
             <div class="d-flex justify-content-between text-muted">
               <div>Diskon</div>
               <div>- Rp {{ number_format($diskon,0,',','.') }}</div>
             </div>
+            @endif
             <div class="d-flex justify-content-between text-muted">
               <div>Biaya Tambahan</div>
               <div>+ Rp {{ number_format($biayaLain,0,',','.') }}</div>
@@ -121,6 +123,12 @@
               <div><strong>Sisa Pembayaran</strong></div>
               <div><strong>Rp {{ number_format($sisa,0,',','.') }}</strong></div>
             </div>
+            @if($isTraveloka && $biayaLain > 0)
+            <div class="d-flex justify-content-between mt-2 text-danger">
+              <div><strong>Tagihan Tambahan (di luar Traveloka)</strong></div>
+              <div><strong>Rp {{ number_format($biayaLain,0,',','.') }}</strong></div>
+            </div>
+            @endif
             <hr/>
             <div class="mt-2">
               <form action="{{ route('booking.cashback', $order->id) }}" method="POST" class="row g-2 align-items-end" id="formCashbackDetail">
