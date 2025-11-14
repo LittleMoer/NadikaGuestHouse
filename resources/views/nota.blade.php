@@ -123,7 +123,7 @@
                 @endif
                 @if($biayaLain > 0)
                 <tr>
-                    <td>{{ isset($isTraveloka) && $isTraveloka ? 'Biaya Langsung' : 'Biaya Lain' }}</td>
+                    <td>{{ isset($isTraveloka) && $isTraveloka ? 'Biaya Tagihan Langsung' : 'Biaya Lain' }}</td>
                     <td class="right">+ Rp {{ number_format($biayaLain,0,',','.') }}</td>
                 </tr>
                 @endif
