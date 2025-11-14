@@ -928,7 +928,17 @@ class BookingController extends Controller
             foreach($order->cafeOrders as $co) { foreach($co->items as $cit) { $cafeItems->push($cit); } }
         }
         $subtotal = $roomTotal + $cafeTotal;
-        $grand = $subtotal - $diskon + $biayaTambahan;
+
+        // Cek apakah ini booking Traveloka (pemesanan == 1).
+        // Untuk Traveloka, biaya tambahan tidak masuk grand total di nota.
+        $isTraveloka = false;
+        if ($isMerged) {
+            // Jika digabung, anggap Traveloka jika salah satunya adalah Traveloka
+            $isTraveloka = $siblings->contains('pemesanan', 1);
+        } else {
+            $isTraveloka = (int)$order->pemesanan === 1;
+        }
+        $grand = $isTraveloka ? ($subtotal - $diskon) : ($subtotal - $diskon + $biayaTambahan);
         $remaining = max(0, $grand - $paidTotal);
 
         return view('nota', [
