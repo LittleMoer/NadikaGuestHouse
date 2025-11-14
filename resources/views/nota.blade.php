@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Nota Booking {{ isset($isMerged) && $isMerged ? ('Nota '.$bookingNumber.' ('.$mergeCount.' booking)') : ('#'.$order->id) }}</title>
+    <title>Nota {{ isset($isMerged) && $isMerged ? ('Nota '.$bookingNumber.' ('.$mergeCount.' booking)') : ('#'.$order->order_code) }}</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 16px; color:#111; }
-        .nota { max-width: 420px; margin: 0 auto; }
+        body { font-family: 'Courier New', Courier, monospace; margin: 16px; color:#111; font-size: 12px; }
+        .nota { max-width: 320px; margin: 0 auto; }
         .wifi-info { text-align: right; font-size: 12px; color: #666; margin-bottom: 10px; }
         .header { text-align: center; margin-bottom: 20px; }
         .header h1 { color: #d32f2f; font-size: 24px; margin: 0; font-weight: bold; }
@@ -14,19 +14,19 @@
         .header .address { font-size: 14px; margin-top: 5px; }
         .header .contact { font-size: 14px; margin-top: 5px; }
         .muted { color:#555; font-size:.8rem; }
-        table { width:100%; border-collapse: collapse; margin-top:10px; }
-        th, td { padding:2px 0; font-size:.85rem; vertical-align: top; }
-        thead th { font-weight: 600; border-bottom: 1px solid #ddd; }
+        table { width:100%; border-collapse: collapse; margin-top:8px; }
+        th, td { padding:2px 0; vertical-align: top; }
+        thead th { font-weight: 600; border-bottom: 1px dashed #555; padding-bottom: 4px; }
         .right { text-align:right; }
-        .divider { border-top:1px dashed #999; margin:8px 0; }
-        .total-row td { font-weight:700; border-top:1px solid #000; padding-top:8px; }
+        .divider { border-top:1px dashed #555; margin:8px 0; }
+        .total-row td { font-weight:700; padding-top:4px; }
+        .grand-total td { border-top:1px solid #000; padding-top: 6px; font-size: 1.1em; }
         .meta { margin-top:8px; font-size:.8rem; }
-        .terms { margin-top: 18px; font-size: .8rem; }
-        .terms-title { font-size: .9rem; margin-bottom: 8px; font-weight: bold; color: red; }
-        .terms-columns { column-count: 2; column-gap: 20px; }
-        .terms ul { padding-left: 18px; margin: 0; }
-        .terms li { margin-bottom: 4px; }
-        .item-detail { font-size: .75rem; color: #555; padding-left: 10px; }
+        .item-detail { font-size: .9em; color: #555; padding-left: 10px; }
+        .signature-area { margin-top: 40px; display: flex; justify-content: space-between; font-size: 12px; }
+        .signature-box { width: 45%; text-align: center; }
+        .signature-line { margin-top: 50px; border-top: 1px solid #000; }
+        .warning-text { text-align: center; font-weight: bold; margin: 15px 0; font-size: 1.1rem; color: #d32f2f; }
 
         .print-btn { margin: 12px 0; }
         @media print { 
@@ -51,16 +51,12 @@
 </head>
 <body>
     <div class="nota">
-        <div style="text-align: center; font-weight: bold; margin-bottom: 15px; font-size: 1.1rem; color: #d32f2f;">
-            "makan tanpa nota akan dapat diskon"
-        </div>
-
         <div class="wifi-info">
-            ID: {{ isset($isMerged) && $isMerged ? $bookingNumber : '#'.$order->id }}<br>
+            ID: {{ $order->formatted_id }}<br>
             PASSWORD WIFI ATAS: nginapdulu<br>
             Gedung belakang: nadikaguestb2025
         </div>
-
+        
         <div class="header">
             <h1>NADIKA GUEST HOUSE</h1>
             <div class="syariah">syariah</div>
@@ -70,7 +66,7 @@
 
         <div class="muted">Tanggal: {{ now()->format('d/m/Y H:i') }}</div>
         @if(!empty($isMerged) && $isMerged)
-        <div class="muted">Nota: {{ $bookingNumber }} ({{ $mergeCount }} booking)</div>
+            <div class="muted">Nota: {{ $bookingNumber }} ({{ $mergeCount }} booking)</div>
         @endif
         <div class="muted">Pelanggan: {{ $order->pelanggan?->nama ?? '-' }} ({{ $order->pelanggan?->telepon ?? '-' }})</div>
         <div class="muted">Check-in: {{ $order->tanggal_checkin->format('d/m/Y H:i') }}</div>
@@ -83,7 +79,10 @@
         <div class="divider"></div>
         <table>
             <thead>
-                <tr><th colspan="2" style="text-align:left;padding-bottom:4px;">Rincian</th></tr>
+                <tr>
+                    <th style="text-align:left;">Rincian</th>
+                    <th class="right">Nominal</th>
+                </tr>
             </thead>
             <tbody>
                 @if($roomItems->count() > 0)
@@ -91,11 +90,6 @@
                     <tr>
                         <td>Kamar {{ $it->kamar?->nomor_kamar }} ({{ $it->malam }} malam)</td>
                         <td class="right">Rp {{ number_format($it->subtotal,0,',','.') }}</td>
-                    </tr>
-                    <tr class="item-detail-row">
-                        <td colspan="2" class="item-detail">
-                            {{ $it->kamar?->tipe }} | {{ \Carbon\Carbon::parse($it->order?->tanggal_checkin)->format('d/m H:i') }} - {{ \Carbon\Carbon::parse($it->order?->tanggal_checkout)->format('d/m H:i') }}
-                        </td>
                     </tr>
                     @endforeach
                 @endif
@@ -111,10 +105,25 @@
         </table>
         <div class="divider"></div>
         <table>
+            @php
+                // Gunakan accessor dari model BookingOrder
+                $dpAmount = (int)($order->dp_amount ?? 0);
+                $jumlahPelunasan = (int)($order->jumlah_pelunasan ?? 0);
+                $sisaPembayaran = (int)($order->sisa_pembayaran ?? 0);
+
+                // Untuk nota gabungan, kita pakai variabel dari controller
+                if ($isMerged) {
+                    $dpAmount = (int)$paidTotal;
+                    $sisaPembayaran = (int)$remaining;
+                    // Pelunasan di nota gabungan adalah selisih jika sudah lunas
+                    $isLunasMerged = collect($siblings)->every(fn($s) => $s->payment_status === 'lunas');
+                    $jumlahPelunasan = $isLunasMerged ? $sisaPembayaran : 0;
+                }
+            @endphp
             <tbody>
                 <tr>
-                    <td>Subtotal</td>
-                    <td class="right">Rp {{ number_format($subtotal,0,',','.') }}</td>
+                    <td>Total Kamar & Cafe</td>
+                    <td class="right">Rp {{ number_format($roomItems->sum('subtotal') + $cafeItems->sum('subtotal'), 0, ',', '.') }}</td>
                 </tr>
                 @if($diskon > 0)
                 <tr>
@@ -122,46 +131,43 @@
                     <td class="right">- Rp {{ number_format($diskon,0,',','.') }}</td>
                 </tr>
                 @endif
-                
-                {{-- Untuk non-Traveloka, biaya lain masuk dalam perhitungan total --}}
-                @if(!$isTraveloka && $biayaLain > 0)
+                @if($biayaLain > 0)
                     <tr>
-                        <td>Biaya Lain</td>
+                        <td>{{ $isTraveloka ? 'Biaya Langsung' : 'Biaya Tambahan' }}</td>
                         <td class="right">+ Rp {{ number_format($biayaLain,0,',','.') }}</td>
                     </tr>
                 @endif
 
-                <tr class="total-row">
+                <tr class="total-row grand-total">
                     <td>Total Tagihan</td>
                     <td class="right">Rp {{ number_format($grandTotal,0,',','.') }}</td>
                 </tr>
 
-                {{-- Untuk Traveloka, biaya tambahan ditampilkan terpisah di bawah total --}}
-                @if($isTraveloka && $biayaLain > 0)
+                @if($dpAmount > 0 && $jumlahPelunasan > 0)
                     <tr>
-                        <td>Biaya langsung</td>
-                        <td class="right">Rp {{ number_format($biayaLain,0,',','.') }}</td>
+                        <td>DP Dibayar</td>
+                        <td class="right">Rp {{ number_format($dpAmount - $jumlahPelunasan, 0, ',', '.') }}</td>
                     </tr>
-                @endif
-                
-                @if($paidTotal > 0)
+                    <tr>
+                        <td>Pelunasan</td>
+                        <td class="right">Rp {{ number_format($jumlahPelunasan, 0, ',', '.') }}</td>
+                    </tr>
+                @elseif($dpAmount > 0)
                 <tr>
-                    <td>Sudah Dibayar</td>
-                    <td class="right">Rp {{ number_format($paidTotal,0,',','.') }}</td>
+                    <td>DP Dibayar</td>
+                    <td class="right">Rp {{ number_format($dpAmount, 0, ',', '.') }}</td>
                 </tr>
                 @endif
-                <tr class="total-row">
+
+                <tr class="total-row grand-total">
                     <td>Sisa Pembayaran</td>
-                    <td class="right">Rp {{ number_format($isTraveloka ? ($remaining + $biayaLain) : $remaining, 0, ',', '.') }}</td>
+                    <td class="right">Rp {{ number_format($sisaPembayaran, 0, ',', '.') }}</td>
                 </tr>
             </tbody>
         </table>
 
         <div class="meta">
-            Status Pembayaran: {{ strtoupper($order->payment_status ?? 'dp') }}
-            @if(!empty($order->dp_percentage))
-                (DP {{ $order->dp_percentage }}%)
-            @endif
+            Status: {{ strtoupper($order->payment_status ?? 'dp') }}
         </div>
 
         <div class="terms">
@@ -179,7 +185,11 @@
                 </ul>
             </div>
         </div>
-
+        <div class="bottom-right-warning">
+      "Transaksi yang tidak dilampiri nota diskon 50%"<br>
+      "JANGAN SAMPAI HILANG"
+        </div>
+        
         <script>
             window.addEventListener('load', function() {
                 setTimeout(function() { window.print(); }, 500);

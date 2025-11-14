@@ -954,13 +954,6 @@ class BookingController extends Controller
         ]);
     }
 
-    /** Editable invoice for only room (booking) portion */
-    public function notaBooking(Request $request, $id)
-    {
-        $order = BookingOrder::with(['pelanggan','items.kamar'])->findOrFail($id);
-        return view('nota_booking', ['order'=>$order]);
-    }
-
     /** Generate printout for guest */
     public function printout(Request $request, $id)
     {
