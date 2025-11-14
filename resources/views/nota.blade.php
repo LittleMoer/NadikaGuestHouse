@@ -75,6 +75,9 @@
         <div class="muted">Check-in: {{ $order->tanggal_checkin->format('d/m/Y H:i') }}</div>
         <div class="muted">Check-out: {{ $order->tanggal_checkout->format('d/m/Y H:i') }}</div>
         <div class="muted">Jumlah Tamu: {{ $order->jumlah_tamu_total ?? '-' }}</div>
+        @if(!empty($order->catatan))
+        <div class="muted">Catatan: {{ $order->catatan }}</div>
+        @endif
 
         <div class="divider"></div>
         <table>
