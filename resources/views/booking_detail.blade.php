@@ -74,17 +74,17 @@
           <div class="card-header">Total & Pembayaran</div>
           <div class="card-body">
             @php
+              $isLunas = $order->payment_status === 'lunas';
               $isTraveloka = ((int)($order->pemesanan ?? 0)) === 1;
-              // For Traveloka, follow manual total; otherwise use items sum (fallback to total_harga)
-              $roomTotal = $isTraveloka
-                ? (int)($order->total_harga ?? 0)
-                : (int)($order->items->sum('subtotal') ?? ($order->total_harga ?? 0));
+              $roomTotal = (int)($order->total_harga ?? 0);
               $cafeTotal = (int)($order->total_cafe ?? 0);
               $diskon    = (int)($order->diskon ?? 0);
               $biayaLain = (int)($order->biaya_tambahan ?? 0);
-              $grand     = max(0, ($roomTotal + $cafeTotal) - $diskon + ($isTraveloka ? 0 : $biayaLain));
-              $dp        = (int)($order->dp_amount ?? 0);
-              $sisa      = max(0, $grand - $dp);
+              $grand     = (int)($order->grand_total ?? 0); // Use accessor
+              $dpAmount  = (int)($order->dp_amount ?? 0);
+              $totalPaid = (int)($order->total_paid ?? 0);
+              $pelunasan = ($isLunas) ? ($totalPaid - $dpAmount) : 0;
+              $sisa      = (int)($order->sisa_pembayaran ?? 0); // Use accessor
             @endphp
             @if($isTraveloka)
             <div class="alert alert-info py-2" style="font-size:.9rem;">
@@ -115,10 +115,18 @@
               <div><strong>Grand Total</strong></div>
               <div><strong>Rp {{ number_format($grand,0,',','.') }}</strong></div>
             </div>
+            @if($dpAmount > 0)
             <div class="d-flex justify-content-between mt-1">
-              <div>DP</div>
-              <div>Rp {{ number_format($dp,0,',','.') }}</div>
+              <div>Uang Muka (DP)</div>
+              <div>Rp {{ number_format($dpAmount,0,',','.') }}</div>
             </div>
+            @endif
+            @if($pelunasan > 0)
+            <div class="d-flex justify-content-between mt-1">
+              <div>Pelunasan</div>
+              <div>Rp {{ number_format($pelunasan,0,',','.') }}</div>
+            </div>
+            @endif
             <div class="d-flex justify-content-between">
               <div><strong>Sisa Pembayaran</strong></div>
               <div><strong>Rp {{ number_format($sisa,0,',','.') }}</strong></div>

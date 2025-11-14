@@ -386,8 +386,6 @@ class BookingController extends Controller
                     'created_at'=>now(),
                     'updated_at'=>now(),
                 ]);
-                $booking->dp_amount = $dp + $remaining;
-                $booking->save();
             }
         }
         if (request()->wantsJson()) {
@@ -529,8 +527,6 @@ class BookingController extends Controller
                     'created_at'=>now(),
                     'updated_at'=>now(),
                 ]);
-                $order->dp_amount = $dp + $remaining;
-                $order->save();
             }
         }
         if($request->wantsJson()){
@@ -724,9 +720,6 @@ class BookingController extends Controller
                     'created_at'=>now(),
                     'updated_at'=>now(),
                 ]);
-                // Align dp_amount to total
-                $order->dp_amount = $newDp + $remaining;
-                $order->save();
                 $newDp = (int)$order->dp_amount;
             }
         }
@@ -743,8 +736,6 @@ class BookingController extends Controller
                 'created_at'=>now(),
                 'updated_at'=>now(),
             ]);
-            $order->dp_amount = $newDp + $delta;
-            $order->save();
         }
         // 4b) If already lunas and total decreases below current dp, log refund/correction
         if($newPayment === 'lunas' && $newTotal < $newDp){
@@ -758,8 +749,6 @@ class BookingController extends Controller
                 'created_at'=>now(),
                 'updated_at'=>now(),
             ]);
-            $order->dp_amount = $newDp - $delta;
-            $order->save();
         }
         // 5) Explicit dp_cancel: record full current DP as canceled
         if($newPayment === 'dp_cancel' && $newDp > 0){

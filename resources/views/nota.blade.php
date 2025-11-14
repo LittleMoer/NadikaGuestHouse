@@ -118,22 +118,23 @@
         <div class="divider"></div>
         <table>
             @php
-                $isLunas = $order->payment_status === 'lunas';
+                $isLunas = $order->payment_status === 'lunas'; // For single order
+                $dpAmount = (int)($order->dp_amount ?? 0);
                 $totalPaid = (int)($order->total_paid ?? 0);
-                $sisaPembayaran = (int)($order->sisa_pembayaran ?? 0); // Accessor
-                $dpAmount = (int)($order->dp_amount ?? 0); // Accessor
-                $jumlahPelunasan = $isLunas ? ($totalPaid - $dpAmount) : 0;
+                $sisaPembayaran = (int)($order->sisa_pembayaran ?? 0);
+                $jumlahPelunasan = ($isLunas && $dpAmount > 0) ? ($totalPaid - $dpAmount) : 0;
 
                 // Untuk nota gabungan, kita pakai variabel dari controller
                 if ($isMerged) {
                     $isLunasMerged = collect($siblings)->every(fn($s) => $s->payment_status === 'lunas');
-                    $totalPaid = (int)$paidTotal;
+                    $totalPaidMerged = (int)$paidTotal;
                     $sisaPembayaran = (int)$remaining;
-                    // Di nota gabungan, DP adalah total yang sudah dibayar dikurangi sisa (jika sudah lunas)
-                    // atau total yang sudah dibayar jika belum lunas.
-                    // Untuk lebih mudah, kita anggap semua yang sudah dibayar sebelum pelunasan adalah DP.
-                    $dpAmount = $isLunasMerged ? ($totalPaid - $sisaPembayaran) : $totalPaid;
+                    // Di nota gabungan, DP adalah total dari semua dp_amount.
+                    $dpAmount = (int) $siblings->sum('dp_amount');
+                    // Pelunasan adalah total bayar dikurangi total DP jika sudah lunas.
                     $jumlahPelunasan = $isLunasMerged ? $sisaPembayaran : 0;
+                    // Jika belum lunas, total bayar adalah DP itu sendiri.
+                    if (!$isLunasMerged) $totalPaid = $dpAmount;
                 }
             @endphp
             <tbody>
