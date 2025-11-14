@@ -95,6 +95,12 @@
       margin: 50px 0 10px;
       border-top: 1px solid #000;
     }
+    .page-break {
+      page-break-after: always;
+    }
+    .copy-identifier {
+      text-align: right; font-size: 1.2rem; font-weight: bold; color: #444; margin-bottom: 10px; border-bottom: 2px dashed #ccc; padding-bottom: 5px;
+    }
     @media print {
       @page {
         size: A4 portrait;
@@ -107,7 +113,7 @@
         padding: 0;
         font-size: 16px; /* compact for A5 fit */
         line-height: 1.3;   /* slightly tighter */
-        zoom: 1; /* ensure normal scaling for print */
+        zoom: 0.85; /* scale to 85% for printing */
       }
       .wrap {
         max-width: none;
@@ -131,13 +137,23 @@
       .terms li { margin-bottom: 3px; }
       .signature { margin-top: 12px; }
       .sign-line { margin: 20px 0 6px; }
+      .copy-identifier {
+        font-size: 1rem;
+        margin-bottom: 8px;
+        padding-bottom: 4px;
+      }
     }
   </style>
 </head>
 <body>
+  <!-- Salinan untuk Tamu -->
   <div class="wrap">
+    <div class="copy-identifier">
+      SALINAN UNTUK TAMU
+    </div>
     <div style="text-align: center; font-weight: bold; margin-bottom: 15px; font-size: 1.1rem; color: #d32f2f;">
-      "makan tanpa nota akan dapat diskon"
+      "makan tanpa nota akan dapat diskon"<br>
+      "JANGAN SAMPAI HILANG"
     </div>
 
     <div class="wifi-info">
@@ -242,6 +258,101 @@
         <li>Mohon jaga ketenangan dan tidak membuat gaduh.</li>
         <li>Guest house berhak membatalkan reservasi jika tamu melanggar ketentuan.</li>
       </ul>
+    </div>
+  </div>
+  <script>
+    // Auto-open print dialog when the page loads
+    window.addEventListener('load', function(){
+      // Small delay ensures fonts/layout are ready before printing
+      setTimeout(function(){
+        try { window.print(); } catch(e) {}
+      }, 150);
+    });
+  </script>
+
+  <!-- Pemisah Halaman -->
+  <div class="page-break"></div>
+
+  <!-- Salinan untuk Resepsionis -->
+  <div class="wrap">
+    <div class="copy-identifier" style="color: #0d47a1;">
+      SALINAN UNTUK RESEPSIONIS
+    </div>
+    <div style="text-align: center; font-weight: bold; margin-bottom: 15px; font-size: 1.1rem; color: #d32f2f;">
+      "makan tanpa nota akan dapat diskon"<br>
+      "JANGAN SAMPAI HILANG"
+    </div>
+
+    <div class="wifi-info">
+      ID:{{ $order->formatted_id }}<br>
+      PASSWORD WIFI ATAS: nginapdulu<br>
+      Gedung belakang: nadikaguestb2025
+    </div>
+
+    <div class="header">
+      <h1>NADIKA GUEST HOUSE</h1>
+      <div class="syariah">syariah</div>
+      <div class="address">JL. Kalipepe I no.1 ( Grand Panorama Raya )<br>Pudakpayung - SEMARANG</div>
+      <div class="contact">Telpon: 024.7461127 - 08122542588</div>
+    </div>
+
+    <div class="columns">
+      <div class="col-left">
+        <div class="booking-info">
+          <div class="section-title">Data Tamu & Booking</div>
+          <div class="guest-info">
+            <div class="info-row"><div class="info-label">Nama Pengunjung</div><div class="info-value">: {{ $order->pelanggan?->nama ?? '-' }}</div></div>
+            <div class="info-row"><div class="info-label">No. Identitas/SIM</div><div class="info-value">: {{ $order->pelanggan?->no_identitas ?? '-' }}</div></div>
+            <div class="info-row"><div class="info-label">No. HP</div><div class="info-value">: {{ $order->pelanggan?->telepon ?? '-' }}</div></div>
+            @if(!empty($isMerged) && $isMerged)
+              <div class="info-row"><div class="info-label">Nota</div><div class="info-value">: {{ $bookingNumber }} ({{ $mergeCount }} booking)</div></div>
+            @else
+              <div class="info-row"><div class="info-label">Check-in</div><div class="info-value">: {{ $order->tanggal_checkin->format('d/m/Y H:i') }} WIB</div></div>
+              <div class="info-row"><div class="info-label">Check-out</div><div class="info-value">: {{ $order->tanggal_checkout->format('d/m/Y H:i') }} WIB</div></div>
+            @endif
+            <div class="info-row"><div class="info-label">Jumlah Tamu</div><div class="info-value">: {{ $order->jumlah_tamu_total ?? '0' }} orang</div></div>
+            <div class="info-row"><div class="info-label">Jaminan</div><div class="info-value">: {{ $order->pelanggan?->jenis_identitas ?? '-' }}</div></div>
+            <div class="info-row">
+              <div class="info-label">Jenis Kamar Disewa</div>
+              <div class="info-value">:
+                @php
+                  $listItems = (!empty($isMerged) && $isMerged) ? ($mergedItems ?? collect()) : collect($order->items);
+                @endphp
+                {{ $listItems->map(function($it){
+                    $no = $it->kamar?->nomor_kamar ?? '-';
+                    $tipe = $it->kamar?->tipe ?? '-';
+                    return $no.' ('.$tipe.')';
+                })->join(', ') }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-right">
+        <div class="summary">
+          <div class="section-title">Ringkasan Pembayaran {{ (!empty($isMerged) && $isMerged) ? '(Gabungan Nota '.$bookingNumber.')' : '' }}</div>
+          @if(!$isTraveloka)
+            <div class="row"><div class="label">Subtotal</div><div class="value">Rp {{ number_format($baseSubtotal,0,',','.') }}</div></div>
+            @if($diskon > 0)
+              <div class="row"><div class="label">Diskon</div><div class="value">- Rp {{ number_format($diskon,0,',','.') }}</div></div>
+            @endif
+            @if(($biayaTambahan ?? 0) > 0)
+              <div class="row"><div class="label">Biaya Lain</div><div class="value">+ Rp {{ number_format($biayaTambahan,0,',','.') }}</div></div>
+            @endif
+            <div class="row total"><div class="label">Total</div><div class="value">Rp {{ number_format($totalAfterDiscount,0,',','.') }}</div></div>
+            <div class="row"><div class="label">Sudah Dibayar</div><div class="value">Rp {{ number_format($paid,0,',','.') }}</div></div>
+            <div class="row"><div class="label">Sisa</div><div class="value">Rp {{ number_format($remaining,0,',','.') }}</div></div>
+          @else
+            {{-- Untuk Traveloka, hanya tampilkan biaya langsung jika ada --}}
+            @if(($biayaTambahan ?? 0) > 0)
+              <div class="row total"><div class="label">Biaya Langsung</div><div class="value">Rp {{ number_format($biayaTambahan,0,',','.') }}</div></div>
+              <div class="row"><div class="label">Sisa</div><div class="value">Rp {{ number_format($biayaTambahan,0,',','.') }}</div></div>
+            @else
+              <div class="row"><div class="label">Informasi</div><div class="value">- Tidak ada tagihan langsung -</div></div>
+            @endif
+          @endif
+        </div>
+      </div>
     </div>
   </div>
   <script>
