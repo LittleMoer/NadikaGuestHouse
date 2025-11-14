@@ -159,6 +159,6 @@ class BookingOrder extends Model
         $month = $this->tanggal_checkin ? $this->tanggal_checkin->format('m') : now()->format('m');
         $idPart = substr((string)($this->order_code ?? '000'), -3);
 
-        return "{$prefix}{$year}{$month}-{$idPart}";
+        return "{$prefix}{$year}{$month}{$idPart}";
     }
 }
