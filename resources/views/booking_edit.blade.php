@@ -103,6 +103,50 @@
           if(sel){ sel.addEventListener('change', apply); apply(); }
         })();
       });
+
+      // Durasi (Hari) selector -> sets times to slot system
+      document.addEventListener('DOMContentLoaded', function(){
+          const sel = document.getElementById('durasi_hari_edit');
+          const inpIn = document.querySelector('input[name="tanggal_checkin"]');
+          const inpOut = document.querySelector('input[name="tanggal_checkout"]');
+          const customDurasiWrap = document.getElementById('durasi_hari_custom_wrap_edit');
+          const customDurasiInput = document.getElementById('durasi_hari_custom_edit');
+          const fpIn = flatpickr(inpIn);
+          const fpOut = flatpickr(inpOut);
+
+          function handleDurasiChange(val) {
+              document.getElementById('durasi_booking_hidden_edit').value = val;
+              if (val === 'custom') {
+                  customDurasiWrap.style.display = 'block';
+                  customDurasiInput.focus();
+                  return;
+              } else {
+                  customDurasiWrap.style.display = 'none';
+              }
+
+              if(!inpIn || !inpOut || !val) return;
+
+              const num = parseFloat(val);
+              if (isNaN(num)) return;
+
+              const base = (fpIn?.selectedDates?.[0]) || (inpIn.value ? new Date(inpIn.value) : new Date());
+              let start;
+              if(num === 0.5){
+                  start = new Date(base.getFullYear(), base.getMonth(), base.getDate(), 6, 0, 0, 0);
+                  var end = new Date(base.getFullYear(), base.getMonth(), base.getDate(), 12, 0, 0, 0);
+              } else {
+                  start = new Date(base.getFullYear(), base.getMonth(), base.getDate(), 12, 0, 0, 0);
+                  const fullDays = Math.floor(num);
+                  const hasHalf = (num - fullDays) >= 0.5;
+                  const hoursToAdd = fullDays * 24 + (hasHalf ? 6 : 0);
+                  var end = new Date(start.getTime() + hoursToAdd * 60 * 60 * 1000);
+              }
+              if (fpIn) fpIn.setDate(start, true);
+              if (fpOut) fpOut.setDate(end, true);
+          }
+          sel.addEventListener('change', () => handleDurasiChange(sel.value));
+          customDurasiInput.addEventListener('input', () => handleDurasiChange(customDurasiInput.value));
+      });
     </script>
 
     <div class="card">
@@ -114,6 +158,7 @@
       </div>
       <form action="{{ route('booking.update', $order->id) }}" method="POST">
         @csrf
+        <input type="hidden" name="durasi_booking" id="durasi_booking_hidden_edit" value="">
         <div class="card-body">
           <div class="row">
             <div class="col-md-6 mb-3">
@@ -136,6 +181,23 @@
             <div class="col-md-6 mb-3">
               <label class="form-label">Check-Out</label>
               <input type="text" name="tanggal_checkout" class="form-control" value="{{ old('tanggal_checkout', \Carbon\Carbon::parse($order->tanggal_checkout)->format('Y-m-d\\TH:i')) }}" placeholder="DD-MM-YYYY atau DD-MM-YYYY HH:MM" required />
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Durasi (Hari)</label>
+                <select id="durasi_hari_edit" class="form-control">
+                    <option value="">- Pilih untuk mengubah waktu -</option>
+                    <option value="0.5">0.5 hari (06:00 - 12:00)</option>
+                    <option value="1">1 hari (12:00 - 12:00 esok)</option>
+                    <option value="1.5">1.5 hari (12:00 - 18:00 esok)</option>
+                    <option value="2">2 hari</option>
+                    <option value="3">3 hari</option>
+                    <option value="4">4 hari</option>
+                    <option value="5">5 hari</option>
+                    <option value="custom">Lainnya...</option>
+                </select>
+                <div id="durasi_hari_custom_wrap_edit" style="display: none; margin-top: 6px;">
+                    <input type="number" id="durasi_hari_custom_edit" class="form-control" placeholder="Isi durasi (hari)" step="0.5" min="0.5">
+                </div>
             </div>
             <div class="col-md-4 mb-3">
               <label class="form-label">Jenis Pemesanan</label>

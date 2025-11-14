@@ -576,6 +576,8 @@ class BookingController extends Controller
             // Owner-only manual discount (not saved, only for calculation)
             'discount_manual_percentage' => 'nullable|integer|min:0|max:100',
             'discount_manual_nominal' => 'nullable|integer|min:0',
+            // New: explicit duration from form
+            'durasi_booking' => 'nullable|numeric|min:0',
         ]);
         // Require manual total when Traveloka (edit)
         if ((int)$request->get('pemesanan') === 1) {
@@ -594,18 +596,16 @@ class BookingController extends Controller
         elseif ($extraSel === 'h6') { $end = $end->copy()->addHours(6); }
         elseif ($extraSel === 'h9') { $end = $end->copy()->addHours(9); }
         elseif ($extraSel === 'd1') { $end = $end->copy()->addDay(); }
-        // Calculate raw day span and derived nights (calendar days, ignore clock time)
-        $rawDays = $start->copy()->startOfDay()->diffInDays($end->copy()->startOfDay());
-        $days = max($rawDays,1);
-
-        // Cek durasi 1.5 hari (1 hari + 6 jam) untuk penyesuaian harga
-        $isOneAndHalfDays = false;
-        if ($rawDays == 1) {
+        // Use explicit duration from form if available, otherwise calculate
+        $durasi = (float)($data['durasi_booking'] ?? 0);
+        if ($durasi <= 0) {
+            // Fallback logic if durasi_booking is not sent
+            $rawDays = $start->copy()->startOfDay()->diffInDays($end->copy()->startOfDay());
             $extraHours = $end->copy()->startOfDay()->diffInHours($end);
-            if ($extraHours >= 6 && $extraHours < 12) {
-                $isOneAndHalfDays = true;
-            }
+            $durasi = $rawDays + ($extraHours >= 6 ? 0.5 : 0);
+            if ($start->isSameDay($end)) $durasi = 0.5; // half-day
         }
+        $days = max(ceil($durasi), 1); // For DB malam field, round up
 
         // Base recalc from authoritative kamar nightly rates
         $base = 0;
@@ -613,18 +613,9 @@ class BookingController extends Controller
             // Always pull price from kamar table; remove manual overrides
             $it->harga_per_malam = (int)($it->kamar?->harga ?? $it->harga_per_malam ?? 0);
             $it->malam = $days;
-            $it->subtotal = $isOneAndHalfDays ? ((int)$it->harga_per_malam * 1.5) : ($days * (int)$it->harga_per_malam);
+            $it->subtotal = (int)$it->harga_per_malam * $durasi;
             $it->save();
             $base += $it->subtotal;
-        }
-        // Apply automatic half-day adjustment only when same calendar day and <= 360 minutes
-        $halfDay = $start->isSameDay($end) && ($end->diffInMinutes($start) <= 360);
-        if ($halfDay) {
-            $base = (int) round($base * 0.5);
-            foreach($order->items as $it){
-                $it->subtotal = (int) round($it->subtotal * 0.5);
-                $it->save();
-            }
         }
         // Do not apply extra_time multipliers to price; only date adjusted above
         // Per-head
