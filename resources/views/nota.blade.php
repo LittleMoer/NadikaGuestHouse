@@ -33,6 +33,11 @@
             font-weight: bold;
             margin-top: 20px;
         }
+        .booking-id-display {
+            font-size: 1.5rem; /* Memperbesar ukuran font */
+            color: #d32f2f;     /* Mengubah warna menjadi merah */
+            font-weight: bold; /* Membuat teks tebal */
+        }
 
         .print-btn { margin: 12px 0; }
         @media print { 
@@ -58,7 +63,7 @@
 <body>
     <div class="nota">
         <div class="wifi-info">
-            ID: {{ $order->formatted_id }}<br>
+            <span class="booking-id-display">ID: {{ $order->formatted_id }}</span><br>
             PASSWORD WIFI ATAS: nginapdulu<br>
             Gedung belakang: nadikaguestb2025
         </div>
