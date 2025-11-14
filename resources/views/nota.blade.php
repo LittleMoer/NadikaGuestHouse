@@ -56,7 +56,7 @@
         </div>
 
         <div class="wifi-info">
-            ID:{{ $order->formatted_id }}<br>
+            ID: {{ isset($isMerged) && $isMerged ? $bookingNumber : '#'.$order->id }}<br>
             PASSWORD WIFI ATAS: nginapdulu<br>
             Gedung belakang: nadikaguestb2025
         </div>
