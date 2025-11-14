@@ -218,7 +218,13 @@
             <div class="row"><div class="label">Sudah Dibayar</div><div class="value">Rp {{ number_format($paid,0,',','.') }}</div></div>
             <div class="row"><div class="label">Sisa</div><div class="value">Rp {{ number_format($remaining,0,',','.') }}</div></div>
           @else
-            <div class="row"><div class="label">Informasi</div><div class="value">- Tidak menampilkan total untuk Traveloka -</div></div>
+            {{-- Untuk Traveloka, hanya tampilkan biaya langsung jika ada --}}
+            @if(($biayaTambahan ?? 0) > 0)
+              <div class="row total"><div class="label">Biaya Langsung</div><div class="value">Rp {{ number_format($biayaTambahan,0,',','.') }}</div></div>
+              <div class="row"><div class="label">Sisa</div><div class="value">Rp {{ number_format($biayaTambahan,0,',','.') }}</div></div>
+            @else
+              <div class="row"><div class="label">Informasi</div><div class="value">- Tidak ada tagihan langsung -</div></div>
+            @endif
           @endif
         </div>
       </div>
