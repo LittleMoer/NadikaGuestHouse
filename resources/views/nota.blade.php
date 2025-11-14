@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Nota {{ isset($isMerged) && $isMerged ? ('Nota '.$bookingNumber.' ('.$mergeCount.' booking)') : ('#'.$order->order_code) }}</title>
     <style>
-        body { margin: 16px; color:#111; font-size: 12px; }
+        body {  font-family: Arial, sans-serif;margin: 16px; color:#111; font-size: 12px; }
         .nota { max-width: 320px; margin: 0 auto; }
         .wifi-info { text-align: right; font-size: 12px; color: #666; margin-bottom: 10px; }
         .header { text-align: center; margin-bottom: 20px; }

@@ -938,14 +938,18 @@ class BookingController extends Controller
         } else {
             $isTraveloka = (int)$order->pemesanan === 1;
         }
-        $grand = $isTraveloka ? ($subtotal - $diskon) : ($subtotal - $diskon + $biayaTambahan);
-        $remaining = max(0, $grand - $paidTotal);
+        
+        // total_harga sudah dikurangi diskon. Jadi grand total adalah total_harga + total_cafe + biaya_tambahan.
+        // Untuk Traveloka, biaya tambahan tidak termasuk dalam grand total tagihan utama.
+        $grandTotal = $isTraveloka ? ($roomTotal + $cafeTotal) : ($roomTotal + $cafeTotal + $biayaTambahan);
+
+        $remaining = max(0, $grandTotal - $paidTotal);
 
         return view('nota', [
             'order'=>$order,
             'roomItems' => $roomItems,
             'cafeItems' => $cafeItems,
-            'subtotal' => $subtotal, 'diskon' => $diskon, 'biayaLain' => $biayaTambahan, 'grandTotal' => $grand,
+            'subtotal' => $subtotal, 'diskon' => $diskon, 'biayaLain' => $biayaTambahan, 'grandTotal' => $grandTotal,
             'paidTotal' => $paidTotal, 'remaining' => $remaining,
             'isMerged' => $isMerged,
             'mergeCount' => $isMerged ? $siblings->count() : 1,
