@@ -163,6 +163,20 @@ class BookingOrder extends Model
     }
 
     /**
+     * Computed attribute: Grand Total setelah diskon dan biaya tambahan.
+     *
+     * @return int
+     */
+    public function getGrandTotalAttribute(): int
+    {
+        $total = (int)($this->total_harga ?? 0);
+        $diskon = (int)($this->diskon ?? 0);
+        $biayaTambahan = (int)($this->biaya_tambahan ?? 0);
+
+        return $total - $diskon + $biayaTambahan;
+    }
+
+    /**
      * Computed attribute: Sisa pembayaran setelah DP.
      * Berguna untuk ditampilkan di nota/invoice.
      *
@@ -170,13 +184,28 @@ class BookingOrder extends Model
      */
     public function getSisaPembayaranAttribute(): int
     {
-        // Jika status pembayaran sudah 'lunas', maka tidak ada sisa pembayaran.
+        // Jika status pembayaran sudah 'lunas', maka sisa pembayaran adalah 0.
         if ($this->payment_status === 'lunas') {
             return 0;
         }
 
-        // Sisa pembayaran adalah total harga dikurangi jumlah DP yang sudah dibayar.
-        $sisa = (int)$this->total_harga - (int)$this->dp_amount;
+        // Sisa pembayaran adalah grand total dikurangi jumlah DP yang sudah dibayar.
+        $sisa = $this->grand_total - (int)$this->dp_amount;
         return max(0, $sisa); // Pastikan hasilnya tidak negatif
+    }
+
+    /**
+     * Computed attribute: Jumlah pelunasan yang dibayarkan.
+     * Ini adalah sisa pembayaran jika statusnya sudah lunas.
+     *
+     * @return int
+     */
+    public function getJumlahPelunasanAttribute(): int
+    {
+        if ($this->payment_status !== 'lunas') {
+            return 0;
+        }
+        // Jumlah pelunasan adalah grand total dikurangi DP.
+        return $this->grand_total - (int)$this->dp_amount;
     }
 }
