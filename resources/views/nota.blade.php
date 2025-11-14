@@ -5,20 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Nota {{ isset($isMerged) && $isMerged ? ('Nota '.$bookingNumber.' ('.$mergeCount.' booking)') : ('#'.$order->order_code) }}</title>
     <style>
-        body {  font-family: Arial, sans-serif;margin: 16px; color:#111; font-size: 12px; }
+        body {  font-family: Arial, sans-serif;margin: 16px; color:#111; font-size: 13px; line-height: 1.3; }
         .nota { max-width: 320px; margin: 0 auto; }
         .wifi-info { text-align: right; font-size: 12px; color: #666; margin-bottom: 10px; }
-        .header { text-align: center; margin-bottom: 20px; }
+        .header { text-align: center; margin-bottom: 15px; }
         .header h1 { color: #d32f2f; font-size: 24px; margin: 0; font-weight: bold; }
         .header .syariah { color: #388e3c; font-style: italic; margin-top: -5px; }
         .header .address { font-size: 14px; margin-top: 5px; }
         .header .contact { font-size: 14px; margin-top: 5px; }
         .muted { color:#555; font-size:.8rem; }
         table { width:100%; border-collapse: collapse; margin-top:8px; }
-        th, td { padding:2px 0; vertical-align: top; }
+        th, td { padding:1.5px 0; vertical-align: top; }
         thead th { font-weight: 600; border-bottom: 1px dashed #555; padding-bottom: 4px; }
         .right { text-align:right; }
-        .divider { border-top:1px dashed #555; margin:8px 0; }
+        .divider { border-top:1px dashed #555; margin:6px 0; }
         .total-row td { font-weight:700; padding-top:4px; }
         .grand-total td { border-top:1px solid #000; padding-top: 6px; font-size: 1.1em; }
         .meta { margin-top:8px; font-size:.8rem; }
@@ -51,6 +51,7 @@
                 height: 100%;
                 margin: 0;
                 padding: 0;
+                font-size: 12px; /* Adjust print font size if needed */
                 zoom: 0.95; /* Slightly scale down to ensure fit */
             }
             .nota {
@@ -206,7 +207,6 @@
                 setTimeout(function() { window.print(); }, 500);
             });
         </script>
-        <div class="muted">Terima kasih.</div>
     </div>
 </body>
 </html>
