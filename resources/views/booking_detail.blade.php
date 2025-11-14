@@ -107,7 +107,7 @@
             </div>
             @endif
             <div class="d-flex justify-content-between text-muted">
-              <div>Biaya Tambahan</div>
+              <div>{{ $isTraveloka ? 'Biaya Langsung' : 'Biaya Tambahan' }}</div>
               <div>+ Rp {{ number_format($biayaLain,0,',','.') }}</div>
             </div>
             <hr/>
@@ -125,7 +125,7 @@
             </div>
             @if($isTraveloka && $biayaLain > 0)
             <div class="d-flex justify-content-between mt-2 text-danger">
-              <div><strong>Tagihan Tambahan (di luar Traveloka)</strong></div>
+              <div><strong>Tagihan Biaya Langsung</strong></div>
               <div><strong>Rp {{ number_format($biayaLain,0,',','.') }}</strong></div>
             </div>
             @endif
