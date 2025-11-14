@@ -157,8 +157,8 @@ class BookingOrder extends Model
         $prefix = $prefixMap[(int)($this->pemesanan ?? 0)] ?? 'XXX';
         $year = $this->tanggal_checkin ? $this->tanggal_checkin->format('y') : now()->format('y');
         $month = $this->tanggal_checkin ? $this->tanggal_checkin->format('m') : now()->format('m');
-        $idPart = str_pad((string)($this->id ?? 0), 4, '0', STR_PAD_LEFT);
+        $idPart = substr((string)($this->order_code ?? '000'), -3);
 
-        return "{$prefix}{$year}{$month}{$idPart}";
+        return "{$prefix}{$year}{$month}-{$idPart}";
     }
 }
