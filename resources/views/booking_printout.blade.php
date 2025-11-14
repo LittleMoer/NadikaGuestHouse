@@ -113,7 +113,7 @@
     @media print {
       @page {
         size: A4 portrait;
-        margin: 0; /* match 'Margins: None' */
+        margin: 0.5cm; /* Add margin to prevent content being cut off */
       }
       body {
         width: 100%;
@@ -273,7 +273,7 @@
     </div>
 
     <div class="bottom-right-warning">
-      "Yang tidak dilampiri nota diskon 50%"<br>
+      "Transaksi yang tidak dilampiri nota diskon 50%"<br>
       "JANGAN SAMPAI HILANG"
     </div>
   </div>
