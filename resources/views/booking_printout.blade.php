@@ -171,7 +171,7 @@
     </div>
 
     <div class="wifi-info">
-      <span style="color: red; font-size: 1.5rem; font-weight: bold;">ID:{{ substr($order->formated_code, -3) }}</span><br>
+      <span style="color: red; font-size: 1.5rem; font-weight: bold;">ID:{{ substr($order->formatted_id, -3) }}</span><br>
       PASSWORD WIFI ATAS: nginapdulu<br>
       Gedung belakang: nadikaguestb2025
     </div>
