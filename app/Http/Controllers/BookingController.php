@@ -950,6 +950,7 @@ class BookingController extends Controller
             'isMerged' => $isMerged,
             'mergeCount' => $isMerged ? $siblings->count() : 1,
             'bookingNumber' => $bookingNo,
+            'isTraveloka' => $isTraveloka, // <-- Tambahkan ini
         ]);
     }
 
