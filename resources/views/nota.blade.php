@@ -121,16 +121,32 @@
                     <td class="right">- Rp {{ number_format($diskon,0,',','.') }}</td>
                 </tr>
                 @endif
-                @if($biayaLain > 0)
-                <tr>
-                    <td>{{ isset($isTraveloka) && $isTraveloka ? 'Biaya Tagihan Langsung' : 'Biaya Lain' }}</td>
-                    <td class="right">+ Rp {{ number_format($biayaLain,0,',','.') }}</td>
-                </tr>
+                @php
+                    // Ambil variabel isTraveloka dari controller. Jika tidak ada, default ke false.
+                    $isTravelokaOrder = isset($isTraveloka) && $isTraveloka;
+                @endphp
+
+                {{-- Untuk non-Traveloka, tampilkan Biaya Lain seperti biasa --}}
+                @if(!$isTravelokaOrder && $biayaLain > 0)
+                    <tr>
+                        <td>Biaya Lain</td>
+                        <td class="right">+ Rp {{ number_format($biayaLain,0,',','.') }}</td>
+                    </tr>
                 @endif
+
                 <tr class="total-row">
                     <td>Total Akhir</td>
                     <td class="right">Rp {{ number_format($grandTotal,0,',','.') }}</td>
                 </tr>
+
+                {{-- Untuk Traveloka, tampilkan Biaya Tambahan terpisah di bawah Total Akhir --}}
+                @if($isTravelokaOrder && $biayaLain > 0)
+                    <tr>
+                        <td>Biaya Tambahan (Bayar di Tempat)</td>
+                        <td class="right">Rp {{ number_format($biayaLain,0,',','.') }}</td>
+                    </tr>
+                @endif
+
                 @if($paidTotal > 0)
                 <tr>
                     <td>Sudah Dibayar</td>
@@ -139,13 +155,7 @@
                 @endif
                 <tr class="total-row">
                     <td>Sisa Pembayaran</td>
-                    <td class="right">Rp 
-                        @if(isset($isTraveloka) && $isTraveloka)
-                            {{ number_format($remaining + $biayaLain,0,',','.') }}
-                        @else
-                            {{ number_format($remaining,0,',','.') }}
-                        @endif
-                    </td>
+                    <td class="right">Rp {{ number_format($isTravelokaOrder ? ($remaining + $biayaLain) : $remaining, 0, ',', '.') }}</td>
                 </tr>
             </tbody>
         </table>
