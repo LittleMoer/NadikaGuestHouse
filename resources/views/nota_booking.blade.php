@@ -51,7 +51,7 @@
         </div>
 
         <div class="header">
-            <h1>NADIKA GUEST HOUSE</h1>
+            <h1>NADIKA GUEST HOUSEs</h1>
             <div class="syariah">syariah</div>
             <div class="address">JL. Kalipepe I no.1 ( Grand Panorama Raya )<br>Pudakpayung - SEMARANG</div>
             <div class="contact">Telpon: 024.7461127 - 08122542588</div>
@@ -101,14 +101,9 @@
       <label>Catatan:</label>
       <input type="text" id="catatan" placeholder="tuliskan catatan di nota" style="flex:1 1 300px;"/>
     </div>
-      
     <div class="bottom-right-warning">
       "Transaksi yang tidak dilampiri nota diskon 50%"<br>
       "JANGAN SAMPAI HILANG"
-    </div>
-
-    <div class="print-btn">
-      <button onclick="window.print()">Print</button>
     </div>
   </div>
 

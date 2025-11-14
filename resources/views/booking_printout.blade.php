@@ -274,12 +274,12 @@
           <li>Guest house berhak membatalkan reservasi jika tamu melanggar ketentuan.</li>
         </ul>
       </div>
-      <div class="bottom-right-warning">
-        "Transaksi yang tidak dilampiri nota diskon 50%"<br>
-        "JANGAN SAMPAI HILANG"
-      </div>
     </div>
 
+    <div class="bottom-right-warning">
+      "Transaksi yang tidak dilampiri nota diskon 50%"<br>
+      "JANGAN SAMPAI HILANG"
+    </div>
   </div>
   <script>
     // Auto-open print dialog when the page loads
