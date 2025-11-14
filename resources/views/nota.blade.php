@@ -22,7 +22,8 @@
         .total-row td { font-weight:700; border-top:1px solid #000; padding-top:8px; }
         .meta { margin-top:8px; font-size:.8rem; }
         .terms { margin-top: 18px; font-size: .8rem; }
-        .terms h3 { font-size: .9rem; margin-bottom: 8px; font-weight: bold; color: red; }
+        .terms-title { font-size: .9rem; margin-bottom: 8px; font-weight: bold; color: red; }
+        .terms-columns { column-count: 2; column-gap: 20px; }
         .terms ul { padding-left: 18px; margin: 0; }
         .terms li { margin-bottom: 4px; }
         .item-detail { font-size: .75rem; color: #555; padding-left: 10px; }
@@ -32,18 +33,18 @@
             .print-btn { display:none; }
             @page {
                 size: A4 portrait;
-                margin: 0;
+                margin: 0.5cm; /* Set consistent margin */
             }
             body {
                 width: 100%;
                 height: 100%;
                 margin: 0;
                 padding: 0;
+                zoom: 0.95; /* Slightly scale down to ensure fit */
             }
             .nota {
-                max-width: none;
-                margin: 0;
-                padding: 10mm;
+                max-width: 100%;
+                padding: 0; /* Remove padding as @page margin is used */
             }
         }
     </style>
@@ -164,17 +165,19 @@
         </div>
 
         <div class="terms">
-            <h3>Syarat & Ketentuan Menginap:</h3>
-            <ul>
-                <li>Check-in dimulai pukul 12:00 WIB dan check-out maksimal pukul 12:00 WIB.</li>
-                <li>Tamu wajib menunjukkan identitas asli (KTP/SIM) yang masih berlaku saat check-in.</li>
-                <li>Dilarang membawa tamu tambahan ke dalam kamar tanpa registrasi.</li>
-                <li>Barang berharga harap dijaga sendiri, pihak guest house tidak bertanggung jawab atas kehilangan.</li>
-                <li>Kerusakan atau kehilangan fasilitas kamar akan dikenakan biaya sesuai ketentuan.</li>
-                <li>Dilarang merokok di dalam kamar.</li>
-                <li>Mohon jaga ketenangan dan tidak membuat gaduh.</li>
-                <li>Guest house berhak membatalkan reservasi jika tamu melanggar ketentuan.</li>
-            </ul>
+            <div class="terms-title">Syarat & Ketentuan Menginap:</div>
+            <div class="terms-columns">
+                <ul>
+                    <li>Check-in dimulai pukul 12:00 WIB dan check-out maksimal pukul 12:00 WIB.</li>
+                    <li>Tamu wajib menunjukkan identitas asli (KTP/SIM) yang masih berlaku saat check-in.</li>
+                    <li>Dilarang membawa tamu tambahan ke dalam kamar tanpa registrasi.</li>
+                    <li>Barang berharga harap dijaga sendiri, pihak guest house tidak bertanggung jawab atas kehilangan.</li>
+                    <li>Kerusakan atau kehilangan fasilitas kamar akan dikenakan biaya sesuai ketentuan.</li>
+                    <li>Dilarang merokok di dalam kamar.</li>
+                    <li>Mohon jaga ketenangan dan tidak membuat gaduh.</li>
+                    <li>Guest house berhak membatalkan reservasi jika tamu melanggar ketentuan.</li>
+                </ul>
+            </div>
         </div>
 
         <script>
