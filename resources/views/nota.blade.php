@@ -155,21 +155,10 @@
                     <td class="right">Rp {{ number_format($grandTotal,0,',','.') }}</td>
                 </tr>
 
-                @if($dpAmount > 0 && $jumlahPelunasan > 0)
-                    <tr>
-                        <td>DP Dibayar</td>
-                        <td class="right">Rp {{ number_format($dpAmount - $jumlahPelunasan, 0, ',', '.') }}</td>
-                    </tr>
-                    <tr>
-                        <td>Pelunasan</td>
-                        <td class="right">Rp {{ number_format($jumlahPelunasan, 0, ',', '.') }}</td>
-                    </tr>
-                @elseif($dpAmount > 0)
                 <tr>
-                    <td>DP Dibayar</td>
+                    <td>Total Dibayar</td>
                     <td class="right">Rp {{ number_format($dpAmount, 0, ',', '.') }}</td>
                 </tr>
-                @endif
 
                 <tr class="total-row grand-total">
                     <td>Sisa Pembayaran</td>
@@ -177,6 +166,23 @@
                 </tr>
             </tbody>
         </table>
+
+        @if(isset($order->payments) && $order->payments->count() > 0)
+        <div class="divider"></div>
+        <table>
+            <thead>
+                <tr><th colspan="2" style="text-align:left;">Rincian Pembayaran</th></tr>
+            </thead>
+            <tbody>
+                @foreach($order->payments as $payment)
+                <tr>
+                    <td>{{ $payment->created_at->format('d/m/Y H:i') }} ({{ $payment->payment_method }})</td>
+                    <td class="right">Rp {{ number_format($payment->amount, 0, ',', '.') }}</td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+        @endif
 
         <div class="meta">
             Status: {{ strtoupper($order->payment_status ?? 'dp') }}
