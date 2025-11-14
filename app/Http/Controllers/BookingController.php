@@ -136,6 +136,8 @@ class BookingController extends Controller
             // Owner-only manual discount (not saved, only for calculation)
             'discount_manual_percentage' => 'nullable|integer|min:0|max:100',
             'discount_manual_nominal' => 'nullable|integer|min:0',
+            // New: explicit duration from form
+            'durasi_booking' => 'nullable|numeric|min:0',
         ]);
         if ($validator->fails()) {
             return redirect()->route('booking.index')
@@ -190,10 +192,16 @@ class BookingController extends Controller
         }
 
         $start = $startCheck; $end = $endCheck;
-        // Compute raw day and hour differences
-        // Nights counted based on calendar days difference (ignore clock time)
-        $rawDays = $start->copy()->startOfDay()->diffInDays($end->copy()->startOfDay());
-        $days = max($rawDays,1);
+        // Use explicit duration from form if available, otherwise calculate
+        $durasi = (float)($data['durasi_booking'] ?? 0);
+        if ($durasi <= 0) {
+            // Fallback logic if durasi_booking is not sent
+            $rawDays = $start->copy()->startOfDay()->diffInDays($end->copy()->startOfDay());
+            $extraHours = $end->copy()->startOfDay()->diffInHours($end);
+            $durasi = $rawDays + ($extraHours >= 6 ? 0.5 : 0);
+            if ($start->isSameDay($end)) $durasi = 0.5; // half-day
+        }
+        $days = max(ceil($durasi), 1); // For DB malam field, round up
 
     // Default lifecycle: walk-in defaults to checkin (2), online defaults to dipesan (1)
     $status = isset($data['status']) ? (int)$data['status'] : ((int)$data['pemesanan'] == 0 ? 2 : 1);
@@ -201,12 +209,8 @@ class BookingController extends Controller
         // Base total from selected rooms * nights
         $baseTotal = 0;
         foreach($kamarList as $k){
-            $baseTotal += $days * (int)$k->harga;
-        }
-        // Robust half-day check: same calendar day and <= 360 minutes
-        $halfDay = $startCheck->isSameDay($endCheck) && ($endCheck->diffInMinutes($startCheck) <= 360);
-        if ($halfDay) {
-            $baseTotal = (int) round($baseTotal * 0.5);
+            $price = (int)$k->harga * $durasi;
+            $baseTotal += $price;
         }
         // Do not apply extra_time multipliers to price; only date is adjusted above
         // Per-head mode: if enabled and guests > 2, add 50k per extra guest; ensure min 100k
@@ -215,6 +219,8 @@ class BookingController extends Controller
         if($perHeadMode && $jumlahTamu > 2){
             $baseTotal += 50000 * ($jumlahTamu - 2);
         }
+        // Robust half-day check: same calendar day and <= 360 minutes
+        // This should be applied AFTER per-head adjustments but before discounts
         $baseTotal = max($baseTotal, 100000);
         // Discounts: review (10%), follow (10%), sequential if both
         $manualDiscountNominal = (auth()->check() && auth()->user()->isOwner()) ? (int)($data['discount_manual_nominal'] ?? 0) : 0;
@@ -295,9 +301,8 @@ class BookingController extends Controller
             ]);
 
             foreach($kamarList as $k){
-                $subtotal = $days * (int)$k->harga;
-                // Apply half-day adjustment per item when halfDay
-                if ($halfDay) { $subtotal = (int) round($subtotal * 0.5); }
+                // Calculate subtotal based on explicit duration
+                $subtotal = (int)$k->harga * $durasi;
                 BookingOrderItem::create([
                     'booking_order_id' => $order->id,
                     'kamar_id' => $k->id,
@@ -593,13 +598,22 @@ class BookingController extends Controller
         $rawDays = $start->copy()->startOfDay()->diffInDays($end->copy()->startOfDay());
         $days = max($rawDays,1);
 
+        // Cek durasi 1.5 hari (1 hari + 6 jam) untuk penyesuaian harga
+        $isOneAndHalfDays = false;
+        if ($rawDays == 1) {
+            $extraHours = $end->copy()->startOfDay()->diffInHours($end);
+            if ($extraHours >= 6 && $extraHours < 12) {
+                $isOneAndHalfDays = true;
+            }
+        }
+
         // Base recalc from authoritative kamar nightly rates
         $base = 0;
         foreach($order->items as $it){
             // Always pull price from kamar table; remove manual overrides
             $it->harga_per_malam = (int)($it->kamar?->harga ?? $it->harga_per_malam ?? 0);
             $it->malam = $days;
-            $it->subtotal = $days * (int)$it->harga_per_malam;
+            $it->subtotal = $isOneAndHalfDays ? ((int)$it->harga_per_malam * 1.5) : ($days * (int)$it->harga_per_malam);
             $it->save();
             $base += $it->subtotal;
         }

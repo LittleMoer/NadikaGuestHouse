@@ -172,7 +172,6 @@ class DashboardController extends Controller
                             $afternoonSlotEnd = $currentDayStart->copy()->addHours(24); // Exclusive, so up to 23:59:59 (which is 00:00 next day)
 
                             // Check for Morning Slot overlap
-                            // Booking overlaps if its end time is after slot start AND its start time is before slot end
                             if ($rawOut->greaterThan($morningSlotStart) && $rawIn->lessThan($morningSlotEnd)) {
                                 $slotMorning[] = [
                                     'booking_order_id' => $row['booking_order_id'],
@@ -196,8 +195,7 @@ class DashboardController extends Controller
                                     'booking_code_short' => $row['order_code_short'] ?? null,
                                     'status' => $row['status'],
                                     'payment' => $row['meta']['payment'] ?? null,
-                                    'background' => $row['meta']['background'] ?? null,
-                                    'text_color' => $row['meta']['text_color'] ?? null,
+                                    'background' => $row['meta']['background'] ?? null, 'text_color' => $row['meta']['text_color'] ?? null,
                                     'is_half_day_checkout' => $isHalfDayCheckout, // Add this flag
                                     'is_multi_day_booking' => $row['is_multi_day_booking'], // Pass multi-day status
                                 ];

@@ -217,6 +217,7 @@
                     const customDurasiInput = document.getElementById('durasi_hari_custom');
 
                     sel.addEventListener('change', function(){
+                        document.getElementById('durasi_booking_hidden').value = this.value;
                         const val = this.value;
                         if (val === 'custom') {
                             customDurasiWrap.style.display = 'block';
@@ -249,6 +250,7 @@
                     });
 
                     customDurasiInput.addEventListener('input', function() {
+                        document.getElementById('durasi_booking_hidden').value = this.value;
                         const val = this.value;
                         if(!inpIn || !inpOut || !val) return;
 
@@ -309,6 +311,7 @@
 
         <form id="formBookingCreate" action="{{ route('booking.store') }}" method="POST">
             @csrf
+            <input type="hidden" name="durasi_booking" id="durasi_booking_hidden" value="{{ old('durasi_booking', '1') }}">
             <div class="card">
                 <div class="card-header">
                     <h5 class="card-title">Form Booking</h5>
