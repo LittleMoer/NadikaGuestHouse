@@ -27,6 +27,12 @@
         .signature-box { width: 45%; text-align: center; }
         .signature-line { margin-top: 50px; border-top: 1px solid #000; }
         .warning-text { text-align: center; font-weight: bold; margin: 15px 0; font-size: 1.1rem; color: #d32f2f; }
+        .bottom-right-warning {
+            text-align: right;
+            color: #d32f2f;
+            font-weight: bold;
+            margin-top: 20px;
+        }
 
         .print-btn { margin: 12px 0; }
         @media print { 
@@ -186,8 +192,8 @@
             </div>
         </div>
         <div class="bottom-right-warning">
-      "Transaksi yang tidak dilampiri nota diskon 50%"<br>
-      "JANGAN SAMPAI HILANG"
+        "Transaksi yang tidak dilampiri nota diskon 50%"<br>
+        "JANGAN SAMPAI HILANG"
         </div>
         
         <script>
