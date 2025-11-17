@@ -254,7 +254,7 @@
             @if($pelunasan > 0)
               <div class="row"><div class="label">Pelunasan</div><div class="value">Rp {{ number_format($pelunasan,0,',','.') }}</div></div>
             @endif
-            <div class="row"><div class="label">Sisa</div><div class="value">Rp {{ number_format($sisaPembayaran,0,',','.') }}</div></div>
+            <div class="row"><div class="label">Sisa</div><div class="value">Rp {{ number_format($remaining,0,',','.') }}</div></div>
           @else
             {{-- Untuk Traveloka, hanya tampilkan biaya langsung jika ada --}}
             @if(($biayaTambahan ?? 0) > 0)
