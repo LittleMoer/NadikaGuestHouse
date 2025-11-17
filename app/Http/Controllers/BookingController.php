@@ -950,7 +950,7 @@ class BookingController extends Controller
     /** Generate printout for guest */
     public function printout(Request $request, $id)
     {
-        $order = BookingOrder::with(['pelanggan','items.kamar'])->findOrFail($id);
+        $order = BookingOrder::with(['pelanggan','items.kamar','items.order','cafeOrders.items.product'])->findOrFail($id);
         $bookingNo = (string)($order->booking_number ?? '');
         $siblings = collect();
         if($bookingNo !== ''){
