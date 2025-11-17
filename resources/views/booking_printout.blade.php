@@ -251,12 +251,12 @@
           $grandTotal = max(0, $baseSubtotal - $diskon + ($biayaTambahan ?? 0));
           $pelunasan = ($isLunas && $dpAmount > 0) ? ($totalPaid - $dpAmount) : 0;
           $remaining =  $grandTotal - $totalPaid;
+          dd($totalPaid);
         @endphp
         <div class="summary">
           <div class="section-title">Ringkasan Pembayaran {{ (!empty($isMerged) && $isMerged) ? '(Gabungan Nota '.$bookingNumber.')' : '' }}</div>
           @if(!$isTraveloka)
             <div class="row"><div class="label">Subtotal</div><div class="value">Rp {{ number_format($baseSubtotal,0,',','.') }}</div></div>
-            <div class="row"><div class="label">Subtotal</div><div class="value">Rp {{ number_format($roomTotal + $cafeTotal,0,',','.') }}</div></div>
             @if($diskon > 0)
               <div class="row"><div class="label">Diskon</div><div class="value">- Rp {{ number_format($diskon,0,',','.') }}</div></div>
             @endif
