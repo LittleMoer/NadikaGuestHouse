@@ -962,22 +962,36 @@ class BookingController extends Controller
         $isMerged = $siblings->count() > 1;
         $mergedItems = collect();
         $baseSubtotal = 0; $diskonTotal = 0; $paidTotal = 0; $biayaTambahanTotal = 0;
+        $grandTotal = 0; $remaining = 0;
+
         if($isMerged){
+            $roomTotal = (float) $siblings->sum(fn($o) => (int)($o->total_harga ?? 0));
+            $cafeTotal = (float) $siblings->sum(fn($o) => (int)($o->total_cafe ?? 0));
+            $biayaTambahanTotal = (float) $siblings->sum(fn($o) => (int)($o->biaya_tambahan ?? 0));
+            $paidTotal = (float) $siblings->sum(fn($o) => (int)($o->dp_amount ?? 0));
+            $isTraveloka = $siblings->contains('pemesanan', 1);
+            $grandTotal = $isTraveloka ? ($roomTotal + $cafeTotal) : ($roomTotal + $cafeTotal + $biayaTambahanTotal);
+            $remaining = max(0, $grandTotal - $paidTotal);
+
             foreach($siblings as $s){
                 foreach(($s->items ?? []) as $it){ $mergedItems->push($it); }
-                // Prefer item subtotal sum; fallback to total_harga
-                $sumItems = (int) collect($s->items)->sum('subtotal');
-                $baseSubtotal += $sumItems > 0 ? $sumItems : (int)($s->total_harga ?? 0);
-                $diskonTotal += (int)($s->diskon ?? 0);
-                $paidTotal += (int)($s->dp_amount ?? 0);
-                $biayaTambahanTotal += (int)($s->biaya_tambahan ?? 0);
             }
+        } else {
+            $roomTotal = (float)($order->total_harga ?? 0);
+            $cafeTotal = (float)($order->total_cafe ?? 0);
+            $biayaTambahanTotal = (float)($order->biaya_tambahan ?? 0);
+            $paidTotal = (float)($order->dp_amount ?? 0);
+            $isTraveloka = (int)$order->pemesanan === 1;
+            $grandTotal = $isTraveloka ? ($roomTotal + $cafeTotal) : ($roomTotal + $cafeTotal + $biayaTambahanTotal);
+            $remaining = max(0, $grandTotal - $paidTotal);
         }
+
         return view('booking_printout', [
             'order'=>$order,
             'isMerged'=>$isMerged,
             'mergeCount'=>$isMerged ? $siblings->count() : 1,
             'bookingNumber'=>$bookingNo,
+            // Variabel-variabel di bawah ini tidak lagi digunakan di view, tapi tetap di-pass untuk kompatibilitas
             'mergedItems'=>$isMerged ? $mergedItems : collect(),
             'mergedBaseSubtotal'=>$isMerged ? $baseSubtotal : null,
             'mergedDiskonTotal'=>$isMerged ? $diskonTotal : null,
