@@ -217,29 +217,8 @@
       </div>
       <div class="col-right">
         @php
-          $isTraveloka = ((int)($order->pemesanan ?? 0)) === 1;
-          $roomTotal = (int)($order->total_harga ?? 0);
-          $cafeTotal = (int)($order->total_cafe ?? 0);
-          $diskon = (int)($order->diskon ?? 0);
-          $biayaTambahan = (int)($order->biaya_tambahan ?? 0);
-          $dpAmount = (int)($order->dp_amount ?? 0);
-          $totalPaid = (int)($order->total_paid ?? 0);
-          $grandTotal = $isTraveloka ? ($roomTotal + $cafeTotal) : ($roomTotal + $cafeTotal + $biayaTambahan);
-          $remaining = max(0, $grandTotal - $totalPaid);
+          // Variabel sudah dihitung di controller. Cukup hitung pelunasan & subtotal di sini.
           $pelunasan = max(0, $totalPaid - $dpAmount);
-
-          if(!empty($isMerged) && $isMerged){
-            $isTraveloka = collect($siblings)->contains('pemesanan', 1);
-            $roomTotal = (float) $siblings->sum(fn($o) => (int)($o->total_harga ?? 0));
-            $cafeTotal = (float) $siblings->sum(fn($o) => (int)($o->total_cafe ?? 0));
-            $biayaTambahan = (float) $siblings->sum(fn($o) => (int)($o->biaya_tambahan ?? 0));
-            $diskon = (float) $siblings->sum(fn($o) => (int)($o->diskon ?? 0));
-            $totalPaid = (float) $siblings->sum(fn($o) => (int)($o->total_paid ?? 0));
-            $dpAmount = (float) $siblings->sum(fn($o) => (int)($o->dp_amount ?? 0)); // DP tetap dari dp_amount
-            $grandTotal = $isTraveloka ? ($roomTotal + $cafeTotal) : ($roomTotal + $cafeTotal + $biayaTambahan);
-            $remaining = max(0, $grandTotal - $totalPaid);
-            $pelunasan = max(0, $totalPaid - $dpAmount);
-          }
           $subtotal = $roomTotal + $cafeTotal;
         @endphp
         <div class="summary">

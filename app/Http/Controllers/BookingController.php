@@ -961,12 +961,35 @@ class BookingController extends Controller
         }
         $isMerged = $siblings->count() > 1;
         $mergedItems = collect();
-
+        
+        // Definisikan variabel di luar scope if/else
+        $roomTotal = 0; $cafeTotal = 0; $biayaTambahan = 0; $diskon = 0;
+        $totalPaid = 0; $dpAmount = 0; $grandTotal = 0; $remaining = 0;
+        $isTraveloka = false;
+        
         if($isMerged){
+            $isTraveloka = $siblings->contains('pemesanan', 1);
+            $roomTotal = (float) $siblings->sum(fn($o) => (int)($o->total_harga ?? 0));
+            $cafeTotal = (float) $siblings->sum(fn($o) => (int)($o->total_cafe ?? 0));
+            $biayaTambahan = (float) $siblings->sum(fn($o) => (int)($o->biaya_tambahan ?? 0));
+            $diskon = (float) $siblings->sum(fn($o) => (int)($o->diskon ?? 0));
+            $totalPaid = (float) $siblings->sum(fn($o) => (int)($o->total_paid ?? 0));
+            $dpAmount = (float) $siblings->sum(fn($o) => (int)($o->dp_amount ?? 0));
             foreach($siblings as $s){
                 foreach(($s->items ?? []) as $it){ $mergedItems->push($it); }
             }
+        } else {
+            $isTraveloka = (int)$order->pemesanan === 1;
+            $roomTotal = (float)($order->total_harga ?? 0);
+            $cafeTotal = (float)($order->total_cafe ?? 0);
+            $biayaTambahan = (float)($order->biaya_tambahan ?? 0);
+            $diskon = (float)($order->diskon ?? 0);
+            $totalPaid = (float)($order->total_paid ?? 0);
+            $dpAmount = (float)($order->dp_amount ?? 0);
         }
+
+        $grandTotal = $isTraveloka ? ($roomTotal + $cafeTotal) : ($roomTotal + $cafeTotal + $biayaTambahan);
+        $remaining = max(0, $grandTotal - $totalPaid);
 
         return view('booking_printout', [
             'order'=>$order,
@@ -975,6 +998,16 @@ class BookingController extends Controller
             'mergeCount'=>$isMerged ? $siblings->count() : 1,
             'bookingNumber'=>$bookingNo,
             'mergedItems'=>$isMerged ? $mergedItems : collect(),
+            // Kirim semua data yang sudah dihitung ke view
+            'isTraveloka' => $isTraveloka,
+            'roomTotal' => $roomTotal,
+            'cafeTotal' => $cafeTotal,
+            'biayaTambahan' => $biayaTambahan,
+            'diskon' => $diskon,
+            'totalPaid' => $totalPaid,
+            'dpAmount' => $dpAmount,
+            'grandTotal' => $grandTotal,
+            'remaining' => $remaining,
         ]);
     }
 
