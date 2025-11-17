@@ -96,14 +96,15 @@
       margin: 50px 0 10px;
       border-top: 1px solid #000;
     }
-    .bottom-right-warning {
+    .top-left-warning {
       position: absolute;
-      bottom: 15px;
-      right: 15px;
-      text-align: right;
+      top: 15px;
+      left: 15px;
+      text-align: left;
       font-weight: bold;
       font-size: 0.9rem;
       color: #d32f2f;
+      line-height: 1.2;
     }
     .page-break {
       page-break-after: always;
@@ -154,11 +155,11 @@
         margin-bottom: 8px;
         padding-bottom: 4px;
       }
-      .bottom-right-warning {
+      .top-left-warning {
         font-size: 0.8rem;
-        bottom: 5mm;
-        right: 5mm;
-        line-height: 1.2;
+        top: 5mm;
+        left: 5mm;
+        line-height: 1.1;
       }
     }
   </style>
@@ -166,6 +167,11 @@
 <body>
   <!-- Salinan untuk Tamu -->
   <div class="wrap">
+    <div class="top-left-warning">
+      "Transaksi yang tidak dilampiri nota diskon 50%"<br>
+      "JANGAN SAMPAI HILANG"
+    </div>
+
     <div class="copy-identifier">
       Tanda Terima Reservasi
     </div>
@@ -268,17 +274,13 @@
       </div>
     </div>
 
-    <div class="bottom-right-warning">
-      "Transaksi yang tidak dilampiri nota diskon 50%"<br>
-      "JANGAN SAMPAI HILANG"
-    </div>
   </div>
   <script>
     // Auto-open print dialog when the page loads
     window.addEventListener('load', function(){
       // Small delay ensures fonts/layout are ready before printing
       setTimeout(function(){
-        try { window.print(); } catch(e) {}
+        try { window.print(); } catch(e) { console.error("Print failed:", e); }
       }, 150);
     });
   </script>
@@ -288,6 +290,11 @@
 
   <!-- Salinan untuk Resepsionis -->
   <div class="wrap">
+    <div class="top-left-warning">
+      "Transaksi yang tidak dilampiri nota diskon 50%"<br>
+      "JANGAN SAMPAI HILANG"
+    </div>
+
     <div class="copy-identifier" style="color: #0d47a1;">
       SALINAN UNTUK RESEPSIONIS
     </div>
@@ -369,17 +376,13 @@
       </div>
     </div>
 
-    <div class="bottom-right-warning">
-      "Transaksi yang tidak dilampiri nota diskon 50%"<br>
-      "JANGAN SAMPAI HILANG"
-    </div>
   </div>
   <script>
     // Auto-open print dialog when the page loads
     window.addEventListener('load', function(){
       // Small delay ensures fonts/layout are ready before printing
       setTimeout(function(){
-        try { window.print(); } catch(e) {}
+        try { window.print(); } catch(e) { console.error("Print failed:", e); }
       }, 150);
     });
   </script>
