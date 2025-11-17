@@ -218,45 +218,34 @@
       <div class="col-right">
         @php
           $isTraveloka = ((int)($order->pemesanan ?? 0)) === 1;
-          $isLunas = $order->payment_status === 'lunas';
+          $roomTotal = (int)($order->total_harga ?? 0);
+          $cafeTotal = (int)($order->total_cafe ?? 0);
+          $diskon = (int)($order->diskon ?? 0);
+          $biayaTambahan = (int)($order->biaya_tambahan ?? 0);
+          $dpAmount = (int)($order->dp_amount ?? 0);
+          $totalPaid = (int)($order->total_paid ?? 0);
+          $grandTotal = $isTraveloka ? ($roomTotal + $cafeTotal) : ($roomTotal + $cafeTotal + $biayaTambahan);
+          $remaining = max(0, $grandTotal - $totalPaid);
+          $pelunasan = max(0, $totalPaid - $dpAmount);
+
           if(!empty($isMerged) && $isMerged){
-            $isLunas = collect($siblings)->every(fn($s) => $s->payment_status === 'lunas');
-            $baseSubtotal = (int)($mergedBaseSubtotal ?? 0);
-            $diskon = (int)($mergedDiskonTotal ?? 0);
-            $totalPaid = (int)($mergedPaidTotal ?? 0);
-            $biayaTambahan = (int)($mergedBiayaTambahanTotal ?? 0);
-            $dpAmount = (int) $siblings->sum('dp_amount');
             $isTraveloka = collect($siblings)->contains('pemesanan', 1);
             $roomTotal = (float) $siblings->sum(fn($o) => (int)($o->total_harga ?? 0));
             $cafeTotal = (float) $siblings->sum(fn($o) => (int)($o->total_cafe ?? 0));
             $biayaTambahan = (float) $siblings->sum(fn($o) => (int)($o->biaya_tambahan ?? 0));
             $diskon = (float) $siblings->sum(fn($o) => (int)($o->diskon ?? 0));
             $totalPaid = (float) $siblings->sum(fn($o) => (int)($o->total_paid ?? 0));
-            $dpAmount = (float) $siblings->sum(fn($o) => (int)($o->dp_amount ?? 0));
+            $dpAmount = (float) $siblings->sum(fn($o) => (int)($o->dp_amount ?? 0)); // DP tetap dari dp_amount
             $grandTotal = $isTraveloka ? ($roomTotal + $cafeTotal) : ($roomTotal + $cafeTotal + $biayaTambahan);
             $remaining = max(0, $grandTotal - $totalPaid);
-            $pelunasan = $totalPaid - $dpAmount;
-          } else {
-            $baseSubtotal = (int) ($order->total_harga ?? 0);
-            $roomTotal = (int) ($order->total_harga ?? 0);
-            $cafeTotal = (int) ($order->total_cafe ?? 0);
-            $diskon = (int) ($order->diskon ?? 0);
-            $totalPaid = (int) ($order->total_paid ?? 0);
-            $biayaTambahan = (int) ($order->biaya_tambahan ?? 0);
-            $dpAmount = (int) ($order->dp_amount ?? 0);
-            $grandTotal = $isTraveloka ? ($roomTotal + $cafeTotal) : ($roomTotal + $cafeTotal + $biayaTambahan);
-            $remaining = max(0, $grandTotal - $totalPaid);
-            $pelunasan = $totalPaid - $dpAmount;
+            $pelunasan = max(0, $totalPaid - $dpAmount);
           }
-          $grandTotal = max(0, $baseSubtotal - $diskon + ($biayaTambahan ?? 0));
-          $pelunasan = ($isLunas && $dpAmount > 0) ? ($totalPaid - $dpAmount) : 0;
-          $remaining =  $grandTotal - $totalPaid;
-          dd($totalPaid);
+          $subtotal = $roomTotal + $cafeTotal;
         @endphp
         <div class="summary">
           <div class="section-title">Ringkasan Pembayaran {{ (!empty($isMerged) && $isMerged) ? '(Gabungan Nota '.$bookingNumber.')' : '' }}</div>
           @if(!$isTraveloka)
-            <div class="row"><div class="label">Subtotal</div><div class="value">Rp {{ number_format($baseSubtotal,0,',','.') }}</div></div>
+            <div class="row"><div class="label">Subtotal</div><div class="value">Rp {{ number_format($subtotal,0,',','.') }}</div></div>
             @if($diskon > 0)
               <div class="row"><div class="label">Diskon</div><div class="value">- Rp {{ number_format($diskon,0,',','.') }}</div></div>
             @endif
@@ -373,7 +362,7 @@
         <div class="summary">
           <div class="section-title">Ringkasan Pembayaran {{ (!empty($isMerged) && $isMerged) ? '(Gabungan Nota '.$bookingNumber.')' : '' }}</div>
           @if(!$isTraveloka)
-            <div class="row"><div class="label">Subtotal</div><div class="value">Rp {{ number_format($baseSubtotal,0,',','.') }}</div></div>
+            <div class="row"><div class="label">Subtotal</div><div class="value">Rp {{ number_format($subtotal,0,',','.') }}</div></div>
             @if($diskon > 0)
               <div class="row"><div class="label">Diskon</div><div class="value">- Rp {{ number_format($diskon,0,',','.') }}</div></div>
             @endif

@@ -902,7 +902,7 @@ class BookingController extends Controller
             $cafeTotal = (float) $siblings->sum(function($o){ return (int)($o->total_cafe ?? 0); });
             $diskon = (float) $siblings->sum(function($o){ return (int)($o->diskon ?? 0); });
             $biayaTambahan = (float) $siblings->sum(function($o){ return (int)($o->biaya_tambahan ?? 0); });
-            $paidTotal = (float) $siblings->sum(function($o){ return (int)($o->dp_amount ?? 0); });
+            $paidTotal = (float) $siblings->sum(fn($o) => (int)($o->total_paid ?? 0));
             foreach($siblings as $s){
                 foreach($s->items as $it) { $roomItems->push($it); }
                 foreach($s->cafeOrders as $co) { foreach($co->items as $cit) { $cafeItems->push($cit); } }
@@ -912,7 +912,7 @@ class BookingController extends Controller
             $cafeTotal = (float)($order->total_cafe ?? 0);
             $diskon = (float)($order->diskon ?? 0);
             $biayaTambahan = (float)($order->biaya_tambahan ?? 0);
-            $paidTotal = (float)($order->dp_amount ?? 0);
+            $paidTotal = (float)($order->total_paid ?? 0);
             $roomItems = $order->items;
             foreach($order->cafeOrders as $co) { foreach($co->items as $cit) { $cafeItems->push($cit); } }
         }
@@ -961,42 +961,20 @@ class BookingController extends Controller
         }
         $isMerged = $siblings->count() > 1;
         $mergedItems = collect();
-        $baseSubtotal = 0; $diskonTotal = 0; $paidTotal = 0; $biayaTambahanTotal = 0;
-        $grandTotal = 0; $remaining = 0;
 
         if($isMerged){
-            $roomTotal = (float) $siblings->sum(fn($o) => (int)($o->total_harga ?? 0));
-            $cafeTotal = (float) $siblings->sum(fn($o) => (int)($o->total_cafe ?? 0));
-            $biayaTambahanTotal = (float) $siblings->sum(fn($o) => (int)($o->biaya_tambahan ?? 0));
-            $paidTotal = (float) $siblings->sum(fn($o) => (int)($o->total_paid ?? 0));
-            $isTraveloka = $siblings->contains('pemesanan', 1);
-            $grandTotal = $isTraveloka ? ($roomTotal + $cafeTotal) : ($roomTotal + $cafeTotal + $biayaTambahanTotal);
-            $remaining = max(0, $grandTotal - $paidTotal);
-
             foreach($siblings as $s){
                 foreach(($s->items ?? []) as $it){ $mergedItems->push($it); }
             }
-        } else {
-            $roomTotal = (float)($order->total_harga ?? 0);
-            $cafeTotal = (float)($order->total_cafe ?? 0);
-            $biayaTambahanTotal = (float)($order->biaya_tambahan ?? 0);
-            $paidTotal = (float)($order->total_paid ?? 0);
-            $isTraveloka = (int)$order->pemesanan === 1;
-            $grandTotal = $isTraveloka ? ($roomTotal + $cafeTotal) : ($roomTotal + $cafeTotal + $biayaTambahanTotal);
-            $remaining = max(0, $grandTotal - $paidTotal);
         }
 
         return view('booking_printout', [
             'order'=>$order,
+            'siblings' => $siblings, // Pass siblings to view
             'isMerged'=>$isMerged,
             'mergeCount'=>$isMerged ? $siblings->count() : 1,
             'bookingNumber'=>$bookingNo,
-            // Variabel-variabel di bawah ini tidak lagi digunakan di view, tapi tetap di-pass untuk kompatibilitas
             'mergedItems'=>$isMerged ? $mergedItems : collect(),
-            'mergedBaseSubtotal'=>$isMerged ? $baseSubtotal : null,
-            'mergedDiskonTotal'=>$isMerged ? $diskonTotal : null,
-            'mergedPaidTotal'=>$isMerged ? $paidTotal : null,
-            'mergedBiayaTambahanTotal'=>$isMerged ? $biayaTambahanTotal : null,
         ]);
     }
 
