@@ -988,8 +988,15 @@ class BookingController extends Controller
             $dpAmount = (float)($order->dp_amount ?? 0);
         }
 
+        // Hitung grand total
         $grandTotal = $isTraveloka ? ($roomTotal + $cafeTotal) : ($roomTotal + $cafeTotal + $biayaTambahan);
-        $remaining = max(0, $grandTotal - $totalPaid);
+
+        // Tentukan sisa pembayaran. Jika sudah lunas, paksa menjadi 0.
+        $isLunas = $isMerged ? $siblings->every(fn($s) => $s->payment_status === 'lunas') : $order->payment_status === 'lunas';
+        $remaining = 0;
+        if (!$isLunas) {
+            $remaining = max(0, $grandTotal - $totalPaid);
+        }
 
         return view('booking_printout', [
             'order'=>$order,
