@@ -29,6 +29,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/booking/{id}/cashback', [BookingController::class, 'addCashback'])->name('booking.cashback');
     Route::post('/booking/{id}/move-room', [BookingController::class, 'moveRoom'])->name('booking.move_room');
     Route::post('/booking/{id}/upgrade-room', [BookingController::class, 'upgradeRoom'])->name('booking.upgrade_room');
+    Route::post('/booking/extra-bed-calc', [BookingController::class, 'calculateExtraBed'])->name('booking.extra_bed_calc');
     Route::get('/booking/{id}/nota', [BookingController::class, 'printNota'])->name('booking.nota');
     Route::get('/booking/{id}/printout', [BookingController::class, 'printout'])->name('booking.printout');
     Route::get('/booking/{id}/nota-cafe', [BookingController::class, 'notaCafe'])->name('booking.nota.cafe');

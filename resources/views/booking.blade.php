@@ -69,13 +69,13 @@
                         <th>ID</th>
                         <th>Status</th>
                         <th>Pelanggan</th>
-                        <th>Kamar (Jumlah)</th>
+                        <th>Kamar yang disewa</th>
                         <th>Check-In</th>
                         <th>Check-Out</th>
                         <th>Metode Bayar</th>
                         <th class="text-end">Kamar (Rp)</th>
                         <th class="text-end">Cafe (Rp)</th>
-                        <th class="text-end">Grand Total (Rp)</th>
+                        <th class="text-end">Total (Rp)</th>
                         <th>Aksi</th>
                     </tr>
                 </thead>
@@ -83,12 +83,12 @@
                 @forelse($orders as $order)
                     @php $meta = $order->status_meta; $channelLabelMap=['walkin'=>'Walk-In','agent1'=>'Agent 1','agent2'=>'Agent 2','traveloka'=>'Traveloka','cancel'=>'-']; $channelLabel=$channelLabelMap[$meta['channel']] ?? ucfirst($meta['channel']); @endphp
                     <tr data-booking-id="{{ $order->id }}" data-show-url="{{ route('booking.show',$order->id) }}" style="background-color:#f5f5f5;">
-                        <td class="booking-id">#{{ $order->order_code }}</td>
+                        <td class="booking-id" style="width:70px;max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">#{{ $order->order_code }}</td>
                         <td>
                             <span class="badge" style="background:{{ $meta['background'] }};color:{{ $meta['text_color'] }};min-width:90px;display:inline-block;">{{ $meta['label'] }}</span>
                         </td>
                         <td>{{ $order->pelanggan?->nama ?? '-' }}</td>
-                        <td style="min-width:180px;">
+                        <td style="min-width:100px;">
                             @php $rooms=$order->items->map(fn($it)=> $it->kamar?->nomor_kamar)->filter()->values(); @endphp
                             <span style="font-size:.75rem;">{{ $rooms->join(', ') }}</span>
                             <div><small class="text-muted">{{ $rooms->count() }} kamar</small></div>
@@ -102,7 +102,6 @@
                         <td style="min-width:50px;display:flex;justify-content:flex-end;gap:8px;">
                             <a href="{{ route('booking.detail', $order->id) }}" class="btn btn-sm btn-secondary">Detail</a>
                             <a href="{{ route('booking.edit', $order->id) }}" class="btn btn-sm btn-warning text-white">Edit</a>
-                            <button type="button" class="btn btn-sm btn-outline-success btn-cashback-prompt" data-booking-id="{{ $order->id }}">Cashback</button>
                             <form action="{{ route('booking.destroy', $order->id) }}" method="POST" style="display:inline" onsubmit="return confirm('Yakin ingin menghapus booking ini?')">
                                 @csrf
                                 @method('DELETE')
@@ -167,14 +166,6 @@
                                 </table>
                             </div>
                         </div>
-                        <!-- <div class="mt-3">
-                            <h6 class="mb-1" style="font-size:.75rem;font-weight:700;letter-spacing:.5px;">RIWAYAT BOOKING</h6>
-                            <div class="table-responsive" style="max-height:150px;overflow:auto;border:1px solid #eee;">
-                                <table class="table table-sm mb-0" style="font-size:.7rem;">
-                                    <thead class="table-light"><tr><th>Tanggal</th><th>Status</th><th>Pembayaran</th><th>Catatan</th></tr></thead>
-                                    <tbody id="bd_other_orders_body"><tr><td colspan="4" class="text-center">-</td></tr></tbody>
-                                </table>
-                            </div> -->
                         <hr class="my-2">
                         <form id="formEditOrder" style="display:none;">
                             @csrf

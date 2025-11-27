@@ -143,9 +143,92 @@
               }
               if (fpIn) fpIn.setDate(start, true);
               if (fpOut) fpOut.setDate(end, true);
+              updateExtraBedDisplay();
           }
           sel.addEventListener('change', () => handleDurasiChange(sel.value));
-          customDurasiInput.addEventListener('input', () => handleDurasiChange(customDurasiInput.value));
+          customDurasiInput.addEventListener('input', () => {
+              handleDurasiChange(customDurasiInput.value);
+          });
+
+          // Update extra bed display and biaya tambahan
+          function updateExtraBedDisplay() {
+              const bedQtyInp = document.querySelector('input[name="extra_bed_qty"]');
+              const bedPriceInp = document.querySelector('input[name="extra_bed_price"]');
+              const biayaTambahanInp = document.querySelector('input[name="biaya_tambahan"]');
+              const durasiSel = document.getElementById('durasi_hari_edit');
+              const customDurasiInp = document.getElementById('durasi_hari_custom_edit');
+              
+              let durasi = 1;
+              if (durasiSel && durasiSel.value && durasiSel.value !== 'custom') {
+                  durasi = parseFloat(durasiSel.value) || 1;
+              } else if (customDurasiInp && customDurasiInp.value) {
+                  durasi = parseFloat(customDurasiInp.value) || 1;
+              } else {
+                  if (inpIn && inpOut && fpIn && fpOut) {
+                      const dIn = fpIn.selectedDates[0];
+                      const dOut = fpOut.selectedDates[0];
+                      if (dIn && dOut) {
+                          const diffMs = dOut - dIn;
+                          const rawDays = Math.floor(diffMs / (24*60*60*1000));
+                          const extraHours = (diffMs % (24*60*60*1000)) / (60*60*1000);
+                          durasi = rawDays + (extraHours >= 6 ? 0.5 : 0);
+                          if (durasi < 0.5) durasi = 0.5;
+                      }
+                  }
+              }
+              
+              const qty = parseInt(bedQtyInp?.value || 0);
+              const price = parseInt((bedPriceInp?.value || '0').replace(/[^0-9]/g, ''));
+              
+              // Jika qty atau price adalah 0, reset biaya tambahan
+              if (qty <= 0 || price <= 0) {
+                  // Clear display
+                  const displayEl = document.getElementById('extra_bed_display_edit');
+                  if (displayEl) displayEl.textContent = '';
+                  
+                  // Reset biaya tambahan ke 0
+                  if (biayaTambahanInp) {
+                      biayaTambahanInp.value = '0';
+                  }
+                  return;
+              }
+              
+              const total = Math.round(qty * price * durasi);
+              
+              // Update biaya tambahan field dengan format rupiah
+              if (biayaTambahanInp) {
+                  biayaTambahanInp.value = formatRupiah(total.toString());
+              }
+              
+              let display = `Extra Bed: ${qty} unit × Rp${price.toLocaleString('id-ID')} × ${durasi} hari = Rp${total.toLocaleString('id-ID')}`;
+              
+              let displayEl = document.getElementById('extra_bed_display_edit');
+              if (!displayEl) {
+                  displayEl = document.createElement('div');
+                  displayEl.id = 'extra_bed_display_edit';
+                  displayEl.style.cssText = 'padding: 10px; margin-top: 5px; border-radius: 4px; background-color: #e3f2fd; color: #1565c0; font-size: 0.9rem;';
+                  const extraBedWrapper = bedQtyInp?.parentElement?.parentElement;
+                  if (extraBedWrapper) {
+                      extraBedWrapper.appendChild(displayEl);
+                  }
+              }
+              displayEl.textContent = display;
+          }
+
+          // Attach listeners to extra bed inputs
+          const bedQtyInp = document.querySelector('input[name="extra_bed_qty"]');
+          const bedPriceInp = document.querySelector('input[name="extra_bed_price"]');
+          if (bedQtyInp) {
+              bedQtyInp.addEventListener('input', updateExtraBedDisplay);
+              bedQtyInp.addEventListener('change', updateExtraBedDisplay);
+          }
+          if (bedPriceInp) {
+              bedPriceInp.addEventListener('input', updateExtraBedDisplay);
+              bedPriceInp.addEventListener('change', updateExtraBedDisplay);
+          }
+
+          // Initial display
+          setTimeout(updateExtraBedDisplay, 300);
       });
     </script>
 
@@ -305,6 +388,11 @@
                 <input class="form-check-input" type="checkbox" name="per_head_mode" id="per_head_mode" value="1" {{ old('per_head_mode',$order->per_head_mode) ? 'checked' : '' }}>
                 <label class="form-check-label" for="per_head_mode">Mode per kepala (min 100k, >2 org +50k/org)</label>
               </div>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Extra Bed</label>
+              <input type="number" name="extra_bed_qty" min="0" class="form-control" value="{{ old('extra_bed_qty', 0) }}" placeholder="0">
+              <small class="text-muted">Masukkan jumlah extra bed yang diinginkan.</small>
             </div>
             <div class="col-12 mb-3">
               <label class="form-label">Catatan</label>

@@ -16,6 +16,59 @@ use Illuminate\Support\Facades\Auth;
 class BookingController extends Controller
 {
     /**
+     * Build catatan with extra bed info
+     */
+    private function buildCatatan(?string $userCatatan, int $extraBedQty, int $extraBedPrice, int $extraBedTotal): ?string
+    {
+        // fallback price jika tidak diset
+        if ($extraBedPrice <= 0) {
+            $extraBedPrice = 100000;
+        }
+
+        $notes = [];
+
+        if ($extraBedQty > 0) {
+            // Tentukan jumlah yang akan ditambahkan ke catatan:
+            // jika caller sudah memberikan $extraBedTotal (mis. sudah dikalikan durasi), pakai itu.
+            // jika tidak, hitung dari qty * harga per malam.
+            $added = $extraBedTotal > 0 ? (int)$extraBedTotal : ($extraBedQty * $extraBedPrice);
+
+            $notes[] = "[Extra Bed: {$extraBedQty} unit @Rp" . number_format($extraBedPrice, 0, ',', '.') .
+                        ($extraBedTotal > 0 ? " (termasuk durasi)" : "/malam") .
+                        " = Rp" . number_format($added, 0, ',', '.') . "]";
+        }
+
+        if ($userCatatan) {
+            $notes[] = $userCatatan;
+        }
+
+        return count($notes) > 0 ? implode("\n", $notes) : null;
+    }
+
+    /**
+     * AJAX endpoint: Calculate extra bed price
+     * Returns JSON { unit_price, total }
+     */
+    public function calculateExtraBed(Request $request)
+    {
+        $qty = (int)($request->get('qty') ?? 0);
+        $durasi = (float)($request->get('durasi') ?? 1);
+        
+        // Default harga extra bed per malam
+        $unitPrice = 100000;
+        
+        // Hitung total
+        $total = $qty > 0 ? ($qty * $unitPrice * $durasi) : 0;
+        
+        return response()->json([
+            'unit_price' => $unitPrice,
+            'total' => $total,
+            'qty' => $qty,
+            'durasi' => $durasi,
+        ]);
+    }
+
+    /**
      * Helper: mapping status key/label/badge
      */
     private function statusMeta(int $status): array
@@ -138,6 +191,9 @@ class BookingController extends Controller
             'discount_manual_nominal' => 'nullable|integer|min:0',
             // New: explicit duration from form
             'durasi_booking' => 'nullable|numeric|min:0',
+            // Extra bed
+            'extra_bed_qty' => 'nullable|integer|min:0',
+            'extra_bed_price' => 'nullable|integer|min:0',
         ]);
         if ($validator->fails()) {
             return redirect()->route('booking.index')
@@ -203,8 +259,13 @@ class BookingController extends Controller
         }
         $days = max(ceil($durasi), 1); // For DB malam field, round up
 
-    // Default lifecycle: walk-in defaults to checkin (2), online defaults to dipesan (1)
-    $status = isset($data['status']) ? (int)$data['status'] : ((int)$data['pemesanan'] == 0 ? 2 : 1);
+        // Extra bed calculation
+        $extraBedQty = (int)($request->get('extra_bed_qty') ?? 0);
+        $extraBedPrice = (int)($request->get('extra_bed_price') ?? 0);
+        $extraBedTotal = $extraBedQty > 0 ? ($extraBedQty * $extraBedPrice * $durasi) : 0;
+
+        // Default lifecycle: walk-in defaults to checkin (2), online defaults to dipesan (1)
+        $status = isset($data['status']) ? (int)$data['status'] : ((int)$data['pemesanan'] == 0 ? 2 : 1);
 
         // Base total from selected rooms * nights
         $baseTotal = 0;
@@ -212,6 +273,7 @@ class BookingController extends Controller
             $price = (int)$k->harga * $durasi;
             $baseTotal += $price;
         }
+        // Extra bed tidak ditambahkan ke baseTotal karena masuk ke biaya_tambahan via form
         // Do not apply extra_time multipliers to price; only date is adjusted above
         // Per-head mode: if enabled and guests > 2, add 50k per extra guest; ensure min 100k
         $jumlahTamu = (int)($request->get('jumlah_tamu') ?? 1);
@@ -284,7 +346,7 @@ class BookingController extends Controller
                 'jumlah_tamu_total' => $data['jumlah_tamu'],
                 'status' => $status,
                 'pemesanan' => (int)$data['pemesanan'],
-                'catatan' => $data['catatan'] ?? null,
+                'catatan' => $this->buildCatatan($data['catatan'] ?? null, $extraBedQty, $extraBedPrice, $extraBedTotal),
                 'total_harga' => $totalOrder,
                 'payment_status' => $paymentStatus,
                 'payment_method' => $paymentMethod ? strtolower($paymentMethod) : null,
@@ -574,6 +636,9 @@ class BookingController extends Controller
             'discount_manual_nominal' => 'nullable|integer|min:0',
             // New: explicit duration from form
             'durasi_booking' => 'nullable|numeric|min:0',
+            // Extra bed
+            'extra_bed_qty' => 'nullable|integer|min:0',
+            'extra_bed_price' => 'nullable|integer|min:0',
         ]);
         // Require manual total when Traveloka (edit)
         if ((int)$request->get('pemesanan') === 1) {
@@ -613,7 +678,11 @@ class BookingController extends Controller
             $it->save();
             $base += $it->subtotal;
         }
-        // Do not apply extra_time multipliers to price; only date adjusted above
+        // Extra bed calculation (untuk catatan saja, tidak ditambahkan ke base)
+        $extraBedQty = (int)($data['extra_bed_qty'] ?? 0);
+        $extraBedPrice = (int)($data['extra_bed_price'] ?? 0);
+        $extraBedTotal = $extraBedQty > 0 ? ($extraBedQty * $extraBedPrice * $durasi) : 0;
+        // Extra bed tidak ditambahkan ke base karena masuk ke biaya_tambahan via form
         // Per-head
         $perHead = (bool)($data['per_head_mode'] ?? $order->per_head_mode ?? false);
         $jumlahTamu = (int)($data['jumlah_tamu_total'] ?? $order->jumlah_tamu_total ?? 1);
@@ -645,7 +714,7 @@ class BookingController extends Controller
         $order->tanggal_checkin = $start;
         $order->tanggal_checkout = $end;
         $order->pemesanan = (int)$data['pemesanan'];
-        $order->catatan = $data['catatan'] ?? null;
+        $order->catatan = $this->buildCatatan($data['catatan'] ?? null, $extraBedQty, $extraBedPrice, $extraBedTotal);
         // For Traveloka (pemesanan==1), prefer manual total if provided; otherwise use auto calc
         if ((int)$data['pemesanan'] === 1) {
             $manual = (int)($data['manual_total_harga'] ?? $request->get('manual_total_harga') ?? 0);

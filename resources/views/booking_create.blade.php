@@ -247,6 +247,7 @@
                         }
                         if (fpIn) fpIn.setDate(start, true);
                         if (fpOut) fpOut.setDate(end, true);
+                        updateExtraBedDisplay();
                     });
 
                     customDurasiInput.addEventListener('input', function() {
@@ -271,8 +272,156 @@
                         }
                         if (fpIn) fpIn.setDate(start, true);
                         if (fpOut) fpOut.setDate(end, true);
+                        updateExtraBedDisplay();
                     });
                 })();
+
+                // Update extra bed display
+                function updateExtraBedDisplay() {
+                    // debounce to avoid rapid AJAX calls
+                    if (window._updateExtraBedTimer) clearTimeout(window._updateExtraBedTimer);
+                    window._updateExtraBedTimer = setTimeout(async function(){
+                        try {
+                            const qtyInp = document.querySelector('input[name="extra_bed_qty"]');
+                            const bedPriceHidden = document.querySelector('input[name="extra_bed_price"]');
+                            const durasiSel = document.getElementById('durasi_hari');
+                            const customDurasiInp = document.getElementById('durasi_hari_custom');
+                            const inpIn = document.querySelector('input[name="tanggal_checkin"]');
+                            const inpOut = document.querySelector('input[name="tanggal_checkout"]');
+
+                            const qty = Math.max(0, parseInt(qtyInp?.value || 0) || 0);
+
+                            // compute durasi same logic as elsewhere
+                            let durasi = 0;
+                            if (durasiSel && durasiSel.value && durasiSel.value !== 'custom') {
+                                durasi = parseFloat(durasiSel.value);
+                            } else if (customDurasiInp && customDurasiInp.value) {
+                                durasi = parseFloat(customDurasiInp.value);
+                            } else if (window.fpIn && window.fpOut && fpIn.selectedDates[0] && fpOut.selectedDates[0]) {
+                                const dIn = fpIn.selectedDates[0];
+                                const dOut = fpOut.selectedDates[0];
+                                const rawDays = Math.floor((dOut - dIn) / (24*60*60*1000));
+                                durasi = Math.max(0.5, rawDays + ((dOut.getHours() >= 6 && dOut.getHours() < 12) ? 0.5 : 0));
+                            } else {
+                                durasi = 1;
+                            }
+
+                            // if no extra beds chosen, clear display and reset biaya tambahan
+                            if (!qty || qty <= 0) {
+                                const existing = document.getElementById('extra_bed_display');
+                                if (existing) existing.textContent = '';
+                                
+                                // Reset biaya tambahan ke 0 saat extra bed dihapus
+                                const biayaTambahanInp = document.querySelector('input[name="biaya_tambahan"]');
+                                if (biayaTambahanInp) {
+                                    biayaTambahanInp.value = '0';
+                                }
+                                
+                                // Reset hidden price
+                                if (bedPriceHidden) bedPriceHidden.value = '0';
+                                return;
+                            }
+
+                            // collect selected rooms (optional for server calc)
+                            const kamarSelected = Array.from(document.querySelectorAll('select[name="kamar_ids[]"] option:checked')).map(o=>o.value);
+
+                            // prepare payload
+                            const payload = {
+                                qty: qty,
+                                durasi: durasi,
+                                kamar_ids: kamarSelected,
+                                tanggal_checkin: inpIn?.value || '',
+                                tanggal_checkout: inpOut?.value || ''
+                            };
+
+                            // get CSRF token (meta or hidden input)
+                            const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+                                || document.querySelector('input[name="_token"]')?.value
+                                || '';
+
+                            // AJAX endpoint - adjust route on server to handle this request and return JSON { unit_price, total }
+                            const endpoint = '/booking/extra-bed-calc';
+
+                            let unitPrice = null;
+                            let total = null;
+
+                            try {
+                                const res = await fetch(endpoint, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'X-Requested-With': 'XMLHttpRequest',
+                                        'X-CSRF-TOKEN': token
+                                    },
+                                    body: JSON.stringify(payload)
+                                });
+                                if (res.ok) {
+                                    const j = await res.json();
+                                    // expected: { unit_price: number, total: number }
+                                    if (j && (j.unit_price !== undefined || j.total !== undefined)) {
+                                        unitPrice = parseInt(j.unit_price || 0, 10);
+                                        total = parseInt(j.total || Math.round((unitPrice || 0) * qty * durasi), 10);
+                                    }
+                                }
+                            } catch (e) {
+                                // ignore network errors and fallback to client calc
+                            }
+
+                            // Fallback: if server didn't provide unitPrice, use current hidden price
+                            if (unitPrice === null) {
+                                unitPrice = parseInt((bedPriceHidden?.value || '0').toString().replace(/[^0-9]/g, '')) || 0;
+                                total = Math.round(qty * unitPrice * durasi);
+                            } else {
+                                // if server provided unitPrice, update hidden input so other logic sees it
+                                if (bedPriceHidden) bedPriceHidden.value = unitPrice;
+                            }
+
+                            // build display string
+                            let display = '';
+                            if (qty > 0 && unitPrice > 0) {
+                                display = `Extra Bed: ${qty} unit × Rp${unitPrice.toLocaleString('id-ID')} × ${durasi} hari = Rp${total.toLocaleString('id-ID')}`;
+                            }
+
+                            let displayEl = document.getElementById('extra_bed_display');
+                            if (!displayEl) {
+                                displayEl = document.createElement('div');
+                                displayEl.id = 'extra_bed_display';
+                                displayEl.style.cssText = 'padding: 10px; margin-top: 5px; border-radius: 4px; background-color: #e3f2fd; color: #1565c0; font-size: 0.9rem;';
+                                const catatanWrapper = document.querySelector('textarea[name="catatan"]')?.parentElement;
+                                if (catatanWrapper) catatanWrapper.appendChild(displayEl);
+                            }
+                            displayEl.textContent = display;
+
+                            // trigger biaya sync if function exists (some code listens to changes)
+                            try { if (typeof updateBiayaWithExtra === 'function') updateBiayaWithExtra(); } catch(_) {}
+
+                            // Update biaya tambahan field
+                            const biayaTambahanInp = document.querySelector('input[name="biaya_tambahan"]');
+                            if (biayaTambahanInp && total !== null && total >= 0) {
+                                biayaTambahanInp.value = formatRupiah(total.toString());
+                            }
+
+                        } catch (err) {
+                            // silent fail
+                            console.error('updateExtraBedDisplay error', err);
+                        }
+                    }, 250);
+                }
+
+                // Attach listeners to extra bed inputs
+                const bedQtyInp = document.querySelector('input[name="extra_bed_qty"]');
+                const bedPriceInp = document.querySelector('input[name="extra_bed_price"]');
+                if (bedQtyInp) {
+                    bedQtyInp.addEventListener('input', updateExtraBedDisplay);
+                    bedQtyInp.addEventListener('change', updateExtraBedDisplay);
+                }
+                if (bedPriceInp) {
+                    bedPriceInp.addEventListener('input', updateExtraBedDisplay);
+                    bedPriceInp.addEventListener('change', updateExtraBedDisplay);
+                }
+
+                // Initial display
+                setTimeout(updateExtraBedDisplay, 300);
 
                 // Nota helpers: Save/Use from localStorage for reusing Nota across multiple bookings
                 (function(){
@@ -317,6 +466,10 @@
                     <h5 class="card-title">Form Booking</h5>
                 </div>
                 <div class="card-body">
+                        <div class="helper-note" style="padding: 10px;">
+                            <strong>Petunjuk Pengisian:</strong> Nomor pada setiap label menunjukkan urutan pengisian. Isilah form dari nomor 1, 2, 3 ... untuk pengalaman input yang rapi dan konsisten.
+                            <div style="margin-top:6px;font-size:.9rem;">Contoh: 1. Pelanggan → 2. Nota → 3. Pilih Kamar → 4. Check-In → 5. Check-Out ...</div>
+                        </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Pelanggan</label>
@@ -408,11 +561,6 @@
                             @endif
                         </div>
                         <div class="col-md-4 mb-3">
-                            <label class="form-label">Biaya Tambahan (Rp)</label>
-                            <input type="text" name="biaya_tambahan" class="form-control rupiah" value="{{ old('biaya_tambahan', 0) }}" placeholder="Biaya lain-lain" />
-                            <small class="text-muted">Opsional, akan ditambahkan ke grand total.</small>
-                        </div>
-                        <div class="col-md-4 mb-3">
                             <label class="form-label">Status</label>
                             <select name="status" class="form-control">
                                 <option value="1" {{ old('status')=='1' ? 'selected' : '' }}>Dipesan</option>
@@ -451,12 +599,12 @@
                         <div class="col-md-4 mb-3">
                             <label class="form-label">Diskon</label>
                             <div class="form-check">
-                              <input class="form-check-input" type="checkbox" name="discount_review" id="disc_review" value="1" {{ old('discount_review') ? 'checked' : '' }}>
+                                <input class="form-check-input" type="checkbox" name="discount_review" id="disc_review" value="1" {{ old('discount_review') ? 'checked' : '' }}>
                               <label class="form-check-label" for="disc_review">Review (10%)</label>
                             </div>
                             <div class="form-check">
-                              <input class="form-check-input" type="checkbox" name="discount_follow" id="disc_follow" value="1" {{ old('discount_follow') ? 'checked' : '' }}>
-                              <label class="form-check-label" for="disc_follow">Follow Sosmed (10%)</label>
+                                <input class="form-check-input" type="checkbox" name="discount_follow" id="disc_follow" value="1" {{ old('discount_follow') ? 'checked' : '' }}>
+                                <label class="form-check-label" for="disc_follow">Follow Sosmed (10%)</label>
                             </div>
                             @if(auth()->check() && auth()->user()->isOwner())
                             <div class="mt-3">
@@ -487,16 +635,134 @@
                                 <label class="form-check-label" for="per_head_mode">Mode per kepala (min 100k, >2 org +50k/org)</label>
                             </div>
                         </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Extra Bed</label>
+                            <input type="number" id="extra_bed_qty" name="extra_bed_qty" min="0" class="form-control" value="{{ old('extra_bed_qty', 0) }}" placeholder="0">
+                            <small class="text-muted">Masukkan jumlah extra bed yang diinginkan.</small>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Biaya Tambahan (Rp)</label>
+                            <input type="text" id="biaya_tambahan" name="biaya_tambahan" class="form-control rupiah" value="{{ old('biaya_tambahan', 0) }}" placeholder="Biaya lain-lain" />
+                            <small class="text-muted">Akan otomatis menambahkan biaya extra bed, jika ingin menambahkan biaya lagi edit form ini.</small>
+                        </div>
+                        <script>
+                        document.addEventListener('DOMContentLoaded', function(){
+                            (function(){
+                                const qtyInp = document.getElementById('extra_bed_qty');
+                                const biayaInp = document.querySelector('input[name="biaya_tambahan"]');
+                                const priceHidden = document.querySelector('input[name="extra_bed_price"]');
+                                if(!qtyInp || !biayaInp || !priceHidden) return;
+
+                                function num(v){ return parseInt((v||'').toString().replace(/[^0-9]/g,'')) || 0; }
+                                function fmt(n){ return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g,'.'); }
+
+                                // same durasi calc as updateExtraBedDisplay()
+                                function getDurasi(){
+                                    const durasiSel = document.getElementById('durasi_hari');
+                                    const customDurasiInp = document.getElementById('durasi_hari_custom');
+                                    if (durasiSel && durasiSel.value && durasiSel.value !== 'custom') {
+                                        return parseFloat(durasiSel.value);
+                                    } else if (customDurasiInp && customDurasiInp.value) {
+                                        return parseFloat(customDurasiInp.value);
+                                    } else {
+                                        const inpIn = document.querySelector('input[name="tanggal_checkin"]');
+                                        const inpOut = document.querySelector('input[name="tanggal_checkout"]');
+                                        if (window.fpIn && window.fpOut && fpIn.selectedDates[0] && fpOut.selectedDates[0]) {
+                                            const dIn = fpIn.selectedDates[0];
+                                            const dOut = fpOut.selectedDates[0];
+                                            const rawDays = Math.floor((dOut - dIn) / (24*60*60*1000));
+                                            return Math.max(0.5, rawDays + ((dOut.getHours() >= 6 && dOut.getHours() < 12) ? 0.5 : 0));
+                                        }
+                                    }
+                                    return 1;
+                                }
+
+                                let isProgrammatic = false;
+                                let baseBiaya = num(biayaInp.value);
+
+                                function updateBiayaWithExtra(){
+                                    const qty = Math.max(0, parseInt(qtyInp.value) || 0);
+                                    const price = num(priceHidden.value);
+                                    const durasi = getDurasi() || 1;
+                                    const extraTotal = Math.round(qty * price * durasi);
+                                    const newVal = baseBiaya + extraTotal;
+                                    isProgrammatic = true;
+                                    biayaInp.value = newVal ? fmt(newVal) : '';
+                                    try{ biayaInp.setSelectionRange(biayaInp.value.length, biayaInp.value.length); }catch(_){}
+                                    setTimeout(()=>{ isProgrammatic = false; }, 50);
+                                }
+
+                                // Jika user mengubah biaya_tambahan manual, simpan baseBiaya = current - extraTotal
+                                biayaInp.addEventListener('input', function(){
+                                    if(isProgrammatic) return;
+                                    const current = num(this.value);
+                                    const qty = Math.max(0, parseInt(qtyInp.value) || 0);
+                                    const price = num(priceHidden.value);
+                                    const durasi = getDurasi() || 1;
+                                    const extraTotal = Math.round(qty * price * durasi);
+                                    baseBiaya = Math.max(0, current - extraTotal);
+                                });
+
+                                qtyInp.addEventListener('input', function(){ updateBiayaWithExtra(); if(typeof updateExtraBedDisplay==='function') updateExtraBedDisplay(); });
+                                qtyInp.addEventListener('change', function(){ updateBiayaWithExtra(); if(typeof updateExtraBedDisplay==='function') updateExtraBedDisplay(); });
+
+                                // initial sync
+                                updateBiayaWithExtra();
+                            })();
+                        });
+                        </script>
+                        @php
+                            // Controller menyediakan $extra_bed_price_fixed; simpan ke variabel untuk form.
+                            $fixedPrice = isset($extra_bed_price_fixed) ? $extra_bed_price_fixed : old('extra_bed_price', 0);
+                        @endphp
+                        {{-- Extra bed price disembunyikan dari UI — logika/penetapan harga di-handle di controller --}}
+                        <input type="hidden" name="extra_bed_price" value="{{ $fixedPrice }}">
                         <div class="col-md-12 mb-3">
                             <label class="form-label">Catatan</label>
                             <textarea name="catatan" class="form-control" rows="3">{{ old('catatan') }}</textarea>
+                            <small class="text-muted">Extra bed akan ditambahkan otomatis di catatan: [Extra Bed: X unit @Rp Y/malam = Rp Z total]</small>
                         </div>
                     </div>
                 </div>
                 <div class="card-footer">
-                    <div class="d-flex justify-content-end gap-2">
-                        <a href="{{ route('booking.index') }}" class="btn btn-light">Batal</a>
-                        <button type="submit" class="btn btn-success">Simpan</button>
+                    <style>
+                        /* Tambahkan penomoran otomatis pada label form di dalam #formBookingCreate */
+                        #formBookingCreate { counter-reset: field; }
+                        #formBookingCreate .form-label {
+                            display: inline-block;
+                            position: relative;
+                            padding-left: 2.2rem;
+                            margin-bottom: .5rem;
+                        }
+                        #formBookingCreate .form-label::before {
+                            counter-increment: field;
+                            content: counter(field) ".";
+                            position: absolute;
+                            left: 0;
+                            top: 0;
+                            width: 1.8rem;
+                            height: 1.8rem;
+                            line-height: 1.8rem;
+                            text-align: center;
+                            border-radius: 50%;
+                            color: #050505ff;
+                            font-weight: 600;
+                            font-size: .85rem;
+                        }
+                        /* Penyesuaian kecil agar tampilan lebih rapi pada device kecil */
+                        @media (max-width: 575px) {
+                            #formBookingCreate .form-label { padding-left: 2.6rem; }
+                            #formBookingCreate .form-label::before { width: 2rem; height: 2rem; line-height: 2rem; }
+                        }
+                        /* Notes kecil */
+                        #formBookingCreate .helper-note { font-size: .9rem; color: #6c757d; }
+                    </style>
+
+                        <div class="d-flex justify-content-end gap-2">
+                            <a href="{{ route('booking.index') }}" class="btn btn-light">Batal</a>
+                            <button type="submit" class="btn btn-success">Simpan</button>
+                        </div>
                     </div>
                 </div>
             </div>
