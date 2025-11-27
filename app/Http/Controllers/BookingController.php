@@ -142,18 +142,14 @@ class BookingController extends Controller
             'amount' => 'required|integer|min:0',
             'note'   => 'nullable|string|max:190',
         ]);
-        \DB::table('cash_ledger')->insert([
-            'booking_id' => $order->id,
-            'type'       => 'cashback_in',
-            'amount'     => (int)$data['amount'],
-            'note'       => $data['note'] ? $data['note'] : 'Cashback',
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        // Cash ledger tidak lagi digunakan - cashback bisa ditambahkan ke biaya_tambahan
+        $order->biaya_tambahan = ((int)($order->biaya_tambahan ?? 0)) + (int)$data['amount'];
+        $order->save();
+        
         if ($request->wantsJson()) {
             return response()->json(['success'=>true]);
         }
-        return back()->with('success','Cashback ditambahkan');
+        return back()->with('success','Cashback ditambahkan ke biaya tambahan');
     }
 
     /**
@@ -374,19 +370,7 @@ class BookingController extends Controller
                 ]);
             }
 
-            // Ledger: DP in
-            if($dpAmount > 0){
-                $dpMethod = strtolower((string)($request->get('dp_payment_method') ?? $paymentMethod ?? '')) ?: null;
-                DB::table('cash_ledger')->insert([
-                    'booking_id' => $order->id,
-                    'type' => 'dp_in',
-                    'amount' => $dpAmount,
-                    'note' => 'Uang masuk DP',
-                    'payment_method' => $dpMethod,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-            }
+            // Cash ledger tidak lagi digunakan - data DP sudah tersimpan di booking
 
             DB::commit();
         } catch (\Throwable $e) {
@@ -434,22 +418,8 @@ class BookingController extends Controller
                 break;
         }
         $booking->save();
-        // Ledger: if payment becomes lunas here, log remaining pelunasan
-        if($oldPayment !== 'lunas' && $booking->payment_status === 'lunas'){
-            $total = (int)($booking->total_harga ?? 0);
-            $dp = (int)($booking->dp_amount ?? 0);
-            $remaining = max(0, $total - $dp);
-            if($remaining > 0){
-                DB::table('cash_ledger')->insert([
-                    'booking_id'=>$booking->id,
-                    'type'=>'dp_remaining_in',
-                    'amount'=>$remaining,
-                    'note'=>'Pelunasan sisa DP (checkout)',
-                    'created_at'=>now(),
-                    'updated_at'=>now(),
-                ]);
-            }
-        }
+        // Cash ledger tidak lagi digunakan - status pembayaran sudah tersimpan di booking
+        
         if (request()->wantsJson()) {
             $statusKeyMap = [1=>'dipesan',2=>'checkin',3=>'checkout',4=>'dibatalkan'];
             $statusLabelMap = [
@@ -575,22 +545,8 @@ class BookingController extends Controller
         $old = (string)($order->payment_status ?? 'dp');
         $order->payment_status = $new;
         $order->save();
-        // Ledger effects when toggling payment status directly
-        if($old !== 'lunas' && $new === 'lunas'){
-            $total = (int)($order->total_harga ?? 0);
-            $dp = (int)($order->dp_amount ?? 0);
-            $remaining = max(0, $total - $dp);
-            if($remaining > 0){
-                DB::table('cash_ledger')->insert([
-                    'booking_id'=>$order->id,
-                    'type'=>'dp_remaining_in',
-                    'amount'=>$remaining,
-                    'note'=>'Pelunasan sisa DP (toggle)',
-                    'created_at'=>now(),
-                    'updated_at'=>now(),
-                ]);
-            }
-        }
+        // Cash ledger tidak lagi digunakan - status pembayaran sudah tersimpan di booking
+        
         if($request->wantsJson()){
             return response()->json(['success'=>true,'payment_status'=>$order->payment_status]);
         }
@@ -744,92 +700,8 @@ class BookingController extends Controller
         if($dpPct!==null && $dpPct!==''){ $order->dp_percentage = max(0,min(100,(int)$dpPct)); }
         $order->save();
 
-        // Ledger logic (reconcile changes after edit)
-        $newDp = (int)($order->dp_amount ?? 0);
-        $newTotal = (int)($order->total_harga ?? 0);
-        $newPayment = (string)($order->payment_status ?? 'dp');
-
-        // 1) Record DP additions (manual increase in dp_amount)
-        if($newDp > $oldDp){
-            $delta = $newDp - $oldDp;
-            $dpMethod = strtolower((string)($request->get('dp_payment_method') ?? $request->get('payment_method') ?? $order->payment_method ?? '')) ?: null;
-            DB::table('cash_ledger')->insert([
-                'booking_id'=>$order->id,
-                'type'=>'dp_in',
-                'amount'=>$delta,
-                'note'=>'Tambahan DP',
-                'payment_method' => $dpMethod,
-                'created_at'=>now(),
-                'updated_at'=>now(),
-            ]);
-        }
-        // 2) Record DP reductions (manual decrease in dp_amount)
-        if($newDp < $oldDp){
-            $delta = $oldDp - $newDp;
-            DB::table('cash_ledger')->insert([
-                'booking_id'=>$order->id,
-                'type'=>'dp_canceled',
-                'amount'=>$delta,
-                'note'=>'Koreksi pengurangan DP',
-                'created_at'=>now(),
-                'updated_at'=>now(),
-            ]);
-        }
-        // 3) If payment transitions to lunas, log remaining top-up if any
-        if($oldPayment !== 'lunas' && $newPayment === 'lunas'){
-            $remaining = max(0, $newTotal - $newDp);
-            if($remaining > 0){
-                $pelunasanMethod = strtolower((string)($request->get('pelunasan_payment_method') ?? $request->get('payment_method') ?? $order->payment_method ?? '')) ?: null;
-                DB::table('cash_ledger')->insert([
-                    'booking_id'=>$order->id,
-                    'type'=>'dp_remaining_in',
-                    'amount'=>$remaining,
-                    'note'=>'Pelunasan sisa DP',
-                    'payment_method' => $pelunasanMethod,
-                    'created_at'=>now(),
-                    'updated_at'=>now(),
-                ]);
-                $newDp = (int)$order->dp_amount;
-            }
-        }
-        // 4) If already lunas and total increases beyond current dp, log top-up
-        if($newPayment === 'lunas' && $newTotal > $newDp){
-            $delta = $newTotal - $newDp;
-            $pelunasanMethod = strtolower((string)($request->get('pelunasan_payment_method') ?? $request->get('payment_method') ?? $order->payment_method ?? '')) ?: null;
-            DB::table('cash_ledger')->insert([
-                'booking_id'=>$order->id,
-                'type'=>'dp_remaining_in',
-                'amount'=>$delta,
-                'note'=>'Penyesuaian total (top-up)',
-                'payment_method' => $pelunasanMethod,
-                'created_at'=>now(),
-                'updated_at'=>now(),
-            ]);
-        }
-        // 4b) If already lunas and total decreases below current dp, log refund/correction
-        if($newPayment === 'lunas' && $newTotal < $newDp){
-            $delta = $newDp - $newTotal;
-            DB::table('cash_ledger')->insert([
-                'booking_id'=>$order->id,
-                'type'=>'dp_canceled',
-                'amount'=>$delta,
-                'note'=>'Penyesuaian total (refund/koreksi)',
-                'payment_method' => strtolower((string)($request->get('pelunasan_payment_method') ?? $order->payment_method ?? '')) ?: null,
-                'created_at'=>now(),
-                'updated_at'=>now(),
-            ]);
-        }
-        // 5) Explicit dp_cancel: record full current DP as canceled
-        if($newPayment === 'dp_cancel' && $newDp > 0){
-            DB::table('cash_ledger')->insert([
-                'booking_id'=>$order->id,
-                'type'=>'dp_canceled',
-                'amount'=>$newDp,
-                'note'=>'DP dibatalkan',
-                'created_at'=>now(),
-                'updated_at'=>now(),
-            ]);
-        }
+        // Cash ledger tidak lagi digunakan - semua data transaksi sudah tersimpan di booking
+        // Tidak perlu rekonsiliasi karena data di-generate real-time dari RekapController
 
         if($request->wantsJson()){
             $meta = $this->statusMeta($order->status);
@@ -1332,55 +1204,7 @@ class BookingController extends Controller
         $order->diskon = $diskonNom;
         $order->save();
 
-        // Rekonsiliasi ledger jika perlu
-        $newDp = (int)($order->dp_amount ?? 0);
-        $newTotal = (int)($order->total_harga ?? 0);
-        $newPayment = (string)($order->payment_status ?? 'dp');
-        if($oldPayment !== 'lunas' && $newPayment === 'lunas'){
-            $remaining = max(0, $newTotal - $newDp);
-            if($remaining > 0){
-                DB::table('cash_ledger')->insert([
-                    'booking_id'=>$order->id,
-                    'type'=>'dp_remaining_in',
-                    'amount'=>$remaining,
-                    'note'=>'Pelunasan sisa DP (pindah kamar)',
-                    'payment_method' => strtolower((string)($order->payment_method ?? '')) ?: null,
-                    'created_at'=>now(),
-                    'updated_at'=>now(),
-                ]);
-                $order->dp_amount = $newDp + $remaining;
-                $order->save();
-                $newDp = (int)$order->dp_amount;
-            }
-        }
-        if($newPayment === 'lunas' && $newTotal > $newDp){
-            $delta = $newTotal - $newDp;
-            DB::table('cash_ledger')->insert([
-                'booking_id'=>$order->id,
-                'type'=>'dp_remaining_in',
-                'amount'=>$delta,
-                'note'=>'Penyesuaian total (pindah kamar)',
-                'payment_method' => strtolower((string)($order->payment_method ?? '')) ?: null,
-                'created_at'=>now(),
-                'updated_at'=>now(),
-            ]);
-            $order->dp_amount = $newDp + $delta;
-            $order->save();
-        }
-        if($newPayment === 'lunas' && $newTotal < $newDp){
-            $delta = $newDp - $newTotal;
-            DB::table('cash_ledger')->insert([
-                'booking_id'=>$order->id,
-                'type'=>'dp_canceled',
-                'amount'=>$delta,
-                'note'=>'Koreksi total (pindah kamar)',
-                'payment_method' => strtolower((string)($order->payment_method ?? '')) ?: null,
-                'created_at'=>now(),
-                'updated_at'=>now(),
-            ]);
-            $order->dp_amount = $newDp - $delta;
-            $order->save();
-        }
+        // Cash ledger tidak lagi digunakan - data transaksi di-generate real-time dari booking
 
         // Log transfer history
         BookingRoomTransfer::create([
@@ -1488,55 +1312,7 @@ class BookingController extends Controller
             'note' => $request->get('note'),
         ]);
 
-        // Rekonsiliasi ledger untuk upgrade
-        $newDp = (int)($order->dp_amount ?? 0);
-        $newTotal = (int)($order->total_harga ?? 0);
-        $newPayment = (string)($order->payment_status ?? 'dp');
-        if($oldPayment !== 'lunas' && $newPayment === 'lunas'){
-            $remaining = max(0, $newTotal - $newDp);
-            if($remaining > 0){
-                DB::table('cash_ledger')->insert([
-                    'booking_id'=>$order->id,
-                    'type'=>'dp_remaining_in',
-                    'amount'=>$remaining,
-                    'note'=>'Pelunasan sisa DP (upgrade kamar)',
-                    'payment_method' => strtolower((string)($order->payment_method ?? '')) ?: null,
-                    'created_at'=>now(),
-                    'updated_at'=>now(),
-                ]);
-                $order->dp_amount = $newDp + $remaining;
-                $order->save();
-                $newDp = (int)$order->dp_amount;
-            }
-        }
-        if($newPayment === 'lunas' && $newTotal > $newDp){
-            $delta = $newTotal - $newDp;
-            DB::table('cash_ledger')->insert([
-                'booking_id'=>$order->id,
-                'type'=>'dp_remaining_in',
-                'amount'=>$delta,
-                'note'=>'Penyesuaian total (upgrade kamar)',
-                'payment_method' => strtolower((string)($order->payment_method ?? '')) ?: null,
-                'created_at'=>now(),
-                'updated_at'=>now(),
-            ]);
-            $order->dp_amount = $newDp + $delta;
-            $order->save();
-        }
-        if($newPayment === 'lunas' && $newTotal < $newDp){
-            $delta = $newDp - $newTotal;
-            DB::table('cash_ledger')->insert([
-                'booking_id'=>$order->id,
-                'type'=>'dp_canceled',
-                'amount'=>$delta,
-                'note'=>'Koreksi total (upgrade kamar)',
-                'payment_method' => strtolower((string)($order->payment_method ?? '')) ?: null,
-                'created_at'=>now(),
-                'updated_at'=>now(),
-            ]);
-            $order->dp_amount = $newDp - $delta;
-            $order->save();
-        }
+        // Cash ledger tidak lagi digunakan - data transaksi di-generate real-time dari booking
 
         if($request->wantsJson()){
             return response()->json(['success'=>true,'order_id'=>$order->id,'new_total'=>$order->total_harga]);
