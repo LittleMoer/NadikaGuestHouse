@@ -73,8 +73,7 @@
                         <th>Check-In</th>
                         <th>Check-Out</th>
                         <th>Metode Bayar</th>
-                        <th class="text-end">Kamar (Rp)</th>
-                        <th class="text-end">Cafe (Rp)</th>
+                        <th>Dibuat oleh</th>
                         <th class="text-end">Total (Rp)</th>
                         <th>Aksi</th>
                     </tr>
@@ -96,8 +95,7 @@
                         <td>{{ \Carbon\Carbon::parse($order->tanggal_checkin)->format('d/m/Y H:i') }}</td>
                         <td>{{ \Carbon\Carbon::parse($order->tanggal_checkout)->format('d/m/Y H:i') }}</td>
                         <td>{{ $order->payment_method ? strtoupper($order->payment_method) : '-' }}</td>
-                        <td class="text-end">{{ number_format($order->total_harga,0,',','.') }}</td>
-                        <td class="text-end">{{ number_format($order->total_cafe ?? 0,0,',','.') }}</td>
+                        <td>{{ $order->creator?->name ?? '-' }}</td>
                         <td class="text-end">{{ number_format(($order->total_harga)+($order->total_cafe ?? 0),0,',','.') }}</td>
                         <td style="min-width:50px;display:flex;justify-content:flex-end;gap:8px;">
                             <a href="{{ route('booking.detail', $order->id) }}" class="btn btn-sm btn-secondary">Detail</a>
@@ -110,7 +108,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="11" class="text-center py-3">Tidak ada booking untuk tanggal ini.</td></tr>
+                    <tr><td colspan="10" class="text-center py-3">Tidak ada booking untuk tanggal ini.</td></tr>
                 @endforelse
                 </tbody>
             </table>
@@ -145,6 +143,7 @@
                             <dt>Pelanggan</dt><dd id="bd_nama">-</dd>
                             <dt>Telepon</dt><dd id="bd_telepon">-</dd>
                             <dt>Jumlah Tamu total</dt><dd id="bd_jumlah_tamu_total">-</dd>
+                            <dt>Dibuat oleh</dt><dd id="bd_created_by">-</dd>
                             <dt>Check-In</dt><dd id="bd_checkin">-</dd>
                             <dt>Check-Out</dt><dd id="bd_checkout">-</dd>
                             <dt>Metode</dt><dd id="bd_metode">-</dd>
@@ -265,7 +264,7 @@
                     lengthMenu: [[10,25,50,-1],[10,25,50,'Semua']],
                     order: [[0,'desc']],
                     columnDefs: [
-                        { targets: [10], orderable: false } // Aksi kolom tidak perlu sorting
+                        { targets: [9], orderable: false } // Aksi kolom tidak perlu sorting
                     ]
                 });
             }
@@ -281,6 +280,7 @@
                 checkin: qs('#bd_checkin'), checkout: qs('#bd_checkout'), metode: qs('#bd_metode'),
                 total: qs('#bd_total'), totalCafe: qs('#bd_total_cafe'), grandTotal: qs('#bd_grand_total'),
                 catatan: qs('#bd_catatan'), summaryWrap: qs('#bd_summary'), summaryText: qs('#bd_summary_text'),
+                createdBy: qs('#bd_created_by'),
                 itemsBody: qs('#bd_items_body'), otherWrap: qs('#bd_other_orders_wrap'), otherBody: qs('#bd_other_orders_body'),
                 editForm: qs('#formEditOrder'), editId: qs('#edit_booking_id'), editCheckin: qs('#edit_checkin'),
                 editCheckout: qs('#edit_checkout'), editPemesanan: qs('#edit_pemesanan'), editCatatan: qs('#edit_catatan'), editPelanggan: qs('#edit_pelanggan_id'), editJumlahTamu: qs('#edit_jumlah_tamu_total'),
@@ -361,6 +361,7 @@
                 safe(EL.id, data.id); safe(EL.status, data.status_label); safe(EL.nama, data.pelanggan?.nama||'-'); safe(EL.telepon, data.pelanggan?.telepon||'-');
                 safe(EL.checkin, new Date(data.tanggal_checkin).toLocaleString()); safe(EL.checkout, new Date(data.tanggal_checkout).toLocaleString());
                 safe(EL.metode, data.status_meta?.channel==='walkin'?'Walk-In': (data.status_meta?.channel||'-'));
+                safe(EL.createdBy, data.creator?.name || '-')
                 const isTrav = (data.status_meta?.channel || '') === 'traveloka';
                 const totalLabel = isTrav ? (fmt(data.total_harga) + ' (Manual)') : fmt(data.total_harga);
                 safe(EL.total, totalLabel); safe(EL.totalCafe, fmt(data.total_cafe)); safe(EL.grandTotal, fmt(data.grand_total)); safe(EL.catatan, data.catatan||'-');

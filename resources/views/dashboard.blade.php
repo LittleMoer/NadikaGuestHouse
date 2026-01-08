@@ -15,6 +15,45 @@
                         </div>
                         <a class="btn btn-light" href="{{ route('dashboard.index', ['bulan' => $nextMonth, 'tahun' => $nextYear]) }}" title="Bulan Berikutnya">&raquo;</a>
                     </div>
+                    <!-- Ringkasan metode pemesanan per bulan -->
+                    <div class="dash-method-summary" style="display:flex;align-items:center;gap:8px;">
+                        <div class="method-card" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:8px 10px;">
+                            <div style="font-weight:700;color:#334155;margin-bottom:6px;font-size:.85rem;">Ringkasan Metode (Bulan Ini)</div>
+                            <table style="border-collapse:collapse;font-size:.82rem;">
+                                <thead>
+                                    <tr>
+                                        <th style="text-align:left;color:#64748b;font-weight:600;padding:4px 6px;">Metode</th>
+                                        <th style="text-align:right;color:#64748b;font-weight:600;padding:4px 6px;">Jumlah</th>
+                                        <th style="text-align:right;color:#64748b;font-weight:600;padding:4px 6px;">%</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td style="padding:3px 6px;color:#0f172a;">Walk-In</td>
+                                        <td style="padding:3px 6px;text-align:right;color:#0f172a;">{{ $methodCounts['walkin'] ?? 0 }}</td>
+                                        <td style="padding:3px 6px;text-align:right;color:#0f172a;">{{ $methodPercents['walkin'] ?? 0 }}%</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding:3px 6px;color:#0f172a;">Traveloka</td>
+                                        <td style="padding:3px 6px;text-align:right;color:#0f172a;">{{ $methodCounts['traveloka'] ?? 0 }}</td>
+                                        <td style="padding:3px 6px;text-align:right;color:#0f172a;">{{ $methodPercents['traveloka'] ?? 0 }}%</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding:3px 6px;color:#0f172a;">Agen</td>
+                                        <td style="padding:3px 6px;text-align:right;color:#0f172a;">{{ $methodCounts['agent'] ?? 0 }}</td>
+                                        <td style="padding:3px 6px;text-align:right;color:#0f172a;">{{ $methodPercents['agent'] ?? 0 }}%</td>
+                                    </tr>
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td style="padding:4px 6px;color:#334155;font-weight:700;">Total</td>
+                                        <td style="padding:4px 6px;text-align:right;color:#334155;font-weight:700;">{{ $methodTotal ?? 0 }}</td>
+                                        <td style="padding:4px 6px;text-align:right;color:#334155;font-weight:700;">{{ ($methodTotal ?? 0) > 0 ? '100%' : '0%' }}</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
                 </div>
         <div class="dash-legend">
             <div class="legend-title">Keterangan</div>

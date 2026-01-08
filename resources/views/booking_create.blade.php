@@ -131,15 +131,18 @@
                     });
                 });
 
-                // Toggle manual total when Traveloka
+                // Toggle manual total untuk Traveloka dan cashback untuk Agen
                 (function(){
                     const sel = document.querySelector('select[name="pemesanan"]');
                     const wrap = document.getElementById('wrap_manual_total');
                     const inp = document.querySelector('input[name="manual_total_harga"]');
+                    const wrapCb = document.getElementById('wrap_cashback_agent');
                     function apply(){
                         const isTrav = sel && String(sel.value) === '1';
                         if(wrap){ wrap.style.display = isTrav ? 'block':'none'; }
                         if(inp){ inp.required = !!isTrav; if(!isTrav) inp.value=''; }
+                        const isAgent = sel && (String(sel.value) === '2' || String(sel.value) === '3');
+                        if(wrapCb){ wrapCb.style.display = isAgent ? 'block' : 'none'; }
                     }
                     if(sel){ sel.addEventListener('change', apply); apply(); }
                 })();
@@ -471,7 +474,7 @@
                             <div style="margin-top:6px;font-size:.9rem;">Contoh: 1. Pelanggan → 2. Nota → 3. Pilih Kamar → 4. Check-In → 5. Check-Out ...</div>
                         </div>
                     <div class="row">
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3">
                             <label class="form-label">Pelanggan</label>
                             <select name="pelanggan_id" class="form-control" required>
                                 <optgroup label="Pelanggan">
@@ -488,7 +491,7 @@
                             </div>
                             
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3">
                             <label class="form-label">Nota (Opsional)</label>
                             <div class="input-group">
                                 <input type="text" name="booking_number" id="booking_number" class="form-control" value="{{ old('booking_number', request('booking_number','')) }}" placeholder="Isi untuk menggunakan Nota yang sama" />
@@ -497,7 +500,7 @@
                             </div>
                             <small class="text-muted">Kosongkan untuk membuat Nota baru. Isi dengan nomor Nota yang sudah ada untuk menggabungkan beberapa booking di Nota yang sama.</small>
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3">
                             <label class="form-label">Pilih Kamar (Multi)</label>
                             <select name="kamar_ids[]" class="form-control" multiple size="6" required>
                                 @foreach($availableKamar as $k)
@@ -511,15 +514,15 @@
                                 <div class="text-danger" style="font-size:.7rem;">{{ $message }}</div>
                             @enderror
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3">
                             <label class="form-label">Check-In</label>
                             <input type="text" name="tanggal_checkin" value="{{ old('tanggal_checkin', request('tanggal_checkin')) }}" class="form-control" placeholder="DD-MM-YYYY atau DD-MM-YYYY HH:MM" required>
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3">
                             <label class="form-label">Check-Out</label>
                             <input type="text" name="tanggal_checkout" value="{{ old('tanggal_checkout', request('tanggal_checkout')) }}" class="form-control" placeholder="DD-MM-YYYY atau DD-MM-YYYY HH:MM" required>
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3">
                             <label class="form-label">Durasi (Hari)</label>
                             <select id="durasi_hari" class="form-control">
                                 <option value="">- Pilih -</option>
@@ -550,6 +553,17 @@
                                 <option value="2" {{ $oldPem=='2' ? 'selected' : '' }}>Agent 1</option>
                                 <option value="3" {{ $oldPem=='3' ? 'selected' : '' }}>Agent 2</option>
                             </select>
+                        </div>
+                        <div class="col-md-4 mb-3" id="wrap_cashback_agent" style="display:none;">
+                            <label class="form-label">Cashback Agen (%)</label>
+                            @php $cbOld = old('cashback_percentage'); @endphp
+                            <select name="cashback_percentage" class="form-control">
+                                <option value="">- Pilih -</option>
+                                <option value="10" {{ $cbOld=='10' ? 'selected' : '' }}>10%</option>
+                                <option value="15" {{ $cbOld=='15' ? 'selected' : '' }}>15%</option>
+                                <option value="20" {{ $cbOld=='20' ? 'selected' : '' }}>20%</option>
+                            </select>
+                            <small class="text-muted">Cashback adalah potongan harga untuk customer dan akan mengurangi total kamar.</small>
                         </div>
                         <div class="col-md-4 mb-3" id="wrap_manual_total" style="display:none;">
                             <label class="form-label">Total Kamar (Rp)</label>
@@ -635,7 +649,7 @@
                                 <label class="form-check-label" for="per_head_mode">Mode per kepala (min 100k, >2 org +50k/org)</label>
                             </div>
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3">
                             <label class="form-label">Extra Bed</label>
                             <input type="number" id="extra_bed_qty" name="extra_bed_qty" min="0" class="form-control" value="{{ old('extra_bed_qty', 0) }}" placeholder="0">
                             <small class="text-muted">Masukkan jumlah extra bed yang diinginkan.</small>

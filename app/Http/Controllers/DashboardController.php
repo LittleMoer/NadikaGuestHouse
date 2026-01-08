@@ -58,6 +58,32 @@ class DashboardController extends Controller
             })
             ->get();
 
+        // Ringkasan metode pemesanan per bulan (basis: tanggal_checkin di bulan ini, exclude dibatalkan)
+        $methodCounts = [
+            'walkin'    => 0,
+            'traveloka' => 0,
+            'agent'     => 0, // gabungan agent1+agent2
+        ];
+        $methodOrders = BookingOrder::whereBetween('tanggal_checkin', [$start, $end])
+            ->where('status', '!=', 4)
+            ->get(['pemesanan','status']);
+        foreach ($methodOrders as $order) {
+            $p = (int)($order->pemesanan ?? 0);
+            if ($p === 0) {
+                $methodCounts['walkin']++;
+            } elseif ($p === 1) {
+                $methodCounts['traveloka']++;
+            } elseif ($p === 2 || $p === 3) {
+                $methodCounts['agent']++;
+            }
+        }
+        $methodTotal = array_sum($methodCounts);
+        $methodPercents = [
+            'walkin'    => $methodTotal > 0 ? round(($methodCounts['walkin'] / $methodTotal) * 100, 1) : 0,
+            'traveloka' => $methodTotal > 0 ? round(($methodCounts['traveloka'] / $methodTotal) * 100, 1) : 0,
+            'agent'     => $methodTotal > 0 ? round(($methodCounts['agent'] / $methodTotal) * 100, 1) : 0,
+        ];
+
         // Flatten items with reference to parent order status & dates + meta from payment_status+pemesanan
         $items = [];
         foreach($activeOrders as $order){
@@ -245,7 +271,8 @@ class DashboardController extends Controller
         return view('dashboard', compact(
             'bulan','tahun','prevMonth','prevYear','nextMonth','nextYear',
             'kamarList','jenisKamar','orderedJenisKamar','kamarGrouped',
-            'tanggalList','statusBooking','totalKamarTerisiBulan'
+            'tanggalList','statusBooking','totalKamarTerisiBulan',
+            'methodCounts','methodPercents','methodTotal'
         ));
     }
 }

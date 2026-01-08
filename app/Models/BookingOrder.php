@@ -5,6 +5,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Models\Pelanggan;
 use App\Models\BookingRoomTransfer;
+use App\Models\User;
 
 class BookingOrder extends Model
 {
@@ -33,7 +34,8 @@ class BookingOrder extends Model
         'per_head_mode', // boolean-like 0/1
         'biaya_tambahan',
         // new: human-friendly booking number that can reset per period
-        'booking_number'
+        'booking_number',
+        'created_by'
     ];
 
     protected $casts = [
@@ -63,6 +65,11 @@ class BookingOrder extends Model
     public function roomTransfers(): HasMany
     {
         return $this->hasMany(BookingRoomTransfer::class, 'booking_id');
+    }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 
     /**

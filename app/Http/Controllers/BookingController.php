@@ -120,7 +120,7 @@ class BookingController extends Controller
         $pelangganList = Pelanggan::orderBy('nama')->get();
 
         // Client-side pagination via DataTables in the view
-        $orders = BookingOrder::with(['pelanggan','items.kamar'])
+        $orders = BookingOrder::with(['pelanggan','items.kamar','creator'])
             ->orderByDesc('tanggal_checkin')
             ->get();
 
@@ -190,6 +190,8 @@ class BookingController extends Controller
             // Extra bed
             'extra_bed_qty' => 'nullable|integer|min:0',
             'extra_bed_price' => 'nullable|integer|min:0',
+            // Cashback untuk Agen (opsional: 10,15,20)
+            'cashback_percentage' => 'nullable|integer|in:10,15,20',
         ]);
         if ($validator->fails()) {
             return redirect()->route('booking.index')
@@ -311,6 +313,15 @@ class BookingController extends Controller
         $paymentStatus = $dpAmount >= $totalOrder ? 'lunas' : 'dp';
         $paymentMethod = $request->get('payment_method'); // cash, transfer, qris, card (nullable)
         $biayaTambahan = (int)($request->get('biaya_tambahan') ?? 0);
+        // Cashback Agen: potongan harga untuk customer (mengurangi total kamar)
+        $cashbackPct = (int)($request->get('cashback_percentage') ?? 0);
+        $cashbackAmount = 0;
+        if (in_array((int)$data['pemesanan'], [2,3], true) && in_array($cashbackPct, [10,15,20], true)) {
+            $cashbackAmount = (int) round($totalOrder * ($cashbackPct / 100));
+            $totalOrder = max(0, $totalOrder - $cashbackAmount);
+            // Catat cashback sebagai bagian dari diskon
+            $diskonNominal = (int)$diskonNominal + (int)$cashbackAmount;
+        }
 
         try {
             DB::beginTransaction();
@@ -342,7 +353,15 @@ class BookingController extends Controller
                 'jumlah_tamu_total' => $data['jumlah_tamu'],
                 'status' => $status,
                 'pemesanan' => (int)$data['pemesanan'],
-                'catatan' => $this->buildCatatan($data['catatan'] ?? null, $extraBedQty, $extraBedPrice, $extraBedTotal),
+                // Tambahkan catatan cashback jika ada (sebagai potongan untuk customer)
+                'catatan' => $this->buildCatatan((function() use ($data, $cashbackPct, $cashbackAmount){
+                    $base = $data['catatan'] ?? null;
+                    if ($cashbackPct && $cashbackAmount > 0) {
+                        $cbText = '[Cashback Agen (potongan): ' . $cashbackPct . '% = Rp' . number_format($cashbackAmount, 0, ',', '.') . ']';
+                        return trim(($base ? $base : '') . ($base ? "\n" : '') . $cbText);
+                    }
+                    return $base;
+                })(), $extraBedQty, $extraBedPrice, $extraBedTotal),
                 'total_harga' => $totalOrder,
                 'payment_status' => $paymentStatus,
                 'payment_method' => $paymentMethod ? strtolower($paymentMethod) : null,
@@ -356,6 +375,8 @@ class BookingController extends Controller
                 'diskon' => $diskonNominal,
                 // New human-friendly booking number
                 'booking_number' => $bookingNumber,
+                'biaya_tambahan' => $biayaTambahan,
+                'created_by' => auth()->id(),
             ]);
 
             foreach($kamarList as $k){
@@ -454,7 +475,7 @@ class BookingController extends Controller
      */
     public function show(Request $request, $id)
     {
-        $order = BookingOrder::with(['pelanggan','items.kamar'])->findOrFail($id);
+        $order = BookingOrder::with(['pelanggan','items.kamar','creator'])->findOrFail($id);
         if($request->wantsJson()){
             $meta = $order->status_meta; // new unified meta
             // Use authoritative totals from order (already includes discounts/half-day/per-head)
@@ -493,6 +514,10 @@ class BookingController extends Controller
             }
             return response()->json([
                 'id'=>$order->id,
+                'creator'=>[
+                    'id'=>$order->creator?->id,
+                    'name'=>$order->creator?->name,
+                ],
                 'pelanggan'=>[
                     'id'=>$order->pelanggan?->id,
                     'nama'=>$order->pelanggan?->nama,
