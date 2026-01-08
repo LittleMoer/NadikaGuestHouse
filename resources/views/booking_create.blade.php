@@ -785,11 +785,11 @@
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Telepon</label>
-                                <input type="text" name="telepon" class="form-control" required>
+                                <input type="text" name="telepon" class="form-control">
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Alamat</label>
-                                <input type="text" name="alamat" class="form-control" required>
+                                <input type="text" name="alamat" class="form-control">
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Jenis Identitas</label>

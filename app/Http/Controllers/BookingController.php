@@ -1049,8 +1049,8 @@ class BookingController extends Controller
         // Validasi input (gunakan nama field yang konsisten dengan model Pelanggan)
         $validated = $request->validate([
             'nama' => 'required|string|max:255',
-            'telepon' => 'required|string|max:20',
-            'alamat' => 'required|string|max:500',
+            'telepon' => 'nullable|string|max:20',
+            'alamat' => 'nullable|string|max:500',
             'jenis_identitas' => 'nullable|string|max:100',
             'nomor_identitas' => 'nullable|string|max:100',
             'tempat_lahir' => 'nullable|string|max:100',
