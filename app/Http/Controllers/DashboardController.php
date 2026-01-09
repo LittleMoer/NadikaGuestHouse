@@ -59,82 +59,6 @@ class DashboardController extends Controller
             ->get();
 
         // Ringkasan metode pemesanan per bulan - MENGHITUNG KAMAR TERISI PER HARI (same as totalKamarTerisiBulan logic)
-        $methodRoomCounts = [
-            'walkin'    => 0,
-            'traveloka' => 0,
-            'agent'     => 0, // gabungan agent1+agent2
-        ];
-        
-        foreach ($tanggalList as $tgl) {
-            $carbonDate = Carbon::parse($tgl);
-            foreach ($kamarList as $kamar) {
-                $segments = [];
-                $slotMorning = [];
-                $slotAfternoon = [];
-                
-                if(isset($itemsByKamar[$kamar->id])){
-                    foreach($itemsByKamar[$kamar->id] as $row){
-                        if($carbonDate->gte($row['checkin']) && $carbonDate->lt($row['checkout'])){
-                            $segments[] = [
-                                'pemesanan' => $row['pemesanan'] ?? 0,
-                                'checkin_at' => $row['checkin_at'],
-                                'checkout_at' => $row['checkout_at'],
-                            ];
-                            
-                            $dayStart = $carbonDate->copy()->startOfDay();
-                            $morningSlotStart = $dayStart->copy()->addHours(6);
-                            $morningSlotEnd = $dayStart->copy()->addHours(18);
-                            $afternoonSlotStart = $dayStart->copy()->addHours(18);
-                            $afternoonSlotEnd = $dayStart->copy()->addHours(24);
-                            
-                            if ($row['checkout_at']->greaterThan($morningSlotStart) && $row['checkin_at']->lessThan($morningSlotEnd)) {
-                                $slotMorning[] = $row['pemesanan'] ?? 0;
-                            }
-                            if ($row['checkout_at']->greaterThan($afternoonSlotStart) && $row['checkin_at']->lessThan($afternoonSlotEnd)) {
-                                $slotAfternoon[] = $row['pemesanan'] ?? 0;
-                            }
-                        }
-                    }
-                }
-                
-                // Hitung apakah kamar ini terisi di hari ini
-                $hasMorning = !empty($slotMorning);
-                $hasAfternoon = !empty($slotAfternoon);
-                $dayStart = $carbonDate->copy()->startOfDay();
-                $noon = $dayStart->copy()->addHours(12);
-                $dayEnd = $dayStart->copy()->addDay();
-                $coversNoon = false;
-                foreach($segments as $sg){
-                    $s = $sg['checkin_at'] ?? $dayStart; 
-                    $e = $sg['checkout_at'] ?? $dayEnd;
-                    if($s < $noon && $e > $noon){ $coversNoon = true; break; }
-                }
-                
-                if($coversNoon || $hasMorning || $hasAfternoon){
-                    // Kamar terisi di hari ini - tentukan metodenya dari segment pertama
-                    if(!empty($segments)){
-                        $firstSegment = reset($segments);
-                        $p = (int)($firstSegment['pemesanan'] ?? 0);
-                        if ($p === 0) {
-                            $methodRoomCounts['walkin']++;
-                        } elseif ($p === 1) {
-                            $methodRoomCounts['traveloka']++;
-                        } elseif ($p === 2 || $p === 3) {
-                            $methodRoomCounts['agent']++;
-                        }
-                    }
-                }
-            }
-        }
-        
-        $methodTotal = array_sum($methodRoomCounts);
-        $methodPercents = [
-            'walkin'    => $methodTotal > 0 ? round(($methodRoomCounts['walkin'] / $methodTotal) * 100, 1) : 0,
-            'traveloka' => $methodTotal > 0 ? round(($methodRoomCounts['traveloka'] / $methodTotal) * 100, 1) : 0,
-            'agent'     => $methodTotal > 0 ? round(($methodRoomCounts['agent'] / $methodTotal) * 100, 1) : 0,
-        ];
-        // Untuk backward compatibility, rename methodRoomCounts ke methodCounts di view
-        $methodCounts = $methodRoomCounts;
 
 
         // Flatten items with reference to parent order status & dates + meta from payment_status+pemesanan
@@ -313,6 +237,36 @@ class DashboardController extends Controller
                     $totalKamarTerisiBulan++;
                 }
             }
+        }
+
+        // Hitung ringkasan metode pemesanan (Walk-In, Traveloka, Agen)
+        $methodCounts = ['walk_in' => 0, 'traveloka' => 0, 'agen' => 0];
+        foreach ($tanggalList as $tgl) {
+            foreach ($kamarList as $kamar) {
+                if (isset($statusBooking[$tgl][$kamar->id])) {
+                    $segments = $statusBooking[$tgl][$kamar->id]['segments'];
+                    if (!empty($segments)) {
+                        // Ambil metode dari segment pertama
+                        $firstSegment = $segments[0];
+                        $pemesanan = $firstSegment['pemesanan'] ?? null;
+                        
+                        // Asumsikan hanya ada 1 booking per kamar per hari untuk perhitungan ini
+                        if ($pemesanan === 0) {
+                            $methodCounts['walk_in']++;
+                        } elseif ($pemesanan === 1) {
+                            $methodCounts['traveloka']++;
+                        } elseif (in_array($pemesanan, [2, 3])) {
+                            $methodCounts['agen']++;
+                        }
+                    }
+                }
+            }
+        }
+        
+        $methodTotal = array_sum($methodCounts);
+        $methodPercents = [];
+        foreach ($methodCounts as $method => $count) {
+            $methodPercents[$method] = $methodTotal > 0 ? round(($count / $methodTotal) * 100, 1) : 0;
         }
 
         // Data navigasi bulan sebelumnya / berikutnya
