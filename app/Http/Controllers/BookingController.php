@@ -430,7 +430,7 @@ class BookingController extends Controller
                 // Room status update removed
                 break;
             case 'checkout':
-                if ($booking->status != 2) return redirect()->back()->with('error','Tidak dapat check-out');
+                if ($booking->status == 3 || $booking->status == 4) return redirect()->back()->with('error','Booking sudah checkout atau dibatalkan');
                 $booking->status = 3;
                 // Otomatis set pembayaran menjadi lunas saat checkout
                 $booking->payment_status = 'lunas';
