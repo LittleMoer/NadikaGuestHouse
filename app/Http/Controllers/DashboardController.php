@@ -263,13 +263,21 @@ class DashboardController extends Controller
                     $hasMorning = !empty($slotMorning);
                     $hasAfternoon = !empty($slotAfternoon);
                     $coversNoon = false;
+                    $occupiedSegment = null;
+                    
                     foreach($segments as $sg){
                         $s = $sg['checkin_at'] ?? $dayStart; 
                         $e = $sg['checkout_at'] ?? $dayEnd;
-                        if($s < $noon && $e > $noon){ $coversNoon = true; break; }
+                        if($s < $noon && $e > $noon){ 
+                            $coversNoon = true; 
+                        }
+                        // Simpan segment yang memiliki status occupied
+                        if ($sg['status'] == 2 && $occupiedSegment === null) {
+                            $occupiedSegment = $sg;
+                        }
                     }
                     
-                    if($coversNoon || $hasMorning || $hasAfternoon){
+                    if($coversNoon || $hasMorning || $hasAfternoon || $occupiedSegment){
                         // Ada occupancy, ambil method dari slot atau segment
                         $pemesanan = null;
                         
@@ -281,7 +289,11 @@ class DashboardController extends Controller
                         elseif (!empty($slotAfternoon)) {
                             $pemesanan = (int)($slotAfternoon[0]['pemesanan'] ?? 0);
                         }
-                        // Atau dari segment
+                        // Atau dari occupied segment
+                        elseif ($occupiedSegment) {
+                            $pemesanan = (int)($occupiedSegment['pemesanan'] ?? 0);
+                        }
+                        // Atau dari segment pertama
                         elseif (!empty($segments)) {
                             $pemesanan = (int)($segments[0]['pemesanan'] ?? 0);
                         }
