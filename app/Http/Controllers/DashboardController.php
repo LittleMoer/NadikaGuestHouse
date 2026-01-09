@@ -183,6 +183,7 @@ class DashboardController extends Controller
                                     'booking_code' => $row['order_code'] ?? null,
                                     'booking_code_short' => $row['order_code_short'] ?? null,
                                     'status' => $row['status'],
+                                    'pemesanan' => $row['pemesanan'] ?? 0,
                                     'payment' => $row['meta']['payment'] ?? null,
                                     'background' => $row['meta']['background'] ?? null,
                                     'text_color' => $row['meta']['text_color'] ?? null,
@@ -199,6 +200,7 @@ class DashboardController extends Controller
                                     'booking_code' => $row['order_code'] ?? null,
                                     'booking_code_short' => $row['order_code_short'] ?? null,
                                     'status' => $row['status'],
+                                    'pemesanan' => $row['pemesanan'] ?? 0,
                                     'payment' => $row['meta']['payment'] ?? null,
                                     'background' => $row['meta']['background'] ?? null, 'text_color' => $row['meta']['text_color'] ?? null,
                                     'is_half_day_checkout' => $isHalfDayCheckout, // Add this flag
@@ -268,29 +270,20 @@ class DashboardController extends Controller
                     }
                     
                     if($coversNoon || $hasMorning || $hasAfternoon){
-                        // Ada occupancy, ambil method dari segment pertama atau slot pertama
+                        // Ada occupancy, ambil method dari slot atau segment
                         $pemesanan = null;
-                        if (!empty($segments)) {
-                            $firstSegment = $segments[0];
-                            $pemesanan = (int)($firstSegment['pemesanan'] ?? 0);
-                        } elseif (!empty($slotMorning)) {
-                            $firstSlot = $slotMorning[0];
-                            // Cari pemesanan dari items berdasarkan booking_order_id
-                            foreach ($items as $item) {
-                                if ($item['booking_order_id'] == $firstSlot['booking_order_id']) {
-                                    $pemesanan = (int)($item['pemesanan'] ?? 0);
-                                    break;
-                                }
-                            }
-                        } elseif (!empty($slotAfternoon)) {
-                            $firstSlot = $slotAfternoon[0];
-                            // Cari pemesanan dari items berdasarkan booking_order_id
-                            foreach ($items as $item) {
-                                if ($item['booking_order_id'] == $firstSlot['booking_order_id']) {
-                                    $pemesanan = (int)($item['pemesanan'] ?? 0);
-                                    break;
-                                }
-                            }
+                        
+                        // Coba ambil dari morning slot
+                        if (!empty($slotMorning)) {
+                            $pemesanan = (int)($slotMorning[0]['pemesanan'] ?? 0);
+                        }
+                        // Atau dari afternoon slot
+                        elseif (!empty($slotAfternoon)) {
+                            $pemesanan = (int)($slotAfternoon[0]['pemesanan'] ?? 0);
+                        }
+                        // Atau dari segment
+                        elseif (!empty($segments)) {
+                            $pemesanan = (int)($segments[0]['pemesanan'] ?? 0);
                         }
                         
                         if ($pemesanan !== null) {
