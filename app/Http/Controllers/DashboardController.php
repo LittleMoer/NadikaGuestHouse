@@ -58,31 +58,36 @@ class DashboardController extends Controller
             })
             ->get();
 
-        // Ringkasan metode pemesanan per bulan (basis: tanggal_checkin di bulan ini, exclude dibatalkan)
-        $methodCounts = [
+        // Ringkasan metode pemesanan per bulan - MENGHITUNG HARI (basis: total malam dari items)
+        $methodDays = [
             'walkin'    => 0,
             'traveloka' => 0,
             'agent'     => 0, // gabungan agent1+agent2
         ];
         $methodOrders = BookingOrder::whereBetween('tanggal_checkin', [$start, $end])
             ->where('status', '!=', 4)
-            ->get(['pemesanan','status']);
+            ->with('items')
+            ->get(['id','pemesanan','status']);
         foreach ($methodOrders as $order) {
             $p = (int)($order->pemesanan ?? 0);
+            $totalMalam = $order->items->sum('malam') ?? 0;
             if ($p === 0) {
-                $methodCounts['walkin']++;
+                $methodDays['walkin'] += $totalMalam;
             } elseif ($p === 1) {
-                $methodCounts['traveloka']++;
+                $methodDays['traveloka'] += $totalMalam;
             } elseif ($p === 2 || $p === 3) {
-                $methodCounts['agent']++;
+                $methodDays['agent'] += $totalMalam;
             }
         }
-        $methodTotal = array_sum($methodCounts);
+        $methodTotal = array_sum($methodDays);
         $methodPercents = [
-            'walkin'    => $methodTotal > 0 ? round(($methodCounts['walkin'] / $methodTotal) * 100, 1) : 0,
-            'traveloka' => $methodTotal > 0 ? round(($methodCounts['traveloka'] / $methodTotal) * 100, 1) : 0,
-            'agent'     => $methodTotal > 0 ? round(($methodCounts['agent'] / $methodTotal) * 100, 1) : 0,
+            'walkin'    => $methodTotal > 0 ? round(($methodDays['walkin'] / $methodTotal) * 100, 1) : 0,
+            'traveloka' => $methodTotal > 0 ? round(($methodDays['traveloka'] / $methodTotal) * 100, 1) : 0,
+            'agent'     => $methodTotal > 0 ? round(($methodDays['agent'] / $methodTotal) * 100, 1) : 0,
         ];
+        // Untuk backward compatibility, rename methodDays ke methodCounts di view
+        $methodCounts = $methodDays;
+
 
         // Flatten items with reference to parent order status & dates + meta from payment_status+pemesanan
         $items = [];
