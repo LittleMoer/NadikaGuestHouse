@@ -21,11 +21,27 @@
       <div class="alert alert-danger">{{ session('error') }}</div>
     @endif
 
+    @php
+      $statusMap = [
+        1 => ['label' => 'Dipesan', 'bg' => '#ffc107', 'text' => '#000'],
+        2 => ['label' => 'Check-In', 'bg' => '#17a2b8', 'text' => '#fff'],
+        3 => ['label' => 'Check-Out', 'bg' => '#6c757d', 'text' => '#fff'],
+        4 => ['label' => 'Dibatalkan', 'bg' => '#555', 'text' => '#fff']
+      ];
+      $currentStatus = (int)$order->status;
+      $statusInfo = $statusMap[$currentStatus] ?? ['label' => 'Tidak Diketahui', 'bg' => '#999', 'text' => '#fff'];
+    @endphp
+
     <div class="card mb-3">
       <div class="card-body">
         <div class="d-flex justify-content-between align-items-center">
           <div>
-            <div><strong>Status:</strong> {{ $order->status_meta['label'] ?? '-' }}</div>
+            <div class="mb-2">
+              <strong>Status:</strong> 
+              <span class="badge" style="background:{{ $statusInfo['bg'] }};color:{{ $statusInfo['text'] }};padding:6px 10px;font-size:.85rem;letter-spacing:.5px;">
+                {{ $statusInfo['label'] }}
+              </span>
+            </div>
             <div><strong>Pembayaran:</strong> {{ strtoupper($order->payment_status ?? 'dp') }} @if($order->dp_percentage) ({{ $order->dp_percentage }}%) @endif</div>
           </div>
           <div class="d-flex gap-2">
