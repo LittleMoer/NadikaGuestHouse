@@ -30,8 +30,8 @@
                                 <tbody>
                                     <tr>
                                         <td style="padding:3px 6px;color:#0f172a;">Walk-In</td>
-                                        <td style="padding:3px 6px;text-align:right;color:#0f172a;">{{ $methodCounts['walkin'] ?? 0 }}</td>
-                                        <td style="padding:3px 6px;text-align:right;color:#0f172a;">{{ $methodPercents['walkin'] ?? 0 }}%</td>
+                                        <td style="padding:3px 6px;text-align:right;color:#0f172a;">{{ $methodCounts['walk_in'] ?? 0 }}</td>
+                                        <td style="padding:3px 6px;text-align:right;color:#0f172a;">{{ $methodPercents['walk_in'] ?? 0 }}%</td>
                                     </tr>
                                     <tr>
                                         <td style="padding:3px 6px;color:#0f172a;">Traveloka</td>
@@ -40,8 +40,8 @@
                                     </tr>
                                     <tr>
                                         <td style="padding:3px 6px;color:#0f172a;">Agen</td>
-                                        <td style="padding:3px 6px;text-align:right;color:#0f172a;">{{ $methodCounts['agent'] ?? 0 }}</td>
-                                        <td style="padding:3px 6px;text-align:right;color:#0f172a;">{{ $methodPercents['agent'] ?? 0 }}%</td>
+                                        <td style="padding:3px 6px;text-align:right;color:#0f172a;">{{ $methodCounts['agen'] ?? 0 }}</td>
+                                        <td style="padding:3px 6px;text-align:right;color:#0f172a;">{{ $methodPercents['agen'] ?? 0 }}%</td>
                                     </tr>
                                 </tbody>
                                 <tfoot>

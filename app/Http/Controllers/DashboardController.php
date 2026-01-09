@@ -246,6 +246,7 @@ class DashboardController extends Controller
         // Hitung ringkasan metode pemesanan (Walk-In, Traveloka, Agen)
         // Gunakan logika yang sama dengan totalKamarTerisiBulan
         $methodCounts = ['walk_in' => 0, 'traveloka' => 0, 'agen' => 0];
+        $debugLog = [];
         foreach ($tanggalList as $tgl) {
             $carbonDate = Carbon::parse($tgl);
             $dayStart = $carbonDate->copy()->startOfDay();
@@ -299,6 +300,19 @@ class DashboardController extends Controller
                         }
                         
                         if ($pemesanan !== null) {
+                            $debugLog[] = [
+                                'date' => $tgl,
+                                'kamar_id' => $kamar->id,
+                                'pemesanan' => $pemesanan,
+                                'hasMorning' => $hasMorning,
+                                'hasAfternoon' => $hasAfternoon,
+                                'coversNoon' => $coversNoon,
+                                'hasOccupiedSegment' => !!$occupiedSegment,
+                                'slotMorningCount' => count($slotMorning),
+                                'slotAfternoonCount' => count($slotAfternoon),
+                                'segmentCount' => count($segments),
+                            ];
+                            
                             if ($pemesanan === 0) {
                                 $methodCounts['walk_in']++;
                             } elseif ($pemesanan === 1) {
@@ -311,6 +325,13 @@ class DashboardController extends Controller
                 }
             }
         }
+        
+        // Debug logging
+        \Log::info('Method Summary Debug - Counts', [
+            'methodCounts' => $methodCounts,
+            'totalRecords' => count($debugLog),
+        ]);
+        \Log::info('Method Summary Debug - Details', $debugLog);
         
         $methodTotal = array_sum($methodCounts);
         $methodPercents = [];
