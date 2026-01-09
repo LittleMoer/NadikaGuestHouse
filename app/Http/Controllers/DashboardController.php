@@ -268,11 +268,32 @@ class DashboardController extends Controller
                     }
                     
                     if($coversNoon || $hasMorning || $hasAfternoon){
-                        // Ada occupancy, ambil method dari segment pertama
+                        // Ada occupancy, ambil method dari segment pertama atau slot pertama
+                        $pemesanan = null;
                         if (!empty($segments)) {
                             $firstSegment = $segments[0];
                             $pemesanan = (int)($firstSegment['pemesanan'] ?? 0);
-                            
+                        } elseif (!empty($slotMorning)) {
+                            $firstSlot = $slotMorning[0];
+                            // Cari pemesanan dari items berdasarkan booking_order_id
+                            foreach ($items as $item) {
+                                if ($item['booking_order_id'] == $firstSlot['booking_order_id']) {
+                                    $pemesanan = (int)($item['pemesanan'] ?? 0);
+                                    break;
+                                }
+                            }
+                        } elseif (!empty($slotAfternoon)) {
+                            $firstSlot = $slotAfternoon[0];
+                            // Cari pemesanan dari items berdasarkan booking_order_id
+                            foreach ($items as $item) {
+                                if ($item['booking_order_id'] == $firstSlot['booking_order_id']) {
+                                    $pemesanan = (int)($item['pemesanan'] ?? 0);
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        if ($pemesanan !== null) {
                             if ($pemesanan === 0) {
                                 $methodCounts['walk_in']++;
                             } elseif ($pemesanan === 1) {
