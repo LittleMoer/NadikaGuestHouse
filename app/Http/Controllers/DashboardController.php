@@ -93,6 +93,7 @@ class DashboardController extends Controller
                     'booking_order_id' => $order->id,
                     'order_code' => $order->order_code,
                     'order_code_short' => $short,
+                    'pemesanan' => $order->pemesanan, // 0=walk-in, 1=traveloka, 2-3=agen
                     // status_code removed
                     'meta' => $meta,
                     'checkin' => $ciDay,
@@ -150,6 +151,7 @@ class DashboardController extends Controller
                                 'booking_code' => $row['order_code'] ?? null,
                                 'booking_code_short' => $row['order_code_short'] ?? null,
                                 'status' => $row['status'], // 1..4
+                                'pemesanan' => $row['pemesanan'] ?? 0, // 0=walk-in, 1=traveloka, 2-3=agen
                                 'payment' => $row['meta']['payment'] ?? null,
                                 'channel' => $row['meta']['channel'] ?? null,
                                 'background' => $row['meta']['background'] ?? null,
