@@ -242,23 +242,44 @@ class DashboardController extends Controller
         }
 
         // Hitung ringkasan metode pemesanan (Walk-In, Traveloka, Agen)
+        // Gunakan logika yang sama dengan totalKamarTerisiBulan
         $methodCounts = ['walk_in' => 0, 'traveloka' => 0, 'agen' => 0];
         foreach ($tanggalList as $tgl) {
+            $carbonDate = Carbon::parse($tgl);
+            $dayStart = $carbonDate->copy()->startOfDay();
+            $noon = $dayStart->copy()->addHours(12);
+            $dayEnd = $dayStart->copy()->addDay();
+            
             foreach ($kamarList as $kamar) {
                 if (isset($statusBooking[$tgl][$kamar->id])) {
-                    $segments = $statusBooking[$tgl][$kamar->id]['segments'];
-                    if (!empty($segments)) {
-                        // Ambil metode dari segment pertama
-                        $firstSegment = $segments[0];
-                        $pemesanan = (int)($firstSegment['pemesanan'] ?? 0);
-                        
-                        // Asumsikan hanya ada 1 booking per kamar per hari untuk perhitungan ini
-                        if ($pemesanan === 0) {
-                            $methodCounts['walk_in']++;
-                        } elseif ($pemesanan === 1) {
-                            $methodCounts['traveloka']++;
-                        } elseif (in_array($pemesanan, [2, 3])) {
-                            $methodCounts['agen']++;
+                    $data = $statusBooking[$tgl][$kamar->id];
+                    $segments = $data['segments'];
+                    $slotMorning = $data['slot_morning'];
+                    $slotAfternoon = $data['slot_afternoon'];
+                    
+                    // Cek jika ada occupancy dengan logika yang sama: morning + afternoon slots atau covers noon
+                    $hasMorning = !empty($slotMorning);
+                    $hasAfternoon = !empty($slotAfternoon);
+                    $coversNoon = false;
+                    foreach($segments as $sg){
+                        $s = $sg['checkin_at'] ?? $dayStart; 
+                        $e = $sg['checkout_at'] ?? $dayEnd;
+                        if($s < $noon && $e > $noon){ $coversNoon = true; break; }
+                    }
+                    
+                    if($coversNoon || $hasMorning || $hasAfternoon){
+                        // Ada occupancy, ambil method dari segment pertama
+                        if (!empty($segments)) {
+                            $firstSegment = $segments[0];
+                            $pemesanan = (int)($firstSegment['pemesanan'] ?? 0);
+                            
+                            if ($pemesanan === 0) {
+                                $methodCounts['walk_in']++;
+                            } elseif ($pemesanan === 1) {
+                                $methodCounts['traveloka']++;
+                            } elseif (in_array($pemesanan, [2, 3])) {
+                                $methodCounts['agen']++;
+                            }
                         }
                     }
                 }
