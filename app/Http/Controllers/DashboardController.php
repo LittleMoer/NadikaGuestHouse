@@ -250,7 +250,7 @@ class DashboardController extends Controller
                     if (!empty($segments)) {
                         // Ambil metode dari segment pertama
                         $firstSegment = $segments[0];
-                        $pemesanan = $firstSegment['pemesanan'] ?? null;
+                        $pemesanan = (int)($firstSegment['pemesanan'] ?? 0);
                         
                         // Asumsikan hanya ada 1 booking per kamar per hari untuk perhitungan ini
                         if ($pemesanan === 0) {
