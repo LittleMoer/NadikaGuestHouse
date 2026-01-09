@@ -906,6 +906,7 @@ class BookingController extends Controller
             'cafeItems' => $cafeItems,
             'subtotal' => $subtotal, 'diskon' => $diskon, 'biayaLain' => $biayaTambahan, 'grandTotal' => $grandTotal,
             'paidTotal' => $paidTotal, 'remaining' => $remaining,
+            'siblings' => $siblings, // <-- Add this to pass siblings to view
             'isMerged' => $isMerged,
             'mergeCount' => $isMerged ? $siblings->count() : 1,
             'bookingNumber' => $bookingNo,
