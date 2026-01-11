@@ -18,7 +18,7 @@
                     <!-- Ringkasan metode pemesanan per bulan -->
                     <div class="dash-method-summary" style="display:flex;align-items:center;gap:8px;">
                         <div class="method-card" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:8px 10px;">
-                            <div style="font-weight:700;color:#334155;margin-bottom:6px;font-size:.85rem;">Ringkasan Metode - Kamar Terisi (Bulan Ini)</div>
+                            <div style="font-weight:700;color:#334155;margin-bottom:6px;font-size:.85rem;">Ringkasan Metode - Kamar Terisi</div>
                             <table style="border-collapse:collapse;font-size:.82rem;">
                                 <thead>
                                     <tr>
@@ -53,8 +53,7 @@
                                     <tr>
                                         <td style="padding:4px 6px;color:#334155;font-weight:700;">Rata-rata/hari</td>
                                         <td style="padding:4px 6px;text-align:right;color:#334155;font-weight:700;">{{ $avgPerDayTotal ?? 0 }}</td>
-                                        <td style="padding:4px 6px;text-align:right;color:#334155;font-weight:700;">&nbsp;</td>
-                                        <td>Rata-rata/hari (keseluruhan): {{ $avgDailyPercentTotal ?? 0 }}%</td>
+                                        <td style="padding:4px 6px;text-align:right;color:#334155;font-weight:700;">{{ $avgDailyPercentTotal ?? 0 }}%</td>
                                     </tr>
                                 </tfoot>
                             </table>
