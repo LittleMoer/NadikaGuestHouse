@@ -379,20 +379,6 @@ class DashboardController extends Controller
             $avgDailyPercentTotal = round($sumDailyPercent / $dayCount, 1);
         }
 
-        // Versi strict sesuai rumus okupansi (rooms sold / rooms available): hanya status 'occupied' (status==2)
-        $occupiedRoomNights = 0;
-        foreach ($tanggalList as $tgl) {
-            foreach ($kamarList as $kamar) {
-                $cell = $statusBooking[$tgl][$kamar->id] ?? null;
-                if ($cell && ($cell['occ'] ?? 'empty') === 'occupied') {
-                    $occupiedRoomNights++;
-                }
-            }
-        }
-        $avgDailyPercentTotalStrict = ($roomCount > 0 && $dayCount > 0)
-            ? round(($occupiedRoomNights / ($roomCount * $dayCount)) * 100, 1)
-            : 0;
-
         // Rata-rata kamar terisi per hari (total dan per metode)
         $daysInMonth = count($tanggalList);
         $avgPerDayTotal = $daysInMonth > 0 ? round($methodTotal / $daysInMonth, 1) : 0;
@@ -412,7 +398,6 @@ class DashboardController extends Controller
             'kamarList','jenisKamar','orderedJenisKamar','kamarGrouped',
             'tanggalList','statusBooking','totalKamarTerisiBulan',
             'methodCounts','methodPercents','methodTotal',
-            'avgPerDayTotal','methodAverages','methodDailyPercents','avgDailyPercentTotal','avgDailyPercentTotalStrict'
         ));
     }
 }
