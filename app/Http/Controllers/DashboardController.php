@@ -398,6 +398,7 @@ class DashboardController extends Controller
             'kamarList','jenisKamar','orderedJenisKamar','kamarGrouped',
             'tanggalList','statusBooking','totalKamarTerisiBulan',
             'methodCounts','methodPercents','methodTotal',
+            'avgPerDayTotal','methodAverages','methodDailyPercents','avgDailyPercentTotal'
         ));
     }
 }
