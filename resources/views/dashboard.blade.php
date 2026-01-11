@@ -54,12 +54,10 @@
                                         <td style="padding:4px 6px;color:#334155;font-weight:700;">Rata-rata/hari</td>
                                         <td style="padding:4px 6px;text-align:right;color:#334155;font-weight:700;">{{ $avgPerDayTotal ?? 0 }}</td>
                                         <td style="padding:4px 6px;text-align:right;color:#334155;font-weight:700;">&nbsp;</td>
+                                        <span>Rata-rata/hari (keseluruhan): {{ $avgDailyPercentTotal ?? 0 }}%</span>
                                     </tr>
                                 </tfoot>
                             </table>
-                            <div style="margin-top:6px;color:#64748b;font-size:.78rem;">
-                                <span>Rata-rata/hari (keseluruhan): {{ $avgDailyPercentTotal ?? 0 }}%</span>
-                            </div>
                         </div>
                     </div>
                 </div>
