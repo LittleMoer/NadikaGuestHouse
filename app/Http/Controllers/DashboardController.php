@@ -247,11 +247,17 @@ class DashboardController extends Controller
         // Gunakan logika yang sama dengan totalKamarTerisiBulan
         $methodCounts = ['walk_in' => 0, 'traveloka' => 0, 'agen' => 0];
         $debugLog = [];
+        // Akumulasi harian untuk rata-rata persentase per hari
+        $dayTotals = [];
+        $dayMethodCounts = [];
         foreach ($tanggalList as $tgl) {
             $carbonDate = Carbon::parse($tgl);
             $dayStart = $carbonDate->copy()->startOfDay();
             $noon = $dayStart->copy()->addHours(12);
             $dayEnd = $dayStart->copy()->addDay();
+            // Init per-hari
+            $dayTotals[$tgl] = 0;
+            $dayMethodCounts[$tgl] = ['walk_in' => 0, 'traveloka' => 0, 'agen' => 0];
             
             foreach ($kamarList as $kamar) {
                 if (isset($statusBooking[$tgl][$kamar->id])) {
@@ -315,11 +321,16 @@ class DashboardController extends Controller
                             
                             if ($pemesanan === 0) {
                                 $methodCounts['walk_in']++;
+                                $dayMethodCounts[$tgl]['walk_in']++;
                             } elseif ($pemesanan === 1) {
                                 $methodCounts['traveloka']++;
+                                $dayMethodCounts[$tgl]['traveloka']++;
                             } elseif (in_array($pemesanan, [2, 3])) {
                                 $methodCounts['agen']++;
+                                $dayMethodCounts[$tgl]['agen']++;
                             }
+                            // Tambah total kamar terisi hari ini
+                            $dayTotals[$tgl]++;
                         }
                     }
                 }
@@ -339,6 +350,31 @@ class DashboardController extends Controller
             $methodPercents[$method] = $methodTotal > 0 ? round(($count / $methodTotal) * 100, 1) : 0;
         }
 
+        // Rata-rata persentase per hari untuk setiap metode
+        $methodDailyPercents = ['walk_in' => 0, 'traveloka' => 0, 'agen' => 0];
+        $daysWithOcc = 0;
+        $sumPercents = ['walk_in' => 0, 'traveloka' => 0, 'agen' => 0];
+        foreach ($tanggalList as $tgl) {
+            $dayTotal = $dayTotals[$tgl] ?? 0;
+            if ($dayTotal > 0) {
+                $daysWithOcc++;
+                foreach (['walk_in','traveloka','agen'] as $m) {
+                    $sumPercents[$m] += (($dayMethodCounts[$tgl][$m] ?? 0) / $dayTotal) * 100;
+                }
+            }
+        }
+        foreach (['walk_in','traveloka','agen'] as $m) {
+            $methodDailyPercents[$m] = $daysWithOcc > 0 ? round($sumPercents[$m] / $daysWithOcc, 1) : 0;
+        }
+
+        // Rata-rata kamar terisi per hari (total dan per metode)
+        $daysInMonth = count($tanggalList);
+        $avgPerDayTotal = $daysInMonth > 0 ? round($methodTotal / $daysInMonth, 1) : 0;
+        $methodAverages = [];
+        foreach ($methodCounts as $method => $count) {
+            $methodAverages[$method] = $daysInMonth > 0 ? round($count / $daysInMonth, 1) : 0;
+        }
+
         // Data navigasi bulan sebelumnya / berikutnya
         $prevMonth = $bulan - 1 < 1 ? 12 : $bulan - 1;
         $prevYear = $bulan - 1 < 1 ? $tahun - 1 : $tahun;
@@ -349,7 +385,8 @@ class DashboardController extends Controller
             'bulan','tahun','prevMonth','prevYear','nextMonth','nextYear',
             'kamarList','jenisKamar','orderedJenisKamar','kamarGrouped',
             'tanggalList','statusBooking','totalKamarTerisiBulan',
-            'methodCounts','methodPercents','methodTotal'
+            'methodCounts','methodPercents','methodTotal',
+            'avgPerDayTotal','methodAverages','methodDailyPercents'
         ));
     }
 }
