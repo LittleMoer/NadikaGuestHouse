@@ -58,10 +58,7 @@
                                 </tfoot>
                             </table>
                             <div style="margin-top:6px;color:#64748b;font-size:.78rem;">
-                                <span>Rata-rata/hari (%):&nbsp;</span>
-                                <span>Walk-In {{ $methodDailyPercents['walk_in'] ?? 0 }}%</span>
-                                <span style="margin-left:8px;">Traveloka {{ $methodDailyPercents['traveloka'] ?? 0 }}%</span>
-                                <span style="margin-left:8px;">Agen {{ $methodDailyPercents['agen'] ?? 0 }}%</span>
+                                <span>Rata-rata/hari (keseluruhan): {{ $avgDailyPercentTotal ?? 0 }}%</span>
                             </div>
                         </div>
                     </div>

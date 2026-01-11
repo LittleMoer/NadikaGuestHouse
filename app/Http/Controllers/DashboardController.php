@@ -367,6 +367,18 @@ class DashboardController extends Controller
             $methodDailyPercents[$m] = $daysWithOcc > 0 ? round($sumPercents[$m] / $daysWithOcc, 1) : 0;
         }
 
+        // Rata-rata harian keseluruhan dalam persen (dibanding total kamar)
+        $roomCount = count($kamarList);
+        $avgDailyPercentTotal = 0;
+        $dayCount = count($tanggalList);
+        if ($roomCount > 0 && $dayCount > 0) {
+            $sumDailyPercent = 0;
+            foreach ($tanggalList as $tgl) {
+                $sumDailyPercent += (($dayTotals[$tgl] ?? 0) / $roomCount) * 100;
+            }
+            $avgDailyPercentTotal = round($sumDailyPercent / $dayCount, 1);
+        }
+
         // Rata-rata kamar terisi per hari (total dan per metode)
         $daysInMonth = count($tanggalList);
         $avgPerDayTotal = $daysInMonth > 0 ? round($methodTotal / $daysInMonth, 1) : 0;
@@ -386,7 +398,7 @@ class DashboardController extends Controller
             'kamarList','jenisKamar','orderedJenisKamar','kamarGrouped',
             'tanggalList','statusBooking','totalKamarTerisiBulan',
             'methodCounts','methodPercents','methodTotal',
-            'avgPerDayTotal','methodAverages','methodDailyPercents'
+            'avgPerDayTotal','methodAverages','methodDailyPercents','avgDailyPercentTotal'
         ));
     }
 }
