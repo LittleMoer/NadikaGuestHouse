@@ -250,6 +250,14 @@ class DashboardController extends Controller
         // Akumulasi harian untuk rata-rata persentase per hari
         $dayTotals = [];
         $dayMethodCounts = [];
+        // Filter kamar: abaikan HALL dan Non AC D11
+        $availableRooms = $kamarList->filter(function($km){
+            $nomor = strtolower(trim($km->nomor_kamar ?? ''));
+            $tipe = strtolower(trim($km->tipe ?? ''));
+            $isHall = (bool)preg_match('/^hall$/i', $tipe);
+            $isNonACD11 = (bool)preg_match('/non\s*ac\s*d11/i', $nomor);
+            return !($isHall || $isNonACD11);
+        });
         foreach ($tanggalList as $tgl) {
             $carbonDate = Carbon::parse($tgl);
             $dayStart = $carbonDate->copy()->startOfDay();
@@ -259,7 +267,7 @@ class DashboardController extends Controller
             $dayTotals[$tgl] = 0;
             $dayMethodCounts[$tgl] = ['walk_in' => 0, 'traveloka' => 0, 'agen' => 0];
             
-            foreach ($kamarList as $kamar) {
+            foreach ($availableRooms as $kamar) {
                 if (isset($statusBooking[$tgl][$kamar->id])) {
                     $data = $statusBooking[$tgl][$kamar->id];
                     $segments = $data['segments'];
@@ -368,7 +376,8 @@ class DashboardController extends Controller
         }
 
         // Rata-rata harian keseluruhan dalam persen (dibanding total kamar)
-        $roomCount = count($kamarList);
+        // Gunakan 17 kamar sebagai denominator (abaikan HALL dan Non AC D11)
+        $roomCount = 17;
         $avgDailyPercentTotal = 0;
         $dayCount = count($tanggalList);
         if ($roomCount > 0 && $dayCount > 0) {
