@@ -107,12 +107,17 @@ class DashboardController extends Controller
         // Group items by kamar_id for faster lookup
         $itemsByKamar = collect($items)->groupBy('kamar_id');
 
-        // Siapkan list tanggal harian
-        // Hanya hitung hari yang sudah lewat dan hari ini, abaikan hari-hari mendatang
-        $today = Carbon::now()->startOfDay();
+        // Siapkan list tanggal harian (untuk tampilan dashboard)
         $tanggalList = [];
-        for ($cursor = $start->copy(); $cursor->lte($end) && $cursor->lte($today); $cursor->addDay()) {
+        for ($cursor = $start->copy(); $cursor->lte($end); $cursor->addDay()) {
             $tanggalList[] = $cursor->format('Y-m-d');
+        }
+
+        // List tanggal untuk perhitungan okupansi (hanya hari yang sudah lewat dan hari ini)
+        $today = Carbon::now()->startOfDay();
+        $tanggalListForOccupancy = [];
+        for ($cursor = $start->copy(); $cursor->lte($end) && $cursor->lte($today); $cursor->addDay()) {
+            $tanggalListForOccupancy[] = $cursor->format('Y-m-d');
         }
 
     $statusBooking = []; // [tanggal][kamar_id] => ['status'=>kode, 'booking_id'=>id]
@@ -260,7 +265,7 @@ class DashboardController extends Controller
             $isNonACD11 = (bool)preg_match('/non\s*ac\s*d11/i', $nomor);
             return !($isHall || $isNonACD11);
         });
-        foreach ($tanggalList as $tgl) {
+        foreach ($tanggalListForOccupancy as $tgl) {
             $carbonDate = Carbon::parse($tgl);
             $dayStart = $carbonDate->copy()->startOfDay();
             $noon = $dayStart->copy()->addHours(12);
@@ -364,7 +369,7 @@ class DashboardController extends Controller
         $methodDailyPercents = ['walk_in' => 0, 'traveloka' => 0, 'agen' => 0];
         $daysWithOcc = 0;
         $sumPercents = ['walk_in' => 0, 'traveloka' => 0, 'agen' => 0];
-        foreach ($tanggalList as $tgl) {
+        foreach ($tanggalListForOccupancy as $tgl) {
             $dayTotal = $dayTotals[$tgl] ?? 0;
             if ($dayTotal > 0) {
                 $daysWithOcc++;
@@ -379,12 +384,13 @@ class DashboardController extends Controller
 
         // Rata-rata harian keseluruhan dalam persen (dibanding total kamar)
         // Gunakan 17 kamar sebagai denominator (abaikan HALL dan Non AC D11)
+        // Hanya hitung hari yang sudah lewat dan hari ini
         $roomCount = 17;
         $avgDailyPercentTotal = 0;
-        $dayCount = count($tanggalList);
+        $dayCount = count($tanggalListForOccupancy);
         if ($roomCount > 0 && $dayCount > 0) {
             $sumDailyPercent = 0;
-            foreach ($tanggalList as $tgl) {
+            foreach ($tanggalListForOccupancy as $tgl) {
                 $sumDailyPercent += (($dayTotals[$tgl] ?? 0) / $roomCount) * 100;
             }
             $avgDailyPercentTotal = round($sumDailyPercent / $dayCount, 1);
