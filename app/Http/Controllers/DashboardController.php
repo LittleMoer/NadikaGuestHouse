@@ -108,8 +108,10 @@ class DashboardController extends Controller
         $itemsByKamar = collect($items)->groupBy('kamar_id');
 
         // Siapkan list tanggal harian
+        // Hanya hitung hari yang sudah lewat dan hari ini, abaikan hari-hari mendatang
+        $today = Carbon::now()->startOfDay();
         $tanggalList = [];
-        for ($cursor = $start->copy(); $cursor->lte($end); $cursor->addDay()) {
+        for ($cursor = $start->copy(); $cursor->lte($end) && $cursor->lte($today); $cursor->addDay()) {
             $tanggalList[] = $cursor->format('Y-m-d');
         }
 
