@@ -393,7 +393,7 @@ class DashboardController extends Controller
             foreach ($tanggalListForOccupancy as $tgl) {
                 $sumDailyPercent += (($dayTotals[$tgl] ?? 0) / $roomCount) * 100;
             }
-            $avgDailyPercentTotal = round($sumDailyPercent / $dayCount, 1);
+            $avgDailyPercentTotal = ($sumDailyPercent / $dayCount)*100;
         }
 
         // Rata-rata kamar terisi per hari (total dan per metode)
