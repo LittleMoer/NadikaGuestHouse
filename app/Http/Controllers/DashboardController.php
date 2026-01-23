@@ -369,6 +369,9 @@ class DashboardController extends Controller
         foreach ($methodCounts as $method => $count) {
             $methodPercents[$method] = $totalAvailableCapacity > 0 ? round(($count / $totalAvailableCapacity) * 100, 2) : 0;
         }
+        
+        // Perhitungan persentase total kamar terisi
+        $totalPercent = $totalAvailableCapacity > 0 ? round(($methodTotal / $totalAvailableCapacity) * 100, 2) : 0;
 
         // Rata-rata persentase per hari untuk setiap metode
         // Gunakan denominator yang sama: total kamar-hari tersedia
@@ -406,7 +409,7 @@ class DashboardController extends Controller
             'bulan','tahun','prevMonth','prevYear','nextMonth','nextYear',
             'kamarList','jenisKamar','orderedJenisKamar','kamarGrouped',
             'tanggalList','statusBooking','totalKamarTerisiBulan',
-            'methodCounts','methodPercents','methodTotal',
+            'methodCounts','methodPercents','methodTotal','totalPercent',
             'avgPerDayTotal','methodAverages','methodDailyPercents','avgDailyPercentTotal'
         ));
     }
