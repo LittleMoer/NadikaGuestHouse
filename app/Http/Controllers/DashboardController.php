@@ -360,18 +360,18 @@ class DashboardController extends Controller
         \Log::info('Method Summary Debug - Details', $debugLog);
         
         $methodTotal = array_sum($methodCounts);
-        // Hitung persentase berdasarkan total kamar-hari yang tersedia (17 kamar × jumlah hari)
+        // Hitung persentase berdasarkan total kamar-hari yang tersedia dalam sebulan (17 kamar × jumlah hari dalam bulan)
         $roomCount = 17;
-        $dayCountForOccupancy = count($tanggalListForOccupancy);
-        $totalAvailableCapacity = $roomCount * $dayCountForOccupancy;
+        $dayCountInMonth = count($tanggalList); // Seluruh hari dalam bulan
+        $totalAvailableCapacity = $roomCount * $dayCountInMonth;
         
         $methodPercents = [];
         foreach ($methodCounts as $method => $count) {
             $methodPercents[$method] = $totalAvailableCapacity > 0 ? round(($count / $totalAvailableCapacity) * 100, 2) : 0;
         }
         
-        // Perhitungan persentase total kamar terisi
-        $totalPercent = $totalAvailableCapacity > 0 ? round(($methodTotal / $totalAvailableCapacity) * 100, 2) : 0;
+        // Perhitungan persentase total kamar terisi (selalu 100% karena merupakan jumlah semua kamar terisi)
+        $totalPercent = 100;
 
         // Rata-rata persentase per hari untuk setiap metode
         // Gunakan denominator yang sama: total kamar-hari tersedia
@@ -382,9 +382,8 @@ class DashboardController extends Controller
             }
         }
 
-        // Rata-rata harian keseluruhan dalam persen (dibanding total kamar-hari tersedia)
+        // Rata-rata harian keseluruhan dalam persen (dibanding total kamar-hari tersedia dalam bulan)
         // Gunakan 17 kamar sebagai denominator (abaikan HALL dan Non AC D11)
-        // Hanya hitung hari yang sudah lewat dan hari ini
         $avgDailyPercentTotal = 0;
         if ($totalAvailableCapacity > 0) {
             $sumDailyTotal = array_sum($dayTotals);
