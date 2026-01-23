@@ -370,8 +370,8 @@ class DashboardController extends Controller
             $methodPercents[$method] = $totalAvailableCapacity > 0 ? round(($count / $totalAvailableCapacity) * 100, 2) : 0;
         }
         
-        // Perhitungan persentase total kamar terisi (selalu 100% karena merupakan jumlah semua kamar terisi)
-        $totalPercent = 100;
+        // Perhitungan persentase total kamar terisi (dari total kapasitas kamar-hari)
+        $totalPercent = $totalAvailableCapacity > 0 ? round(($methodTotal / $totalAvailableCapacity) * 100, 2) : 0;
 
         // Rata-rata persentase per hari untuk setiap metode
         // Gunakan denominator yang sama: total kamar-hari tersedia
