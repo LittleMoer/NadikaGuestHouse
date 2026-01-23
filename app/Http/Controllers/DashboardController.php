@@ -360,48 +360,40 @@ class DashboardController extends Controller
         \Log::info('Method Summary Debug - Details', $debugLog);
         
         $methodTotal = array_sum($methodCounts);
+        // Hitung persentase berdasarkan total kamar-hari yang tersedia (17 kamar × jumlah hari)
+        $roomCount = 17;
+        $dayCountForOccupancy = count($tanggalListForOccupancy);
+        $totalAvailableCapacity = $roomCount * $dayCountForOccupancy;
+        
         $methodPercents = [];
         foreach ($methodCounts as $method => $count) {
-            $methodPercents[$method] = $methodTotal > 0 ? round(($count / $methodTotal) * 100, 1) : 0;
+            $methodPercents[$method] = $totalAvailableCapacity > 0 ? round(($count / $totalAvailableCapacity) * 100, 2) : 0;
         }
 
         // Rata-rata persentase per hari untuk setiap metode
+        // Gunakan denominator yang sama: total kamar-hari tersedia
         $methodDailyPercents = ['walk_in' => 0, 'traveloka' => 0, 'agen' => 0];
-        $daysWithOcc = 0;
-        $sumPercents = ['walk_in' => 0, 'traveloka' => 0, 'agen' => 0];
-        foreach ($tanggalListForOccupancy as $tgl) {
-            $dayTotal = $dayTotals[$tgl] ?? 0;
-            if ($dayTotal > 0) {
-                $daysWithOcc++;
-                foreach (['walk_in','traveloka','agen'] as $m) {
-                    $sumPercents[$m] += (($dayMethodCounts[$tgl][$m] ?? 0) / $dayTotal) * 100;
-                }
+        if ($totalAvailableCapacity > 0) {
+            foreach (['walk_in','traveloka','agen'] as $m) {
+                $methodDailyPercents[$m] = round(($methodCounts[$m] / $totalAvailableCapacity) * 100, 2);
             }
-        }
-        foreach (['walk_in','traveloka','agen'] as $m) {
-            $methodDailyPercents[$m] = $daysWithOcc > 0 ? round($sumPercents[$m] / $daysWithOcc, 1) : 0;
         }
 
-        // Rata-rata harian keseluruhan dalam persen (dibanding total kamar)
+        // Rata-rata harian keseluruhan dalam persen (dibanding total kamar-hari tersedia)
         // Gunakan 17 kamar sebagai denominator (abaikan HALL dan Non AC D11)
         // Hanya hitung hari yang sudah lewat dan hari ini
-        $roomCount = 17;
         $avgDailyPercentTotal = 0;
-        $dayCount = count($tanggalListForOccupancy);
-        if ($roomCount > 0 && $dayCount > 0) {
-            $sumDailyPercent = 0;
-            foreach ($tanggalListForOccupancy as $tgl) {
-                $sumDailyPercent += (($dayTotals[$tgl] ?? 0) / $roomCount) * 100;
-            }
-            $avgDailyPercentTotal = round($sumDailyPercent / $dayCount, 1);
+        if ($totalAvailableCapacity > 0) {
+            $sumDailyTotal = array_sum($dayTotals);
+            $avgDailyPercentTotal = round(($sumDailyTotal / $totalAvailableCapacity) * 100, 2);
         }
 
         // Rata-rata kamar terisi per hari (total dan per metode)
-        $daysInMonth = count($tanggalList);
-        $avgPerDayTotal = $daysInMonth > 0 ? round($methodTotal / $daysInMonth, 1) : 0;
+        // Gunakan jumlah hari yang tersedia (hari yang sudah lewat + hari ini)
+        $avgPerDayTotal = $dayCountForOccupancy > 0 ? round($methodTotal / $dayCountForOccupancy, 1) : 0;
         $methodAverages = [];
         foreach ($methodCounts as $method => $count) {
-            $methodAverages[$method] = $daysInMonth > 0 ? round($count / $daysInMonth, 1) : 0;
+            $methodAverages[$method] = $dayCountForOccupancy > 0 ? round($count / $dayCountForOccupancy, 1) : 0;
         }
 
         // Data navigasi bulan sebelumnya / berikutnya
