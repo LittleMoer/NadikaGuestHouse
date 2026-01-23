@@ -48,7 +48,7 @@
                                     <tr>
                                         <td style="padding:4px 6px;color:#334155;font-weight:700;">Total</td>
                                         <td style="padding:4px 6px;text-align:right;color:#334155;font-weight:700;">{{ $methodTotal ?? 0 }}</td>
-                                        <td style="padding:4px 6px;text-align:right;color:#334155;font-weight:700;">{{ ($methodTotal ?? 0) > 0 ? '100%' : '0%' }}</td>
+                                        <td style="padding:4px 6px;text-align:right;color:#334155;font-weight:700;">{{ $totalPercent ?? 0 }}%</td>
                                     </tr>
                                     <tr>
                                         <td style="padding:4px 6px;color:#334155;font-weight:700;">Rata-rata/hari</td>
