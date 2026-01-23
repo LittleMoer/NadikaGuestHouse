@@ -391,11 +391,11 @@ class DashboardController extends Controller
         }
 
         // Rata-rata kamar terisi per hari (total dan per metode)
-        // Gunakan jumlah hari yang tersedia (hari yang sudah lewat + hari ini)
-        $avgPerDayTotal = $dayCountForOccupancy > 0 ? round($methodTotal / $dayCountForOccupancy, 1) : 0;
+        // Gunakan jumlah hari dalam bulan
+        $avgPerDayTotal = $dayCountInMonth > 0 ? round($methodTotal / $dayCountInMonth, 1) : 0;
         $methodAverages = [];
         foreach ($methodCounts as $method => $count) {
-            $methodAverages[$method] = $dayCountForOccupancy > 0 ? round($count / $dayCountForOccupancy, 1) : 0;
+            $methodAverages[$method] = $dayCountInMonth > 0 ? round($count / $dayCountInMonth, 1) : 0;
         }
 
         // Data navigasi bulan sebelumnya / berikutnya
