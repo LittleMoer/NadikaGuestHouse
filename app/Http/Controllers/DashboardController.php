@@ -367,11 +367,11 @@ class DashboardController extends Controller
         
         $methodPercents = [];
         foreach ($methodCounts as $method => $count) {
-            $methodPercents[$method] = $totalAvailableCapacity > 0 ? round(($count / $totalAvailableCapacity) * 100, 2) : 0;
+            $methodPercents[$method] = $totalAvailableCapacity > 0 ? round(($count / $totalAvailableCapacity) * 100, 2) : 0.00;
         }
         
         // Perhitungan persentase total kamar terisi (dari total kapasitas kamar-hari)
-        $totalPercent = $totalAvailableCapacity > 0 ? round(($methodTotal / $totalAvailableCapacity) * 100, 2) : 0;
+        $totalPercent = $totalAvailableCapacity > 0 ? round(($methodTotal / $totalAvailableCapacity) * 100, 2) : 0.00;
 
         // Rata-rata persentase per hari untuk setiap metode
         // Gunakan denominator yang sama: total kamar-hari tersedia

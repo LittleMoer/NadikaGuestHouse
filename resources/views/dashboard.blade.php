@@ -31,24 +31,24 @@
                                     <tr>
                                         <td style="padding:3px 6px;color:#0f172a;">Walk-In</td>
                                         <td style="padding:3px 6px;text-align:right;color:#0f172a;">{{ $methodCounts['walk_in'] ?? 0 }}</td>
-                                        <td style="padding:3px 6px;text-align:right;color:#0f172a;">{{ $methodPercents['walk_in'] ?? 0 }}%</td>
+                                        <td style="padding:3px 6px;text-align:right;color:#0f172a;">{{ isset($methodPercents['walk_in']) ? number_format($methodPercents['walk_in'], 2) : '0.00' }}%</td>
                                     </tr>
                                     <tr>
                                         <td style="padding:3px 6px;color:#0f172a;">Traveloka</td>
                                         <td style="padding:3px 6px;text-align:right;color:#0f172a;">{{ $methodCounts['traveloka'] ?? 0 }}</td>
-                                        <td style="padding:3px 6px;text-align:right;color:#0f172a;">{{ $methodPercents['traveloka'] ?? 0 }}%</td>
+                                        <td style="padding:3px 6px;text-align:right;color:#0f172a;">{{ isset($methodPercents['traveloka']) ? number_format($methodPercents['traveloka'], 2) : '0.00' }}%</td>
                                     </tr>
                                     <tr>
                                         <td style="padding:3px 6px;color:#0f172a;">Agen</td>
                                         <td style="padding:3px 6px;text-align:right;color:#0f172a;">{{ $methodCounts['agen'] ?? 0 }}</td>
-                                        <td style="padding:3px 6px;text-align:right;color:#0f172a;">{{ $methodPercents['agen'] ?? 0 }}%</td>
+                                        <td style="padding:3px 6px;text-align:right;color:#0f172a;">{{ isset($methodPercents['agen']) ? number_format($methodPercents['agen'], 2) : '0.00' }}%</td>
                                     </tr>
                                 </tbody>
                                 <tfoot>
                                     <tr>
                                         <td style="padding:4px 6px;color:#334155;font-weight:700;">Total</td>
                                         <td style="padding:4px 6px;text-align:right;color:#334155;font-weight:700;">{{ $methodTotal ?? 0 }}</td>
-                                        <td style="padding:4px 6px;text-align:right;color:#334155;font-weight:700;">{{ $totalPercent ?? 0 }}%</td>
+                                        <td style="padding:4px 6px;text-align:right;color:#334155;font-weight:700;">{{ isset($totalPercent) ? number_format($totalPercent, 2) : '0.00' }}%</td>
                                     </tr>
                                     <tr>
                                         <td style="padding:4px 6px;color:#334155;font-weight:700;">Rata-rata/hari</td>
