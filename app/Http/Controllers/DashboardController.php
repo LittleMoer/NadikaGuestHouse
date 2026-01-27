@@ -364,7 +364,7 @@ class DashboardController extends Controller
         $roomCount = 17;
         $dayCountInMonth = count($tanggalList); // Seluruh hari dalam bulan
         $totalAvailableCapacity = $roomCount * $dayCountInMonth;
-        dd($totalAvailableCapacity);
+        // dd($totalAvailableCapacity);
         $methodPercents = [];
         foreach ($methodCounts as $method => $count) {
             $methodPercents[$method] = $totalAvailableCapacity > 0 ? round(($count / $totalAvailableCapacity) * 100, 2) : 0.00;
