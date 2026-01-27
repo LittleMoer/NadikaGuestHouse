@@ -1,3 +1,11 @@
+        \Log::info('DEBUG OCCUPANCY', [
+            'roomCount' => $roomCount,
+            'dayCountInMonth' => $dayCountInMonth,
+            'totalAvailableCapacity' => $totalAvailableCapacity,
+            'methodCounts' => $methodCounts,
+            'methodPercents' => $methodPercents,
+            'totalPercent' => $totalPercent,
+        ]);
 <?php
 
 namespace App\Http\Controllers;
