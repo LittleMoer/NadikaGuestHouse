@@ -363,6 +363,7 @@ class DashboardController extends Controller
         // Hitung persentase berdasarkan total kamar-hari yang tersedia dalam sebulan (17 kamar × jumlah hari dalam bulan)
         $roomCount = 17;
         $dayCountInMonth = count($tanggalList); // Seluruh hari dalam bulan
+        dd($dayCountInMonth);
         $totalAvailableCapacity = $roomCount * $dayCountInMonth;
         // dd($totalAvailableCapacity);
         $methodPercents = [];
