@@ -169,7 +169,6 @@
                         <form id="formEditOrder" style="display:none;">
                             @csrf
                             <input type="hidden" name="booking_id" id="edit_booking_id">
-                            <input type="hidden" name="durasi_booking" id="edit_durasi_booking" value="">
                             <div class="row g-2">
                                 <div class="col-md-6">
                                     <label class="form-label" style="font-size:.7rem;font-weight:600;">Pelanggan</label>
@@ -570,26 +569,6 @@
                         row.querySelector('td:nth-child(10)').textContent = fmt(j1.order.total_harga + cafeVal);
                     }
                     // 2) Save order fields
-                    // compute durasi_booking from datetime-local values (support editing jam)
-                    try{
-                        const inVal = EL.editCheckin?.value;
-                        const outVal = EL.editCheckout?.value;
-                        if(inVal && outVal){
-                            const dIn = new Date(inVal);
-                            const dOut = new Date(outVal);
-                            let dur = 0;
-                            const totalMinutes = Math.max(0, Math.floor((dOut - dIn) / 60000));
-                            if(totalMinutes <= 0) dur = 0.5;
-                            else {
-                                const fullDays = Math.floor(totalMinutes / 1440);
-                                const remaining = totalMinutes % 1440;
-                                if(fullDays === 0) dur = 0.5;
-                                else dur = fullDays + (remaining >= 360 ? 0.5 : 0);
-                            }
-                            const hiddenDur = document.getElementById('edit_durasi_booking');
-                            if(hiddenDur) hiddenDur.value = dur;
-                        }
-                    }catch(_){ /* ignore */ }
                     const fd = new FormData(EL.editForm);
                     let r2 = await fetch(`{{ url('/booking') }}/${id}/update`, {
                         method:'POST',

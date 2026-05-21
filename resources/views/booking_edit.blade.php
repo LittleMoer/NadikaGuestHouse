@@ -82,11 +82,29 @@
           editForm.addEventListener('submit', function(e){
             const inpIn = this.querySelector('input[name="tanggal_checkin"]');
             const inpOut = this.querySelector('input[name="tanggal_checkout"]');
-            let errs=[]; let dIn = fpIn?.selectedDates?.[0]; let dOut = fpOut?.selectedDates?.[0];
+            let errs=[];
+            let dIn = fpIn?.selectedDates?.[0] ?? (inpIn?.value ? new Date(inpIn.value) : null);
+            let dOut = fpOut?.selectedDates?.[0] ?? (inpOut?.value ? new Date(inpOut.value) : null);
             if(!dIn) errs.push('Tanggal check-in tidak valid');
             if(!dOut) errs.push('Tanggal check-out tidak valid');
             if(dIn && dOut && dOut <= dIn){ errs.push('Check-out harus setelah Check-in'); }
             if(errs.length){ e.preventDefault(); alert(errs.join('\n')); return false; }
+
+            if(dIn && dOut){
+              const totalMinutes = Math.max(0, Math.floor((dOut - dIn) / 60000));
+              let dur = 0.5;
+              if(totalMinutes > 0){
+                const fullDays = Math.floor(totalMinutes / 1440);
+                const remaining = totalMinutes % 1440;
+                if(fullDays === 0){
+                  dur = 0.5;
+                } else {
+                  dur = fullDays + (remaining >= 360 ? 0.5 : 0);
+                }
+              }
+              const durasiInput = this.querySelector('input[name="durasi_booking"]');
+              if(durasiInput){ durasiInput.value = dur; }
+            }
           }, {capture:true});
         }
 
