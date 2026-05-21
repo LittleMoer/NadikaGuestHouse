@@ -73,7 +73,7 @@
           });
         });
         // Initialize Flatpickr on inputs, with visible DD-MM-YYYY HH:MM and submitted ISO value
-        const fpOpts = { enableTime:true, time_24hr:true, altInput:true, altFormat:'d-m-Y H:i', dateFormat:'Y-m-d\\TH:i' };
+        const fpOpts = { enableTime:true, time_24hr:true, altInput:true, allowInput:true, altFormat:'d-m-Y H:i', dateFormat:'Y-m-d\\TH:i' };
         const fpIn = flatpickr('input[name="tanggal_checkin"]', fpOpts);
         const fpOut = flatpickr('input[name="tanggal_checkout"]', fpOpts);
         window.bookingFpIn = fpIn;
@@ -84,6 +84,13 @@
           editForm.addEventListener('submit', function(e){
             const inpIn = this.querySelector('input[name="tanggal_checkin"]');
             const inpOut = this.querySelector('input[name="tanggal_checkout"]');
+            // Ensure flatpickr writes the selected date/time back to the actual input value
+            if(fpIn?.selectedDates?.[0]){
+              fpIn.setDate(fpIn.selectedDates[0], true, fpIn.config.dateFormat);
+            }
+            if(fpOut?.selectedDates?.[0]){
+              fpOut.setDate(fpOut.selectedDates[0], true, fpOut.config.dateFormat);
+            }
             let errs=[];
             let dIn = fpIn?.selectedDates?.[0] ?? (inpIn?.value ? new Date(inpIn.value) : null);
             let dOut = fpOut?.selectedDates?.[0] ?? (inpOut?.value ? new Date(inpOut.value) : null);
