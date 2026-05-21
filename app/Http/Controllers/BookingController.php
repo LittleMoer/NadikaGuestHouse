@@ -247,13 +247,24 @@ class BookingController extends Controller
 
         $start = $startCheck; $end = $endCheck;
         // Use explicit duration from form if available, otherwise calculate
+        // Compute duration using full datetimes (including hours) so editing jam is supported
         $durasi = (float)($data['durasi_booking'] ?? 0);
         if ($durasi <= 0) {
-            // Fallback logic if durasi_booking is not sent
-            $rawDays = $start->copy()->startOfDay()->diffInDays($end->copy()->startOfDay());
-            $extraHours = $end->copy()->startOfDay()->diffInHours($end);
-            $durasi = $rawDays + ($extraHours >= 6 ? 0.5 : 0);
-            if ($start->isSameDay($end)) $durasi = 0.5; // half-day
+            $totalMinutes = $start->diffInMinutes($end);
+            if ($totalMinutes <= 0) {
+                // defensive: non-positive interval -> default to half-day
+                $durasi = 0.5;
+            } else {
+                $fullDays = intdiv($totalMinutes, 1440); // minutes per full day
+                $remaining = $totalMinutes % 1440;
+                if ($fullDays === 0) {
+                    // same calendar day -> treat as half-day
+                    $durasi = 0.5;
+                } else {
+                    // add half-day if remaining hours >= 6
+                    $durasi = $fullDays + ($remaining >= 360 ? 0.5 : 0);
+                }
+            }
         }
         $days = max(ceil($durasi), 1); // For DB malam field, round up
 
@@ -639,13 +650,24 @@ class BookingController extends Controller
         elseif ($extraSel === 'h9') { $end = $end->copy()->addHours(9); }
         elseif ($extraSel === 'd1') { $end = $end->copy()->addDay(); }
         // Use explicit duration from form if available, otherwise calculate
+        // Compute duration using full datetimes (including hours) so editing jam is supported
         $durasi = (float)($data['durasi_booking'] ?? 0);
         if ($durasi <= 0) {
-            // Fallback logic if durasi_booking is not sent
-            $rawDays = $start->copy()->startOfDay()->diffInDays($end->copy()->startOfDay());
-            $extraHours = $end->copy()->startOfDay()->diffInHours($end);
-            $durasi = $rawDays + ($extraHours >= 6 ? 0.5 : 0);
-            if ($start->isSameDay($end)) $durasi = 0.5; // half-day
+            $totalMinutes = $start->diffInMinutes($end);
+            if ($totalMinutes <= 0) {
+                // defensive: non-positive interval -> default to half-day
+                $durasi = 0.5;
+            } else {
+                $fullDays = intdiv($totalMinutes, 1440); // minutes per full day
+                $remaining = $totalMinutes % 1440;
+                if ($fullDays === 0) {
+                    // same calendar day -> treat as half-day
+                    $durasi = 0.5;
+                } else {
+                    // add half-day if remaining hours >= 6
+                    $durasi = $fullDays + ($remaining >= 360 ? 0.5 : 0);
+                }
+            }
         }
         $days = max(ceil($durasi), 1); // For DB malam field, round up
 
