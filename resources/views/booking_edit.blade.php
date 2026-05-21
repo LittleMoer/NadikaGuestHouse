@@ -76,6 +76,8 @@
         const fpOpts = { enableTime:true, time_24hr:true, altInput:true, altFormat:'d-m-Y H:i', dateFormat:'Y-m-d\\TH:i' };
         const fpIn = flatpickr('input[name="tanggal_checkin"]', fpOpts);
         const fpOut = flatpickr('input[name="tanggal_checkout"]', fpOpts);
+        window.bookingFpIn = fpIn;
+        window.bookingFpOut = fpOut;
         // Convert edit form dates before submit
         const editForm = document.querySelector('form[action*="/booking/"]');
         if(editForm){
@@ -129,8 +131,8 @@
           const inpOut = document.querySelector('input[name="tanggal_checkout"]');
           const customDurasiWrap = document.getElementById('durasi_hari_custom_wrap_edit');
           const customDurasiInput = document.getElementById('durasi_hari_custom_edit');
-          const fpIn = flatpickr(inpIn);
-          const fpOut = flatpickr(inpOut);
+          const fpIn = window.bookingFpIn ?? flatpickr(inpIn, { enableTime:true, time_24hr:true, altInput:true, altFormat:'d-m-Y H:i', dateFormat:'Y-m-d\\TH:i' });
+          const fpOut = window.bookingFpOut ?? flatpickr(inpOut, { enableTime:true, time_24hr:true, altInput:true, altFormat:'d-m-Y H:i', dateFormat:'Y-m-d\\TH:i' });
 
           function handleDurasiChange(val) {
               document.getElementById('durasi_booking_hidden_edit').value = val;
