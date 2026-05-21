@@ -276,12 +276,12 @@
               <input type="number" min="1" name="jumlah_tamu_total" class="form-control" value="{{ old('jumlah_tamu_total', $order->jumlah_tamu_total) }}" />
             </div>
             <div class="col-md-6 mb-3">
-              <label class="form-label">Check-In</label>
-              <input type="text" name="tanggal_checkin" class="form-control" value="{{ old('tanggal_checkin', \Carbon\Carbon::parse($order->tanggal_checkin)->format('Y-m-d\\TH:i')) }}" placeholder="DD-MM-YYYY atau DD-MM-YYYY HH:MM" required />
+              <label class="form-label">Check-In (Tanggal + Jam)</label>
+              <input type="datetime-local" name="tanggal_checkin" class="form-control" value="{{ old('tanggal_checkin', \Carbon\Carbon::parse($order->tanggal_checkin)->format('Y-m-d\\TH:i')) }}" placeholder="DD-MM-YYYY HH:MM" required />
             </div>
             <div class="col-md-6 mb-3">
-              <label class="form-label">Check-Out</label>
-              <input type="text" name="tanggal_checkout" class="form-control" value="{{ old('tanggal_checkout', \Carbon\Carbon::parse($order->tanggal_checkout)->format('Y-m-d\\TH:i')) }}" placeholder="DD-MM-YYYY atau DD-MM-YYYY HH:MM" required />
+              <label class="form-label">Check-Out (Tanggal + Jam)</label>
+              <input type="datetime-local" name="tanggal_checkout" class="form-control" value="{{ old('tanggal_checkout', \Carbon\Carbon::parse($order->tanggal_checkout)->format('Y-m-d\\TH:i')) }}" placeholder="DD-MM-YYYY HH:MM" required />
             </div>
             <div class="col-md-6 mb-3">
                 <label class="form-label">Durasi (Hari)</label>
