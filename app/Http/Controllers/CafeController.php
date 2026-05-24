@@ -13,7 +13,7 @@ class CafeController extends Controller
 {
     public function index()
     {
-        $products = CafeProduct::orderBy('nama')->get();
+        $products = CafeProduct::where('aktif', true)->orderBy('nama')->get();
         $movements = CafeStockMovement::with('product')->latest()->limit(25)->get();
         // Active bookings = status check-in (2)
         $activeBookings = BookingOrder::activeCheckin()->with('pelanggan')->orderByDesc('id')->get();
@@ -170,5 +170,52 @@ class CafeController extends Controller
         });
         if($request->wantsJson()) return response()->json(['success'=>true]);
         return redirect()->route('cafe.orders')->with('success','Order cafe dihapus dan stok dikembalikan');
+    }
+
+    public function updateProduct(Request $request, $id)
+    {
+        if (!auth()->user()->isOwner()) {
+            abort(403, 'Unauthorized.');
+        }
+        $product = CafeProduct::findOrFail($id);
+        $data = $request->validate([
+            'nama'=>'required|string|max:150',
+            'kategori'=>'nullable|string|max:100',
+            'satuan'=>'nullable|string|max:30',
+            'harga_jual'=>'required|numeric|min:0',
+            'minimal_stok'=>'nullable|integer|min:0'
+        ]);
+
+        $product->update([
+            'nama'=>$data['nama'],
+            'kategori'=>$data['kategori'] ?? null,
+            'satuan'=>$data['satuan'] ?? 'porsi',
+            'harga_jual'=>$data['harga_jual'],
+            'minimal_stok'=>$data['minimal_stok'] ?? 0,
+        ]);
+
+        return redirect()->route('cafe.index')->with('success','Produk cafe berhasil diupdate');
+    }
+
+    public function destroyProduct(Request $request, $id)
+    {
+        if (!auth()->user()->isOwner()) {
+            abort(403, 'Unauthorized.');
+        }
+        $product = CafeProduct::findOrFail($id);
+        
+        // Cek apakah produk sudah digunakan di order transaksi mana pun
+        $isUsed = CafeOrderItem::where('cafe_product_id', $product->id)->exists();
+        if ($isUsed) {
+            // Jika sudah digunakan, lakukan soft-delete dengan menyetel aktif ke false
+            $product->update(['aktif' => false]);
+            $msg = 'Produk cafe dinonaktifkan (diarsipkan) karena memiliki riwayat transaksi.';
+        } else {
+            // Jika belum pernah digunakan, boleh di-hard delete
+            $product->delete();
+            $msg = 'Produk cafe berhasil dihapus.';
+        }
+
+        return redirect()->route('cafe.index')->with('success', $msg);
     }
 }

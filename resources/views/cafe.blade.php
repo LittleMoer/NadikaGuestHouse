@@ -133,7 +133,18 @@
                     <div class="card-header py-2"><strong>Daftar Produk</strong></div>
                     <div class="table-responsive" style="max-height:340px;overflow:auto;">
                         <table class="table table-sm mb-0">
-                            <thead class="table-light"><tr><th>Nama</th><th>Kategori</th><th>Harga</th><th>Stok</th><th>Min</th></tr></thead>
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Nama</th>
+                                    <th>Kategori</th>
+                                    <th>Harga</th>
+                                    <th>Stok</th>
+                                    <th>Min</th>
+                                    @if(auth()->user()->isOwner())
+                                        <th class="text-center">Aksi</th>
+                                    @endif
+                                </tr>
+                            </thead>
                             <tbody>
                                 @foreach($products as $p)
                                     <tr class="{{ $p->stok <= $p->minimal_stok ? 'table-warning' : '' }}">
@@ -142,6 +153,24 @@
                                         <td class="text-end">{{ number_format($p->harga_jual,0,',','.') }}</td>
                                         <td class="text-end">{{ $p->stok }}</td>
                                         <td class="text-end">{{ $p->minimal_stok }}</td>
+                                        @if(auth()->user()->isOwner())
+                                            <td class="text-center">
+                                                <button type="button" class="btn btn-xs btn-warning text-white btn-edit-product"
+                                                    data-id="{{ $p->id }}"
+                                                    data-nama="{{ $p->nama }}"
+                                                    data-kategori="{{ $p->kategori }}"
+                                                    data-satuan="{{ $p->satuan }}"
+                                                    data-harga="{{ $p->harga_jual }}"
+                                                    data-min="{{ $p->minimal_stok }}">
+                                                    Edit
+                                                </button>
+                                                <form action="{{ route('cafe.product.destroy', $p->id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Yakin ingin menghapus produk ini?');">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="btn btn-xs btn-danger">Hapus</button>
+                                                </form>
+                                            </td>
+                                        @endif
                                     </tr>
                                 @endforeach
                             </tbody>
@@ -174,6 +203,49 @@
 
     </div>
 </div>
+@if(auth()->user()->isOwner())
+<!-- Edit Product Modal -->
+<div class="modal fade" id="editProductModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content text-dark">
+            <div class="modal-header py-2">
+                <h5 class="modal-title">Edit Produk Cafe</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="formEditProduct" method="POST">
+                @csrf
+                <div class="modal-body">
+                    <div class="mb-2">
+                        <label class="form-label mb-0">Nama</label>
+                        <input type="text" name="nama" id="edit_nama" class="form-control form-control-sm" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label mb-0">Kategori</label>
+                        <input type="text" name="kategori" id="edit_kategori" class="form-control form-control-sm">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label mb-0">Satuan</label>
+                        <input type="text" name="satuan" id="edit_satuan" class="form-control form-control-sm">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label mb-0">Harga Jual</label>
+                        <input type="number" name="harga_jual" id="edit_harga_jual" min="0" class="form-control form-control-sm" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label mb-0">Minimal Stok</label>
+                        <input type="number" name="minimal_stok" id="edit_minimal_stok" min="0" class="form-control form-control-sm">
+                    </div>
+                </div>
+                <div class="modal-footer py-2">
+                    <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary btn-sm">Simpan Perubahan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@endif
+
 <script>
     document.addEventListener('DOMContentLoaded', function(){
         const addBtn = document.getElementById('btnAddRowOrder');
@@ -199,6 +271,30 @@
             const prodId = document.getElementById('adj_product').value;
             if(!prodId){ e.preventDefault(); alert('Pilih produk'); }
             this.action = '/cafe/products/'+prodId+'/adjust';
+        });
+
+        // Edit product logic
+        document.querySelectorAll('.btn-edit-product').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const id = this.getAttribute('data-id');
+                const nama = this.getAttribute('data-nama');
+                const kategori = this.getAttribute('data-kategori');
+                const satuan = this.getAttribute('data-satuan');
+                const harga = this.getAttribute('data-harga');
+                const min = this.getAttribute('data-min');
+
+                const form = document.getElementById('formEditProduct');
+                form.action = `/cafe/products/${id}/update`;
+
+                document.getElementById('edit_nama').value = nama;
+                document.getElementById('edit_kategori').value = kategori;
+                document.getElementById('edit_satuan').value = satuan;
+                document.getElementById('edit_harga_jual').value = harga;
+                document.getElementById('edit_minimal_stok').value = min;
+
+                const editModal = new bootstrap.Modal(document.getElementById('editProductModal'));
+                editModal.show();
+            });
         });
     });
 </script>

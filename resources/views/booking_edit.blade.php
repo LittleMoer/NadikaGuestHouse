@@ -449,8 +449,11 @@
                 <th>Harga/Malam</th>
                 <th>Malam</th>
                 <th>Subtotal</th>
-                <th>Pindah Kamar</th>
-                <th>Upgrade Kamar</th>
+                @if(auth()->user()->isAdmin())
+                  <th>Pindah Kamar</th>
+                  <th>Upgrade Kamar</th>
+                  <th>Hapus</th>
+                @endif
               </tr>
             </thead>
             <tbody>
@@ -460,35 +463,65 @@
                   <td>Rp{{ number_format($it->harga_per_malam) }}</td>
                   <td>{{ $it->malam }}</td>
                   <td>Rp{{ number_format($it->subtotal) }}</td>
-                  <td>
-                    <form method="POST" action="{{ route('booking.move_room', $order->id) }}" class="d-flex gap-2 align-items-center">
-                      @csrf
-                      <input type="hidden" name="item_id" value="{{ $it->id }}">
-                      <select name="new_kamar_id" class="form-select form-select-sm" required>
-                        @foreach(($availableKamar ?? collect()) as $k)
-                          <option value="{{ $k->id }}">{{ $k->nomor_kamar }} - {{ $k->tipe }} (Rp{{ number_format($k->harga) }})</option>
-                        @endforeach
-                      </select>
-                      <button type="submit" class="btn btn-sm btn-primary">Pindah</button>
-                    </form>
-                  </td>
-                  <td>
-                    <form method="POST" action="{{ route('booking.upgrade_room', $order->id) }}" class="d-flex gap-2 align-items-center">
-                      @csrf
-                      <input type="hidden" name="item_id" value="{{ $it->id }}">
-                      <select name="new_kamar_id" class="form-select form-select-sm" required>
-                        @foreach(($availableKamar ?? collect()) as $k)
-                          <option value="{{ $k->id }}">{{ $k->nomor_kamar }} - {{ $k->tipe }} (Rp{{ number_format($k->harga) }})</option>
-                        @endforeach
-                      </select>
-                      <button type="submit" class="btn btn-sm btn-warning">Upgrade</button>
-                    </form>
-                  </td>
+                  @if(auth()->user()->isAdmin())
+                    <td>
+                      <form method="POST" action="{{ route('booking.move_room', $order->id) }}" class="d-flex gap-2 align-items-center">
+                        @csrf
+                        <input type="hidden" name="item_id" value="{{ $it->id }}">
+                        <select name="new_kamar_id" class="form-select form-select-sm" required>
+                          @foreach(($availableKamar ?? collect()) as $k)
+                            <option value="{{ $k->id }}">{{ $k->nomor_kamar }} - {{ $k->tipe }} (Rp{{ number_format($k->harga) }})</option>
+                          @endforeach
+                        </select>
+                        <button type="submit" class="btn btn-sm btn-primary">Pindah</button>
+                      </form>
+                    </td>
+                    <td>
+                      <form method="POST" action="{{ route('booking.upgrade_room', $order->id) }}" class="d-flex gap-2 align-items-center">
+                        @csrf
+                        <input type="hidden" name="item_id" value="{{ $it->id }}">
+                        <select name="new_kamar_id" class="form-select form-select-sm" required>
+                          @foreach(($availableKamar ?? collect()) as $k)
+                            <option value="{{ $k->id }}">{{ $k->nomor_kamar }} - {{ $k->tipe }} (Rp{{ number_format($k->harga) }})</option>
+                          @endforeach
+                        </select>
+                        <button type="submit" class="btn btn-sm btn-warning text-white">Upgrade</button>
+                      </form>
+                    </td>
+                    <td>
+                      <form method="POST" action="{{ route('booking.remove_room', [$order->id, $it->id]) }}" onsubmit="return confirm('Yakin ingin menghapus kamar ini dari booking?');">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="btn btn-sm btn-danger text-white">Hapus</button>
+                      </form>
+                    </td>
+                  @endif
                 </tr>
               @endforeach
             </tbody>
           </table>
         </div>
+        
+        @if(auth()->user()->isAdmin())
+          <hr>
+          <form method="POST" action="{{ route('booking.add_room', $order->id) }}" class="row g-3 align-items-center">
+            @csrf
+            <div class="col-auto">
+              <label class="form-label mb-0">Tambah Kamar Ke Booking:</label>
+            </div>
+            <div class="col-auto">
+              <select name="kamar_id" class="form-select form-select-sm" required>
+                <option value="">-- Pilih Kamar --</option>
+                @foreach(($availableKamar ?? collect()) as $k)
+                  <option value="{{ $k->id }}">{{ $k->nomor_kamar }} - {{ $k->tipe }} (Rp{{ number_format($k->harga) }})</option>
+                @endforeach
+              </select>
+            </div>
+            <div class="col-auto">
+              <button type="submit" class="btn btn-sm btn-success">Tambah Kamar</button>
+            </div>
+          </form>
+        @endif
       </div>
     </div>
   </div>

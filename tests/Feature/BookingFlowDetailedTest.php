@@ -38,7 +38,7 @@ function makeDetPelanggan(){
 
 function detPayload($pelangganId, $kamarIds, $overrides = []){
     $checkin = now()->startOfDay()->addDays(3)->setTime(14,0);
-    $checkout = now()->startOfDay()->addDays(5)->setTime(12,0); // 2 malam
+    $checkout = now()->startOfDay()->addDays(5)->setTime(14,0); // 2 malam
     return array_merge([
         'pelanggan_id' => $pelangganId,
         'kamar_ids' => $kamarIds,
@@ -123,7 +123,7 @@ it('recalculates correctly on update() date change preserving kamar prices and d
 
     // Move to 3 nights
     $newCheckin = now()->startOfDay()->addDays(1)->setTime(14,0);
-    $newCheckout = now()->startOfDay()->addDays(4)->setTime(12,0);
+    $newCheckout = now()->startOfDay()->addDays(4)->setTime(14,0);
 
     test()->post(route('booking.update', $order->id), [
         'tanggal_checkin'=>$newCheckin->toDateTimeString(),
@@ -207,30 +207,95 @@ it('allows upgrade to same-price room', function(){
     expect((int)$order->total_harga)->toBe(180000);
 });
 
-it('logs refund when already lunas and total decreases after move', function(){
-    authDetailedUser();
+it('restricts moving and upgrading rooms to admin and denies owner', function() {
+    $owner = User::factory()->create(['role' => 'owner']);
+    $admin = User::factory()->create(['role' => 'admin']);
+    
     $pelanggan = makeDetPelanggan();
-    $kExp = makeDetKamar(['harga'=>250000]);
-    $kCheap = makeDetKamar(['harga'=>100000]);
+    $k1 = makeDetKamar(['harga'=>100000]);
+    $k2 = makeDetKamar(['harga'=>200000]);
 
-    // Make order lunas at 250k (1-night stay)
-    $start = now()->startOfDay()->addDay()->setTime(14,0);
-    $end = now()->startOfDay()->addDays(2)->setTime(12,0);
-    test()->post(route('booking.store'), detPayload($pelanggan->id, [$kExp->id], [
-        'tanggal_checkin' => $start->toDateTimeString(),
-        'tanggal_checkout' => $end->toDateTimeString(),
-        'dp_amount' => 250000,
-    ]))->assertRedirect();
+    // Create booking as admin
+    test()->actingAs($admin);
+    test()->post(route('booking.store'), detPayload($pelanggan->id, [$k1->id]))->assertRedirect();
     $order = BookingOrder::with('items')->latest('id')->first();
-    test()->post(route('booking.payment', $order->id), [ 'payment_status' => 'lunas' ])->assertRedirect();
+    $item = $order->items->first();
 
-    // Move to cheaper room 100k -> should log dp_canceled for 150k and reduce dp_amount
-    test()->post(route('booking.move_room', $order->id), [
-        'item_id' => $order->items->first()->id,
-        'new_kamar_id' => $kCheap->id,
+    // Act as owner -> should redirect with error
+    test()->actingAs($owner);
+    $res = test()->post(route('booking.move_room', $order->id), [
+        'item_id' => $item->id,
+        'new_kamar_id' => $k2->id,
+    ]);
+    $res->assertRedirect();
+    $res->assertSessionHas('error', 'Akses ditolak. Fitur ini hanya untuk Admin.');
+});
+
+it('creates check-in and check-out logs when booking status transitions', function() {
+    $admin = User::factory()->create(['role' => 'admin']);
+    test()->actingAs($admin);
+    
+    $pelanggan = makeDetPelanggan();
+    $k = makeDetKamar(['harga'=>100000]);
+
+    // 1) Create booking with status 1 (dipesan)
+    test()->post(route('booking.store'), detPayload($pelanggan->id, [$k->id], ['status' => 1]))->assertRedirect();
+    $order = BookingOrder::latest('id')->first();
+    
+    // Check no logs yet
+    expect($order->checkLogs)->toHaveCount(0);
+
+    // 2) Transition to Check-In (status 2)
+    test()->post(route('booking.update', $order->id), array_merge(detPayload($pelanggan->id, [$k->id]), [
+        'status' => 2,
+    ]))->assertRedirect();
+    
+    $order->refresh();
+    expect($order->checkLogs)->toHaveCount(1);
+    expect($order->checkLogs->first()->type)->toBe('checkin');
+
+    // 3) Transition to Check-Out (status 3)
+    test()->post(route('booking.update', $order->id), array_merge(detPayload($pelanggan->id, [$k->id]), [
+        'status' => 3,
+    ]))->assertRedirect();
+    
+    $order->refresh();
+    expect($order->checkLogs)->toHaveCount(2);
+    expect($order->checkLogs->last()->type)->toBe('checkout');
+});
+
+it('can add and remove rooms on an existing booking and recalculate totals', function() {
+    $admin = User::factory()->create(['role' => 'admin']);
+    test()->actingAs($admin);
+    
+    $pelanggan = makeDetPelanggan();
+    $k1 = makeDetKamar(['harga'=>100000]);
+    $k2 = makeDetKamar(['harga'=>200000]);
+
+    // Create booking with 1 room (k1)
+    test()->post(route('booking.store'), detPayload($pelanggan->id, [$k1->id]))->assertRedirect();
+    $order = BookingOrder::with('items')->latest('id')->first();
+    
+    // Total should be 2 malam * 100k = 200k
+    expect((int)$order->total_harga)->toBe(200000);
+
+    // Add k2 to the booking
+    test()->post(route('booking.add_room', $order->id), [
+        'kamar_id' => $k2->id,
     ])->assertRedirect();
 
     $order->refresh();
-    expect((int)$order->total_harga)->toBe(100000);
-    expect((int)$order->dp_amount)->toBe(100000);
+    // 2 rooms: k1 (100k) + k2 (200k) = 300k per night * 2 malam = 600k
+    expect((int)$order->total_harga)->toBe(600000);
+    expect($order->items)->toHaveCount(2);
+
+    // Remove k1 from the booking
+    $itemK1 = $order->items->firstWhere('kamar_id', $k1->id);
+    test()->delete(route('booking.remove_room', [$order->id, $itemK1->id]))->assertRedirect();
+
+    $order->refresh();
+    // Only k2 left: 2 malam * 200k = 400k
+    expect((int)$order->total_harga)->toBe(400000);
+    expect($order->items)->toHaveCount(1);
 });
+

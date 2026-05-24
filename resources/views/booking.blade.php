@@ -146,6 +146,8 @@
                             <dt>Dibuat oleh</dt><dd id="bd_created_by">-</dd>
                             <dt>Check-In</dt><dd id="bd_checkin">-</dd>
                             <dt>Check-Out</dt><dd id="bd_checkout">-</dd>
+                            <dt>Check-In Aktual</dt><dd id="bd_actual_checkin">-</dd>
+                            <dt>Check-Out Aktual</dt><dd id="bd_actual_checkout">-</dd>
                             <dt>Metode</dt><dd id="bd_metode">-</dd>
                                 <dt>Total Kamar</dt><dd id="bd_total">-</dd>
                             <dt>Total Cafe</dt><dd id="bd_total_cafe">-</dd>
@@ -164,6 +166,23 @@
                                     <tbody id="bd_items_body"><tr><td colspan="5" class="text-center">-</td></tr></tbody>
                                 </table>
                             </div>
+                            @if(auth()->user()->isAdmin())
+                            <div id="bd_add_room_section" class="mt-2 d-none" style="border: 1px solid #eee; padding: 10px; border-radius: 4px;">
+                                <div class="row g-2 align-items-center">
+                                    <div class="col-auto">
+                                        <label class="form-label mb-0" style="font-size:.7rem;font-weight:600;">Tambah Kamar:</label>
+                                    </div>
+                                    <div class="col">
+                                        <select id="bd_add_kamar_id" class="form-select form-select-sm">
+                                            <option value="">-- Pilih Kamar --</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-auto">
+                                        <button type="button" id="btn_bd_add_room" class="btn btn-success btn-xs">Tambah</button>
+                                    </div>
+                                </div>
+                            </div>
+                            @endif
                         </div>
                         <hr class="my-2">
                         <form id="formEditOrder" style="display:none;">
@@ -308,17 +327,72 @@
                 } finally { setLoading(false); }
             }
 
+            let activeBookingId = null;
+            let activeRow = null;
+            const isAdmin = {{ auth()->check() && auth()->user()->isAdmin() ? 'true' : 'false' }};
+
             // ================== RENDERERS ==================
-            function renderItems(items){
+            function renderItems(items, canDelete = false){
                 if(!EL.itemsBody) return;
                 if(!Array.isArray(items) || !items.length){ EL.itemsBody.innerHTML='<tr><td colspan="5" class="text-center">-</td></tr>'; return; }
+                
+                // Update table head columns if needed
+                const deleteHeader = canDelete ? '<th>Hapus</th>' : '';
+                const tableHeader = `<tr class="table-light"><th>Kamar</th><th>Tipe</th><th class="text-center">Malam</th><th class="text-end">Harga/Mlm</th><th class="text-end">Subtotal</th>${deleteHeader}</tr>`;
+                const table = EL.itemsBody.closest('table');
+                if (table) {
+                    const thead = table.querySelector('thead');
+                    if (thead) {
+                        thead.innerHTML = tableHeader;
+                    }
+                }
+
                 EL.itemsBody.innerHTML = items.map(it=>`<tr data-item-id='${it.id}'>
                     <td>${it.nomor_kamar||'-'}</td>
                     <td>${it.tipe||'-'}</td>
                     <td class='text-center'>${it.malam}</td>
                     <td class='text-end'><input type='number' min='0' class='form-control form-control-sm inp-harga' style='width:90px;' value='${it.harga_per_malam}'></td>
                     <td class='text-end'><input type='number' min='0' class='form-control form-control-sm inp-subtotal' style='width:110px;' value='${it.subtotal}'></td>
+                    ${canDelete ? `<td class='text-center'><button type='button' class='btn btn-xs btn-danger btn-remove-item' data-item-id='${it.id}'>Hapus</button></td>` : ''}
                 </tr>`).join('');
+
+                if (canDelete) {
+                    EL.itemsBody.querySelectorAll('.btn-remove-item').forEach(btn => {
+                        btn.addEventListener('click', async function() {
+                            const itemId = this.getAttribute('data-item-id');
+                            if (!confirm('Yakin ingin menghapus kamar ini dari booking?')) return;
+                            
+                            try {
+                                const response = await fetch(`{{ url('/booking') }}/${activeBookingId}/remove-room/${itemId}`, {
+                                    method: 'DELETE',
+                                    headers: {
+                                        'Accept': 'application/json',
+                                        'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]')?.content || ''
+                                    }
+                                });
+                                const res = await response.json();
+                                if (res.success) {
+                                    alert(res.message || 'Kamar berhasil dihapus');
+                                    showDetail(activeRow);
+                                    // Refresh the page when the modal closes or just update the row in the table
+                                    const row = document.querySelector(`#tabel-booking tbody tr[data-booking-id='${activeBookingId}']`);
+                                    if(row){
+                                        const details = await fetchDetail(row);
+                                        const rooms = details.items.map(it=> it.nomor_kamar).filter(Boolean).join(', ');
+                                        row.querySelector('td:nth-child(4) span').textContent = rooms;
+                                        row.querySelector('td:nth-child(4) div small').textContent = `${details.items.length} kamar`;
+                                        row.querySelector('td:nth-child(9)').textContent = fmt(details.total_harga);
+                                        row.querySelector('td:nth-child(10)').textContent = fmt(details.total_harga + (details.total_cafe || 0));
+                                    }
+                                } else {
+                                    alert(res.message || 'Gagal menghapus kamar');
+                                }
+                            } catch (e) {
+                                alert('Terjadi kesalahan');
+                            }
+                        });
+                    });
+                }
             }
             function renderHistory(list){
                 if(!EL.otherWrap||!EL.otherBody) return;
@@ -328,7 +402,7 @@
                     <td>#${o.id}</td><td>${new Date(o.tanggal_checkin).toLocaleDateString()}</td><td>${new Date(o.tanggal_checkout).toLocaleDateString()}</td><td>${o.status_label}</td><td class='text-end'>${fmt(o.total_harga)}</td>
                 </tr>`).join('');
             }
-                function renderActions(data){
+            function renderActions(data){
                 if(!EL.actions) return; EL.actions.innerHTML='';
                 // Quick helpers: toggle dp<->lunas, cancel/restore via lifecycle status
                 const meta = data.status_meta || {};
@@ -360,6 +434,8 @@
             function renderBasic(data){
                 safe(EL.id, data.id); safe(EL.status, data.status_label); safe(EL.nama, data.pelanggan?.nama||'-'); safe(EL.telepon, data.pelanggan?.telepon||'-');
                 safe(EL.checkin, new Date(data.tanggal_checkin).toLocaleString()); safe(EL.checkout, new Date(data.tanggal_checkout).toLocaleString());
+                safe(document.getElementById('bd_actual_checkin'), data.actual_checkin ? new Date(data.actual_checkin).toLocaleString() : '-');
+                safe(document.getElementById('bd_actual_checkout'), data.actual_checkout ? new Date(data.actual_checkout).toLocaleString() : '-');
                 safe(EL.metode, data.status_meta?.channel==='walkin'?'Walk-In': (data.status_meta?.channel||'-'));
                 safe(EL.createdBy, data.creator?.name || '-')
                 const isTrav = (data.status_meta?.channel || '') === 'traveloka';
@@ -395,11 +471,13 @@
 
             // ================== FILL DETAIL ==================
             async function showDetail(tr){
+                activeRow = tr;
                 openModal();
                 try{ 
                     const data = await fetchDetail(tr); 
+                    activeBookingId = data.id;
                     renderBasic(data); 
-                    renderItems(data.items); 
+                    renderItems(data.items, false); 
                     renderHistory(data.other_orders); 
                     renderActions(data); 
                     attachDynamicHandlers(data, tr);
@@ -541,10 +619,46 @@
             // Remove separate price buttons; saving will be unified via main form submit
 
             // ================== EDIT FORM ==================
-            EL.btnToggleEdit?.addEventListener('click',()=>{
-                if(!EL.editForm) return; const show = EL.editForm.style.display==='none' || !EL.editForm.style.display; EL.editForm.style.display= show? 'block':'none'; EL.btnToggleEdit.textContent= show? 'Tutup Edit':'Edit';
+            EL.btnToggleEdit?.addEventListener('click', async ()=>{
+                if(!EL.editForm) return; 
+                const show = EL.editForm.style.display==='none' || !EL.editForm.style.display; 
+                EL.editForm.style.display= show? 'block':'none'; 
+                EL.btnToggleEdit.textContent= show? 'Tutup Edit':'Edit';
+                
+                // Toggle Tambah Kamar section
+                const addSection = document.getElementById('bd_add_room_section');
+                if (addSection) {
+                    if (show && isAdmin) {
+                        addSection.classList.remove('d-none');
+                        // Fetch available rooms
+                        try {
+                            const r = await fetch(`{{ url('/booking') }}/${activeBookingId}/available-rooms`);
+                            const availableRooms = await r.json();
+                            const select = document.getElementById('bd_add_kamar_id');
+                            if (select) {
+                                select.innerHTML = '<option value="">-- Pilih Kamar --</option>' + 
+                                    availableRooms.map(k => `<option value="${k.id}">${k.nomor_kamar} - ${k.tipe} (Rp${fmt(k.harga)})</option>`).join('');
+                            }
+                        } catch(e) { console.error('Gagal memuat kamar tersedia', e); }
+                    } else {
+                        addSection.classList.add('d-none');
+                    }
+                }
+                
+                // Re-render items to show or hide Delete buttons
+                const currentData = await fetchDetail(activeRow);
+                renderItems(currentData.items, show && isAdmin);
             });
-            EL.btnCancelEdit?.addEventListener('click',()=>{ if(!EL.editForm) return; EL.editForm.style.display='none'; EL.btnToggleEdit.textContent='Edit'; });
+            EL.btnCancelEdit?.addEventListener('click', async ()=>{ 
+                if(!EL.editForm) return; 
+                EL.editForm.style.display='none'; 
+                EL.btnToggleEdit.textContent='Edit';
+                const addSection = document.getElementById('bd_add_room_section');
+                if (addSection) addSection.classList.add('d-none');
+                
+                const currentData = await fetchDetail(activeRow);
+                renderItems(currentData.items, false);
+            });
             EL.editForm?.addEventListener('submit', async function(e){
                 e.preventDefault();
                 const id = EL.editId.value;
@@ -580,6 +694,8 @@
                     // Done: close edit and refresh modal content
                     EL.editForm.style.display='none';
                     EL.btnToggleEdit.textContent='Edit';
+                    const addSection = document.getElementById('bd_add_room_section');
+                    if (addSection) addSection.classList.add('d-none');
                     if(row){
                         row.querySelector('td:nth-child(5)').textContent = new Date(fd.get('tanggal_checkin')).toLocaleString('id-ID',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
                         row.querySelector('td:nth-child(6)').textContent = new Date(fd.get('tanggal_checkout')).toLocaleString('id-ID',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
@@ -587,6 +703,57 @@
                     }
                 }catch(err){
                     alert('Gagal menyimpan');
+                }
+            });
+
+            document.getElementById('btn_bd_add_room')?.addEventListener('click', async function() {
+                const select = document.getElementById('bd_add_kamar_id');
+                const kamarId = select ? select.value : '';
+                if (!kamarId) { alert('Pilih kamar terlebih dahulu.'); return; }
+                
+                try {
+                    const fd = new FormData();
+                    fd.append('kamar_id', kamarId);
+                    
+                    const response = await fetch(`{{ url('/booking') }}/${activeBookingId}/add-room`, {
+                        method: 'POST',
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]')?.content || ''
+                        },
+                        body: fd
+                    });
+                    const res = await response.json();
+                    if (res.success) {
+                        alert(res.message || 'Kamar berhasil ditambahkan');
+                        showDetail(activeRow);
+                        
+                        // Update table row room cell as well
+                        const row = document.querySelector(`#tabel-booking tbody tr[data-booking-id='${activeBookingId}']`);
+                        if(row){
+                            const details = await fetchDetail(row);
+                            const rooms = details.items.map(it=> it.nomor_kamar).filter(Boolean).join(', ');
+                            row.querySelector('td:nth-child(4) span').textContent = rooms;
+                            row.querySelector('td:nth-child(4) div small').textContent = `${details.items.length} kamar`;
+                            row.querySelector('td:nth-child(9)').textContent = fmt(details.total_harga);
+                            row.querySelector('td:nth-child(10)').textContent = fmt(details.total_harga + (details.total_cafe || 0));
+                        }
+
+                        // Re-fetch available rooms
+                        const r = await fetch(`{{ url('/booking') }}/${activeBookingId}/available-rooms`);
+                        const availableRooms = await r.json();
+                        if (select) {
+                            select.innerHTML = '<option value="">-- Pilih Kamar --</option>' + 
+                                availableRooms.map(k => `<option value="${k.id}">${k.nomor_kamar} - ${k.tipe} (Rp${fmt(k.harga)})</option>`).join('');
+                        }
+                        // Re-render items with delete buttons
+                        const currentData = await fetchDetail(activeRow);
+                        renderItems(currentData.items, true);
+                    } else {
+                        alert(res.message || 'Gagal menambahkan kamar');
+                    }
+                } catch(e) {
+                    alert('Terjadi kesalahan');
                 }
             });
 

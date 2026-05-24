@@ -79,6 +79,12 @@
               <dt class="col-4">Tanggal Booking</dt><dd class="col-8">{{ \Carbon\Carbon::parse($order->created_at)->format('d/m/Y H:i') }}</dd>
               <dt class="col-4">Check-In</dt><dd class="col-8">{{ \Carbon\Carbon::parse($order->tanggal_checkin)->format('d/m/Y H:i') }}</dd>
               <dt class="col-4">Check-Out</dt><dd class="col-8">{{ \Carbon\Carbon::parse($order->tanggal_checkout)->format('d/m/Y H:i') }}</dd>
+              @php
+                $actualCheckin = $order->checkLogs->where('type', 'checkin')->last()?->recorded_at;
+                $actualCheckout = $order->checkLogs->where('type', 'checkout')->last()?->recorded_at;
+              @endphp
+              <dt class="col-4">Check-In Aktual</dt><dd class="col-8">{{ $actualCheckin ? \Carbon\Carbon::parse($actualCheckin)->format('d/m/Y H:i:s') : '-' }}</dd>
+              <dt class="col-4">Check-Out Aktual</dt><dd class="col-8">{{ $actualCheckout ? \Carbon\Carbon::parse($actualCheckout)->format('d/m/Y H:i:s') : '-' }}</dd>
               <dt class="col-4">Jumlah Tamu</dt><dd class="col-8">{{ $order->jumlah_tamu_total ?? '-' }}</dd>
               <dt class="col-4">Metode Bayar</dt><dd class="col-8">{{ strtoupper($order->payment_method ?? '-') }}</dd>
               <dt class="col-4">Catatan</dt><dd class="col-8">{{ $order->catatan ?? '-' }}</dd>

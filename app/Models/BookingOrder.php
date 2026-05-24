@@ -215,4 +215,48 @@ class BookingOrder extends Model
         // Jumlah pelunasan adalah grand total dikurangi DP.
         return $this->grand_total - (int)$this->dp_amount;
     }
+
+    public function checkLogs(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(BookingCheckLog::class, 'booking_order_id');
+    }
+
+    protected static function booted()
+    {
+        static::created(function ($booking) {
+            $status = (int)$booking->status;
+            if ($status === 2) {
+                BookingCheckLog::create([
+                    'booking_order_id' => $booking->id,
+                    'type' => 'checkin',
+                    'recorded_at' => now(),
+                ]);
+            } elseif ($status === 3) {
+                BookingCheckLog::create([
+                    'booking_order_id' => $booking->id,
+                    'type' => 'checkout',
+                    'recorded_at' => now(),
+                ]);
+            }
+        });
+
+        static::updated(function ($booking) {
+            if ($booking->wasChanged('status')) {
+                $status = (int)$booking->status;
+                if ($status === 2) {
+                    BookingCheckLog::create([
+                        'booking_order_id' => $booking->id,
+                        'type' => 'checkin',
+                        'recorded_at' => now(),
+                    ]);
+                } elseif ($status === 3) {
+                    BookingCheckLog::create([
+                        'booking_order_id' => $booking->id,
+                        'type' => 'checkout',
+                        'recorded_at' => now(),
+                    ]);
+                }
+            }
+        });
+    }
 }

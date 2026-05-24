@@ -6,6 +6,7 @@ use App\Models\BookingOrder;
 use App\Models\BookingOrderItem;
 use App\Models\Pelanggan;
 use App\Models\Kamar;
+use App\Models\BookingCheckLog;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -486,7 +487,7 @@ class BookingController extends Controller
      */
     public function show(Request $request, $id)
     {
-        $order = BookingOrder::with(['pelanggan','items.kamar','creator'])->findOrFail($id);
+        $order = BookingOrder::with(['pelanggan','items.kamar','creator','checkLogs'])->findOrFail($id);
         if($request->wantsJson()){
             $meta = $order->status_meta; // new unified meta
             // Use authoritative totals from order (already includes discounts/half-day/per-head)
@@ -536,6 +537,8 @@ class BookingController extends Controller
                 ],
                 'tanggal_checkin'=>$order->tanggal_checkin,
                 'tanggal_checkout'=>$order->tanggal_checkout,
+                'actual_checkin' => $order->checkLogs->where('type', 'checkin')->last()?->recorded_at?->toIso8601String(),
+                'actual_checkout' => $order->checkLogs->where('type', 'checkout')->last()?->recorded_at?->toIso8601String(),
                 'jumlah_tamu_total'=>$order->jumlah_tamu_total,
                 'status'=>$order->status,
                 'status_label'=>$meta['label'] ?? '-',
@@ -1027,7 +1030,7 @@ class BookingController extends Controller
     // Page-based detail view (replaces modal)
     public function detailPage($id)
     {
-        $order = BookingOrder::with(['pelanggan','items.kamar','cafeOrders.items.product'])->findOrFail($id);
+        $order = BookingOrder::with(['pelanggan','items.kamar','cafeOrders.items.product','checkLogs'])->findOrFail($id);
         // Other orders by same customer for quick history
         $other = collect();
         if($order->pelanggan_id){
@@ -1173,6 +1176,9 @@ class BookingController extends Controller
      */
     public function moveRoom(Request $request, $orderId)
     {
+        if (!auth()->user()->isAdmin()) {
+            return back()->with('error', 'Akses ditolak. Fitur ini hanya untuk Admin.');
+        }
         $data = $request->validate([
             'item_id' => 'required|exists:booking_order_items,id',
             'new_kamar_id' => 'required|exists:kamar,id',
@@ -1285,6 +1291,9 @@ class BookingController extends Controller
      */
     public function upgradeRoom(Request $request, $orderId)
     {
+        if (!auth()->user()->isAdmin()) {
+            return back()->with('error', 'Akses ditolak. Fitur ini hanya untuk Admin.');
+        }
         $data = $request->validate([
             'item_id' => 'required|exists:booking_order_items,id',
             'new_kamar_id' => 'required|exists:kamar,id',
@@ -1366,5 +1375,205 @@ class BookingController extends Controller
             return response()->json(['success'=>true,'order_id'=>$order->id,'new_total'=>$order->total_harga]);
         }
         return back()->with('success','Kamar berhasil di-upgrade dan total diperbarui');
+    }
+
+    private function recalculateTotal(BookingOrder $order)
+    {
+        $start = Carbon::parse($order->tanggal_checkin);
+        $end = Carbon::parse($order->tanggal_checkout);
+        
+        $totalMinutes = $start->diffInMinutes($end);
+        if ($totalMinutes <= 0) {
+            $durasi = 0.5;
+        } else {
+            $fullDays = intdiv($totalMinutes, 1440);
+            $remaining = $totalMinutes % 1440;
+            if ($fullDays === 0) {
+                $durasi = 0.5;
+            } else {
+                $durasi = $fullDays + ($remaining >= 360 ? 0.5 : 0);
+            }
+        }
+        $days = max(ceil($durasi), 1);
+        $halfDay = $start->isSameDay($end) && ($end->diffInMinutes($start) <= 360);
+
+        $base = 0;
+        foreach ($order->items as $it) {
+            $it->malam = $days;
+            $it->subtotal = $days * (int)$it->harga_per_malam;
+            if ($halfDay) {
+                $it->subtotal = (int) round($it->subtotal * 0.5);
+            }
+            $it->save();
+            $base += (int)$it->subtotal;
+        }
+
+        $perHead = (bool)$order->per_head_mode;
+        $jumlahTamu = (int)$order->jumlah_tamu_total;
+        if ($perHead && $jumlahTamu > 2) {
+            $base += 50000 * ($jumlahTamu - 2);
+        }
+        $base = max($base, 100000);
+        $after = $base;
+        if ($order->discount_review) {
+            $after = (int) round($after * 0.9);
+        }
+        if ($order->discount_follow) {
+            $after = (int) round($after * 0.9);
+        }
+        $diskonNom = max(0, $base - $after);
+
+        $order->total_harga = $after;
+        $order->diskon = $diskonNom;
+        $order->save();
+    }
+
+    public function addRoom(Request $request, $id)
+    {
+        if (!auth()->user()->isAdmin()) {
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'Akses ditolak. Fitur ini hanya untuk Admin.'], 403);
+            }
+            return back()->with('error', 'Akses ditolak. Fitur ini hanya untuk Admin.');
+        }
+
+        $request->validate([
+            'kamar_id' => 'required|exists:kamar,id',
+        ]);
+
+        $order = BookingOrder::with('items')->findOrFail($id);
+        $kamarId = (int)$request->input('kamar_id');
+
+        if ($order->items->contains('kamar_id', $kamarId)) {
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'Kamar sudah ada di booking ini.'], 422);
+            }
+            return back()->with('error', 'Kamar sudah ada di booking ini.');
+        }
+
+        $start = Carbon::parse($order->tanggal_checkin);
+        $end = Carbon::parse($order->tanggal_checkout);
+        $conflict = BookingOrderItem::where('kamar_id', $kamarId)
+            ->whereHas('order', function($q) use ($order, $start, $end){
+                $q->whereIn('status', [1,2])
+                  ->where('id', '!=', $order->id)
+                  ->where(function($qq) use ($start, $end){
+                      $qq->where('tanggal_checkin', '<', $end)
+                         ->where('tanggal_checkout', '>', $start);
+                  });
+            })
+            ->exists();
+
+        if ($conflict) {
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'Kamar tersebut sedang terpakai pada rentang tanggal booking ini.'], 422);
+            }
+            return back()->with('error', 'Kamar tersebut sedang terpakai pada rentang tanggal booking ini.');
+        }
+
+        $kamar = Kamar::findOrFail($kamarId);
+        
+        $totalMinutes = $start->diffInMinutes($end);
+        if ($totalMinutes <= 0) {
+            $durasi = 0.5;
+        } else {
+            $fullDays = intdiv($totalMinutes, 1440);
+            $remaining = $totalMinutes % 1440;
+            if ($fullDays === 0) {
+                $durasi = 0.5;
+            } else {
+                $durasi = $fullDays + ($remaining >= 360 ? 0.5 : 0);
+            }
+        }
+        $days = max(ceil($durasi), 1);
+        $halfDay = $start->isSameDay($end) && ($end->diffInMinutes($start) <= 360);
+        $subtotal = $days * (int)$kamar->harga;
+        if ($halfDay) {
+            $subtotal = (int) round($subtotal * 0.5);
+        }
+
+        BookingOrderItem::create([
+            'booking_order_id' => $order->id,
+            'kamar_id' => $kamar->id,
+            'malam' => $days,
+            'harga_per_malam' => (int)$kamar->harga,
+            'subtotal' => $subtotal,
+        ]);
+
+        $order->load('items');
+        $this->recalculateTotal($order);
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Kamar ' . $kamar->nomor_kamar . ' berhasil ditambahkan ke booking.']);
+        }
+        return back()->with('success', 'Kamar ' . $kamar->nomor_kamar . ' berhasil ditambahkan ke booking.');
+    }
+
+    public function removeRoom(Request $request, $id, $itemId)
+    {
+        if (!auth()->user()->isAdmin()) {
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'Akses ditolak. Fitur ini hanya untuk Admin.'], 403);
+            }
+            return back()->with('error', 'Akses ditolak. Fitur ini hanya untuk Admin.');
+        }
+
+        $order = BookingOrder::with('items')->findOrFail($id);
+        
+        if ($order->items->count() <= 1) {
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'Booking harus memiliki minimal 1 kamar. Gunakan hapus booking untuk membatalkan seluruh pesanan.'], 422);
+            }
+            return back()->with('error', 'Booking harus memiliki minimal 1 kamar. Gunakan hapus booking untuk membatalkan seluruh pesanan.');
+        }
+
+        $item = $order->items->firstWhere('id', (int)$itemId);
+        if (!$item) {
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'Item kamar tidak ditemukan.'], 404);
+            }
+            return back()->with('error', 'Item kamar tidak ditemukan.');
+        }
+
+        $kamarNomor = $item->kamar?->nomor_kamar;
+        $item->delete();
+
+        $order->load('items');
+        $this->recalculateTotal($order);
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Kamar ' . ($kamarNomor ?? '') . ' berhasil dihapus dari booking.']);
+        }
+        return back()->with('success', 'Kamar ' . ($kamarNomor ?? '') . ' berhasil dihapus dari booking.');
+    }
+
+    public function getAvailableRooms(Request $request, $id)
+    {
+        $order = BookingOrder::findOrFail($id);
+        $start = Carbon::parse($order->tanggal_checkin);
+        $end = Carbon::parse($order->tanggal_checkout);
+        
+        $conflictingItems = BookingOrderItem::whereHas('order', function($q) use ($order,$start,$end){
+                $q->whereIn('status',[1,2])
+                  ->where('id','!=',$order->id)
+                  ->where(function($qq) use ($start,$end){
+                      $qq->where('tanggal_checkin','<',$end)
+                         ->where('tanggal_checkout','>',$start);
+                  });
+            })
+            ->pluck('kamar_id')
+            ->all();
+        $occupied = array_fill_keys($conflictingItems, true);
+        $availableKamar = Kamar::orderBy('tipe')->orderBy('nomor_kamar')->get()
+            ->filter(fn($k) => !isset($occupied[$k->id]))
+            ->values()
+            ->map(fn($k) => [
+                'id' => $k->id,
+                'nomor_kamar' => $k->nomor_kamar,
+                'tipe' => $k->tipe,
+                'harga' => $k->harga,
+            ]);
+            
+        return response()->json($availableKamar);
     }
 }

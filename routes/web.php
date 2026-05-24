@@ -29,6 +29,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/booking/{id}/cashback', [BookingController::class, 'addCashback'])->name('booking.cashback');
     Route::post('/booking/{id}/move-room', [BookingController::class, 'moveRoom'])->name('booking.move_room');
     Route::post('/booking/{id}/upgrade-room', [BookingController::class, 'upgradeRoom'])->name('booking.upgrade_room');
+    Route::post('/booking/{id}/add-room', [BookingController::class, 'addRoom'])->name('booking.add_room');
+    Route::delete('/booking/{id}/remove-room/{itemId}', [BookingController::class, 'removeRoom'])->name('booking.remove_room');
+    Route::get('/booking/{id}/available-rooms', [BookingController::class, 'getAvailableRooms'])->name('booking.available_rooms');
     Route::post('/booking/extra-bed-calc', [BookingController::class, 'calculateExtraBed'])->name('booking.extra_bed_calc');
     Route::get('/booking/{id}/nota', [BookingController::class, 'printNota'])->name('booking.nota');
     Route::get('/booking/{id}/printout', [BookingController::class, 'printout'])->name('booking.printout');
@@ -47,6 +50,8 @@ Route::middleware('auth')->group(function () {
         Route::delete('/rekap/{ledgerId}', [RekapController::class, 'destroy'])->name('rekap.destroy');
         // Users management (owner only)
         Route::resource('users', UsersController::class)->except(['show']);
+        Route::post('/cafe/products/{id}/update', [CafeController::class, 'updateProduct'])->name('cafe.product.update');
+        Route::delete('/cafe/products/{id}', [CafeController::class, 'destroyProduct'])->name('cafe.product.destroy');
     });
     // Ganti route list orders ke /cafeorders agar sesuai dengan view yang tersedia
     Route::get('/cafeorders', [CafeController::class,'ordersList'])->name('cafe.orders');

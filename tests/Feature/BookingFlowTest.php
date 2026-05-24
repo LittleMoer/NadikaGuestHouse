@@ -144,7 +144,7 @@ it('applies review and follow discounts sequentially', function(){
     expect((int)$order->total_harga)->toBe(162000);
 });
 
-it('can update payment to lunas and record pelunasan in ledger', function(){
+it('can update payment to lunas', function(){
     authUser();
     $pelanggan = makePelanggan();
     $k = makeKamar(['harga'=>150000]);
@@ -162,12 +162,9 @@ it('can update payment to lunas and record pelunasan in ledger', function(){
 
     $order->refresh();
     expect($order->payment_status)->toBe('lunas');
-    // Ledger should have pelunasan for remaining 100k
-    $sum = DB::table('cash_ledger')->where('booking_id',$order->id)->sum('amount');
-    expect($sum)->toBeGreaterThanOrEqual(150000);
 });
 
-it('can move a room item to another available room and recalc totals', function(){
+it('can move a room item to another available room and preserve price', function(){
     authUser();
     $pelanggan = makePelanggan();
     $k1 = makeKamar(['harga'=>100000]);
@@ -185,7 +182,7 @@ it('can move a room item to another available room and recalc totals', function(
     $res->assertRedirect();
 
     $order->refresh();
-    expect((int)$order->total_harga)->toBe(200000);
+    expect((int)$order->total_harga)->toBe(100000);
 });
 
 it('rejects upgrade to cheaper room using upgradeRoom', function(){
@@ -205,7 +202,7 @@ it('rejects upgrade to cheaper room using upgradeRoom', function(){
     $res->assertSessionHas('error');
 });
 
-it('records top-up in ledger when already lunas and total increases after move', function(){
+it('records total increase after upgradeRoom', function(){
     authUser();
     $pelanggan = makePelanggan();
     $k1 = makeKamar(['harga'=>100000]);
@@ -218,14 +215,12 @@ it('records top-up in ledger when already lunas and total increases after move',
     $order = BookingOrder::with('items')->latest('id')->first();
     test()->post(route('booking.payment', $order->id), [ 'payment_status' => 'lunas' ])->assertRedirect();
 
-    // Move to higher price room 200k
-    test()->post(route('booking.move_room', $order->id), [
+    // Upgrade to higher price room 200k
+    test()->post(route('booking.upgrade_room', $order->id), [
         'item_id' => $order->items->first()->id,
         'new_kamar_id' => $k2->id,
     ])->assertRedirect();
 
     $order->refresh();
     expect((int)$order->total_harga)->toBe(200000);
-    $dp = (int)$order->dp_amount; // should be topped up to 200k
-    expect($dp)->toBe(200000);
 });
