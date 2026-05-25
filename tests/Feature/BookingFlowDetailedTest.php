@@ -11,7 +11,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(RefreshDatabase::class);
 
 function authDetailedUser() {
-    $user = User::factory()->create();
+    $user = User::factory()->create(['role' => 'owner']);
     test()->actingAs($user);
     return $user;
 }
@@ -207,7 +207,7 @@ it('allows upgrade to same-price room', function(){
     expect((int)$order->total_harga)->toBe(180000);
 });
 
-it('restricts moving and upgrading rooms to admin and denies owner', function() {
+it('restricts moving and upgrading rooms to owner and denies admin', function() {
     $owner = User::factory()->create(['role' => 'owner']);
     $admin = User::factory()->create(['role' => 'admin']);
     
@@ -215,25 +215,25 @@ it('restricts moving and upgrading rooms to admin and denies owner', function() 
     $k1 = makeDetKamar(['harga'=>100000]);
     $k2 = makeDetKamar(['harga'=>200000]);
 
-    // Create booking as admin
-    test()->actingAs($admin);
+    // Create booking as owner
+    test()->actingAs($owner);
     test()->post(route('booking.store'), detPayload($pelanggan->id, [$k1->id]))->assertRedirect();
     $order = BookingOrder::with('items')->latest('id')->first();
     $item = $order->items->first();
 
-    // Act as owner -> should redirect with error
-    test()->actingAs($owner);
+    // Act as admin -> should redirect with error
+    test()->actingAs($admin);
     $res = test()->post(route('booking.move_room', $order->id), [
         'item_id' => $item->id,
         'new_kamar_id' => $k2->id,
     ]);
     $res->assertRedirect();
-    $res->assertSessionHas('error', 'Akses ditolak. Fitur ini hanya untuk Admin.');
+    $res->assertSessionHas('error', 'Akses ditolak. Fitur ini hanya untuk Owner.');
 });
 
 it('creates check-in and check-out logs when booking status transitions', function() {
-    $admin = User::factory()->create(['role' => 'admin']);
-    test()->actingAs($admin);
+    $owner = User::factory()->create(['role' => 'owner']);
+    test()->actingAs($owner);
     
     $pelanggan = makeDetPelanggan();
     $k = makeDetKamar(['harga'=>100000]);
@@ -265,8 +265,8 @@ it('creates check-in and check-out logs when booking status transitions', functi
 });
 
 it('can add and remove rooms on an existing booking and recalculate totals', function() {
-    $admin = User::factory()->create(['role' => 'admin']);
-    test()->actingAs($admin);
+    $owner = User::factory()->create(['role' => 'owner']);
+    test()->actingAs($owner);
     
     $pelanggan = makeDetPelanggan();
     $k1 = makeDetKamar(['harga'=>100000]);

@@ -449,7 +449,7 @@
                 <th>Harga/Malam</th>
                 <th>Malam</th>
                 <th>Subtotal</th>
-                @if(auth()->user()->isAdmin())
+                @if(auth()->user()->isOwner())
                   <th>Pindah Kamar</th>
                   <th>Upgrade Kamar</th>
                   <th>Hapus</th>
@@ -463,7 +463,7 @@
                   <td>Rp{{ number_format($it->harga_per_malam) }}</td>
                   <td>{{ $it->malam }}</td>
                   <td>Rp{{ number_format($it->subtotal) }}</td>
-                  @if(auth()->user()->isAdmin())
+                  @if(auth()->user()->isOwner())
                     <td>
                       <form method="POST" action="{{ route('booking.move_room', $order->id) }}" class="d-flex gap-2 align-items-center">
                         @csrf
@@ -502,7 +502,7 @@
           </table>
         </div>
         
-        @if(auth()->user()->isAdmin())
+        @if(auth()->user()->isOwner())
           <hr>
           <form method="POST" action="{{ route('booking.add_room', $order->id) }}" class="row g-3 align-items-center">
             @csrf

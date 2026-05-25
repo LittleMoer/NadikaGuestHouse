@@ -12,7 +12,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(RefreshDatabase::class);
 
 function authUser() {
-    $user = User::factory()->create();
+    $user = User::factory()->create(['role' => 'owner']);
     test()->actingAs($user);
     return $user;
 }

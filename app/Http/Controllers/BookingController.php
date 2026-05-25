@@ -1176,8 +1176,8 @@ class BookingController extends Controller
      */
     public function moveRoom(Request $request, $orderId)
     {
-        if (!auth()->user()->isAdmin()) {
-            return back()->with('error', 'Akses ditolak. Fitur ini hanya untuk Admin.');
+        if (!auth()->user()->isOwner()) {
+            return back()->with('error', 'Akses ditolak. Fitur ini hanya untuk Owner.');
         }
         $data = $request->validate([
             'item_id' => 'required|exists:booking_order_items,id',
@@ -1291,8 +1291,8 @@ class BookingController extends Controller
      */
     public function upgradeRoom(Request $request, $orderId)
     {
-        if (!auth()->user()->isAdmin()) {
-            return back()->with('error', 'Akses ditolak. Fitur ini hanya untuk Admin.');
+        if (!auth()->user()->isOwner()) {
+            return back()->with('error', 'Akses ditolak. Fitur ini hanya untuk Owner.');
         }
         $data = $request->validate([
             'item_id' => 'required|exists:booking_order_items,id',
@@ -1430,11 +1430,11 @@ class BookingController extends Controller
 
     public function addRoom(Request $request, $id)
     {
-        if (!auth()->user()->isAdmin()) {
+        if (!auth()->user()->isOwner()) {
             if ($request->wantsJson() || $request->ajax()) {
-                return response()->json(['success' => false, 'message' => 'Akses ditolak. Fitur ini hanya untuk Admin.'], 403);
+                return response()->json(['success' => false, 'message' => 'Akses ditolak. Fitur ini hanya untuk Owner.'], 403);
             }
-            return back()->with('error', 'Akses ditolak. Fitur ini hanya untuk Admin.');
+            return back()->with('error', 'Akses ditolak. Fitur ini hanya untuk Owner.');
         }
 
         $request->validate([
@@ -1511,11 +1511,11 @@ class BookingController extends Controller
 
     public function removeRoom(Request $request, $id, $itemId)
     {
-        if (!auth()->user()->isAdmin()) {
+        if (!auth()->user()->isOwner()) {
             if ($request->wantsJson() || $request->ajax()) {
-                return response()->json(['success' => false, 'message' => 'Akses ditolak. Fitur ini hanya untuk Admin.'], 403);
+                return response()->json(['success' => false, 'message' => 'Akses ditolak. Fitur ini hanya untuk Owner.'], 403);
             }
-            return back()->with('error', 'Akses ditolak. Fitur ini hanya untuk Admin.');
+            return back()->with('error', 'Akses ditolak. Fitur ini hanya untuk Owner.');
         }
 
         $order = BookingOrder::with('items')->findOrFail($id);

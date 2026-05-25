@@ -166,7 +166,7 @@
                                     <tbody id="bd_items_body"><tr><td colspan="5" class="text-center">-</td></tr></tbody>
                                 </table>
                             </div>
-                            @if(auth()->user()->isAdmin())
+                            @if(auth()->user()->isOwner())
                             <div id="bd_add_room_section" class="mt-2 d-none" style="border: 1px solid #eee; padding: 10px; border-radius: 4px;">
                                 <div class="row g-2 align-items-center">
                                     <div class="col-auto">
@@ -329,7 +329,7 @@
 
             let activeBookingId = null;
             let activeRow = null;
-            const isAdmin = {{ auth()->check() && auth()->user()->isAdmin() ? 'true' : 'false' }};
+            const isOwner = {{ auth()->check() && auth()->user()->isOwner() ? 'true' : 'false' }};
 
             // ================== RENDERERS ==================
             function renderItems(items, canDelete = false){
@@ -628,7 +628,7 @@
                 // Toggle Tambah Kamar section
                 const addSection = document.getElementById('bd_add_room_section');
                 if (addSection) {
-                    if (show && isAdmin) {
+                    if (show && isOwner) {
                         addSection.classList.remove('d-none');
                         // Fetch available rooms
                         try {
@@ -647,7 +647,7 @@
                 
                 // Re-render items to show or hide Delete buttons
                 const currentData = await fetchDetail(activeRow);
-                renderItems(currentData.items, show && isAdmin);
+                renderItems(currentData.items, show && isOwner);
             });
             EL.btnCancelEdit?.addEventListener('click', async ()=>{ 
                 if(!EL.editForm) return; 
