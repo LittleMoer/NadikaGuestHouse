@@ -86,7 +86,7 @@ class DashboardController extends Controller
             }
             foreach($order->items as $it){
                 $code = (string)($order->order_code ?? '');
-                $short = strlen($code) >= 3 ? substr($code, -3) : $code;
+                $short = strlen($code) >= 5 ? substr($code, -5) : $code;
                 $items[] = [
                     'kamar_id' => $it->kamar_id,
                     'status' => $order->status, // 1..4
