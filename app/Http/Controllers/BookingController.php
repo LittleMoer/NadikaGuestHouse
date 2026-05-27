@@ -830,8 +830,8 @@ class BookingController extends Controller
             $order->items()->delete();
             $order->delete();
 
-            // Logika untuk mengurutkan ulang booking_number
-            if ($bookingNumberToDelete && strlen($bookingNumberToDelete) >= 7) {
+            // Logika untuk mengurutkan ulang booking_number hanya jika diakses oleh role admin
+            if (auth()->check() && auth()->user()->isAdmin() && $bookingNumberToDelete && strlen($bookingNumberToDelete) >= 7) {
                 $prefix = substr($bookingNumberToDelete, 0, 4); // e.g., '2405'
                 $deletedCounter = (int)substr($bookingNumberToDelete, 4);
 

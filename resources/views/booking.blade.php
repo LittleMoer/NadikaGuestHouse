@@ -82,14 +82,14 @@
                 @forelse($orders as $order)
                     @php $meta = $order->status_meta; $channelLabelMap=['walkin'=>'Walk-In','agent1'=>'Agent 1','agent2'=>'Agent 2','traveloka'=>'Traveloka','cancel'=>'-']; $channelLabel=$channelLabelMap[$meta['channel']] ?? ucfirst($meta['channel']); @endphp
                     <tr data-booking-id="{{ $order->id }}" data-show-url="{{ route('booking.show',$order->id) }}" style="background-color:#f5f5f5;">
-                        <td class="booking-id" style="width:70px;max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">#{{ $order->order_code }}</td>
+                        <td class="booking-id" style="width:90px;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size: 1rem;">#{{ $order->order_code }}</td>
                         <td>
                             <span class="badge" style="background:{{ $meta['background'] }};color:{{ $meta['text_color'] }};min-width:90px;display:inline-block;">{{ $meta['label'] }}</span>
                         </td>
                         <td>{{ $order->pelanggan?->nama ?? '-' }}</td>
-                        <td style="min-width:100px;">
+                        <td style="min-width:80px;">
                             @php $rooms=$order->items->map(fn($it)=> $it->kamar?->nomor_kamar)->filter()->values(); @endphp
-                            <span style="font-size:.75rem;">{{ $rooms->join(', ') }}</span>
+                            <span style="">{{ $rooms->join(', ') }}</span>
                             <div><small class="text-muted">{{ $rooms->count() }} kamar</small></div>
                         </td>
                         <td>{{ \Carbon\Carbon::parse($order->tanggal_checkin)->format('d/m/Y H:i') }}</td>
