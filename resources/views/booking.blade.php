@@ -191,12 +191,11 @@
                             <div class="row g-2">
                                 <div class="col-md-6">
                                     <label class="form-label" style="font-size:.7rem;font-weight:600;">Pelanggan</label>
-                                    <select name="pelanggan_id" id="edit_pelanggan_id" class="form-select form-select-sm">
-                                        <option value="">-- Pilih --</option>
-                                        @foreach($pelangganList as $p)
-                                            <option value="{{ $p->id }}">{{ $p->nama }}</option>
-                                        @endforeach
-                                    </select>
+                                    <div class="position-relative">
+                                        <input type="text" id="edit_pelanggan_search" class="form-control form-control-sm" placeholder="Ketik potongan nama pelanggan..." autocomplete="off" required>
+                                        <input type="hidden" name="pelanggan_id" id="edit_pelanggan_id" value="">
+                                        <div id="edit_pelanggan_suggestions" class="autocomplete-suggestions d-none"></div>
+                                    </div>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label" style="font-size:.7rem;font-weight:600;">Check-In</label>
@@ -264,6 +263,39 @@
                 </div>
             </div>
         </div>
+
+        <!-- Autocomplete CSS Custom Styling -->
+        <style>
+            .autocomplete-suggestions {
+                border: 1px solid #000;
+                background: #fff;
+                overflow: auto;
+                z-index: 1060 !important; /* Higher than bootstrap modal (1055) */
+                position: absolute;
+                width: 100%;
+                max-height: 200px;
+                border-radius: 4px;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            }
+            .autocomplete-suggestion {
+                padding: 10px 15px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                cursor: pointer;
+                color: #000;
+            }
+            .autocomplete-suggestion:hover,
+            .autocomplete-suggestion.active {
+                background: #f0f0f0;
+                font-weight: bold;
+            }
+            .autocomplete-no-suggestion {
+                padding: 10px 15px;
+                color: #888;
+                font-style: italic;
+            }
+        </style>
 
         <!-- Unified Scripts (Refactored) -->
         <script>
@@ -457,7 +489,13 @@
                     // pemesanan legacy kept: guess 0 for walkin
                     if(EL.editPemesanan){ EL.editPemesanan.value = (data.status_meta?.channel==='walkin'? 0:1); }
                     EL.editCatatan.value=data.catatan||'';
-                    if(EL.editPelanggan && data.pelanggan?.id){ EL.editPelanggan.value=data.pelanggan.id; }
+                    if(EL.editPelanggan){
+                        EL.editPelanggan.value = data.pelanggan?.id || '';
+                        const searchInput = document.getElementById('edit_pelanggan_search');
+                        if (searchInput) {
+                            searchInput.value = data.pelanggan?.nama || '';
+                        }
+                    }
                     if(EL.editJumlahTamu){ EL.editJumlahTamu.value=data.jumlah_tamu_total || ''; }
                     if(document.getElementById('edit_status')){ document.getElementById('edit_status').value=data.status; }
                     if(document.getElementById('edit_dp_percentage')){ document.getElementById('edit_dp_percentage').value=data.dp_percentage ?? ''; }
@@ -782,6 +820,120 @@
             // Initial payment visuals
             qsa('#tabel-booking tbody tr').forEach(updatePaymentVisual);
 
+            // Custom Autocomplete for Pelanggan Search (Potongan Nama Only) in Modal Edit
+            (function() {
+                const pelangganList = @json($pelangganList);
+                const searchInput = document.getElementById('edit_pelanggan_search');
+                const idInput = document.getElementById('edit_pelanggan_id');
+                const suggestionsContainer = document.getElementById('edit_pelanggan_suggestions');
+
+                if (!searchInput || !idInput || !suggestionsContainer) return;
+
+                let activeIndex = -1;
+                let currentSuggestions = [];
+
+                function renderSuggestions(list) {
+                    currentSuggestions = list;
+                    suggestionsContainer.innerHTML = '';
+                    activeIndex = -1;
+
+                    if (list.length === 0) {
+                        const noSug = document.createElement('div');
+                        noSug.className = 'autocomplete-no-suggestion';
+                        noSug.textContent = 'Tidak ada pelanggan ditemukan';
+                        suggestionsContainer.appendChild(noSug);
+                    } else {
+                        list.forEach((p, idx) => {
+                            const sug = document.createElement('div');
+                            sug.className = 'autocomplete-suggestion';
+                            sug.textContent = p.nama;
+                            sug.dataset.id = p.id;
+                            sug.dataset.index = idx;
+
+                            sug.addEventListener('click', function() {
+                                selectPelanggan(p);
+                            });
+
+                            suggestionsContainer.appendChild(sug);
+                        });
+                    }
+                    suggestionsContainer.classList.remove('d-none');
+                }
+
+                function selectPelanggan(p) {
+                    searchInput.value = p.nama;
+                    idInput.value = p.id;
+                    suggestionsContainer.classList.add('d-none');
+                    suggestionsContainer.innerHTML = '';
+                    currentSuggestions = [];
+                    activeIndex = -1;
+                }
+
+                searchInput.addEventListener('input', function() {
+                    const val = this.value.trim().toLowerCase();
+                    if (!val) {
+                        idInput.value = '';
+                        suggestionsContainer.classList.add('d-none');
+                        suggestionsContainer.innerHTML = '';
+                        currentSuggestions = [];
+                        activeIndex = -1;
+                        return;
+                    }
+
+                    // Filter ONLY by name (nama)
+                    const filtered = pelangganList.filter(p => (p.nama || '').toLowerCase().includes(val));
+                    renderSuggestions(filtered);
+                });
+
+                searchInput.addEventListener('keydown', function(e) {
+                    const items = suggestionsContainer.querySelectorAll('.autocomplete-suggestion');
+                    if (suggestionsContainer.classList.contains('d-none') || !items.length) return;
+
+                    if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        activeIndex = (activeIndex + 1) % items.length;
+                        highlightSuggestion(items);
+                    } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        activeIndex = (activeIndex - 1 + items.length) % items.length;
+                        highlightSuggestion(items);
+                    } else if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (activeIndex >= 0 && activeIndex < currentSuggestions.length) {
+                            selectPelanggan(currentSuggestions[activeIndex]);
+                        }
+                    } else if (e.key === 'Escape') {
+                        suggestionsContainer.classList.add('d-none');
+                        suggestionsContainer.innerHTML = '';
+                        currentSuggestions = [];
+                        activeIndex = -1;
+                    }
+                });
+
+                function highlightSuggestion(items) {
+                    items.forEach((item, idx) => {
+                        if (idx === activeIndex) {
+                            item.classList.add('active');
+                            item.scrollIntoView({ block: 'nearest' });
+                        } else {
+                            item.classList.remove('active');
+                        }
+                    });
+                }
+
+                searchInput.addEventListener('blur', function() {
+                    // Delay hide to allow click events to register
+                    setTimeout(() => {
+                        suggestionsContainer.classList.add('d-none');
+                    }, 200);
+                });
+
+                searchInput.addEventListener('focus', function() {
+                    if (this.value.trim() && currentSuggestions.length) {
+                        suggestionsContainer.classList.remove('d-none');
+                    }
+                });
+            })();
         });
         </script>
     </div>

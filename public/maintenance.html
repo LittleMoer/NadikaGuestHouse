@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem dalam Perbaikan - Guest House</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            overflow: hidden;
+        }
+        .bg-gradient {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        }
+        .glass-effect {
+            backdrop-filter: blur(16px) saturate(180%);
+            -webkit-backdrop-filter: blur(16px) saturate(180%);
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .cog-slow {
+            animation: spin 12s linear infinite;
+        }
+        .cog-fast {
+            animation: spin-reverse 8s linear infinite;
+        }
+        
+        @keyframes spin-reverse {
+            from { transform: rotate(360deg); }
+            to { transform: rotate(0deg); }
+        }
+
+        .floating {
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+            100% { transform: translateY(0px); }
+        }
+
+        .pulse-glow {
+            animation: pulse-glow 3s infinite;
+        }
+
+        @keyframes pulse-glow {
+            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5); }
+            70% { box-shadow: 0 0 0 20px rgba(59, 130, 246, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+        }
+    </style>
+</head>
+<body class="bg-gradient min-h-screen flex items-center justify-center p-4 relative text-white">
+    
+    <!-- Background Animated Particles / Shapes -->
+    <div class="absolute inset-0 overflow-hidden pointer-events-none">
+        <div class="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] rounded-full bg-blue-600 opacity-20 blur-[100px] floating" style="animation-delay: 0s;"></div>
+        <div class="absolute top-[60%] -right-[10%] w-[40%] h-[40%] rounded-full bg-purple-600 opacity-20 blur-[100px] floating" style="animation-delay: 2s;"></div>
+    </div>
+
+    <!-- Maintenance Container -->
+    <div class="glass-effect rounded-3xl shadow-2xl w-full max-w-lg p-10 relative z-10 text-center transform transition-all hover:scale-[1.02] duration-300">
+        
+        <!-- Animated Icons -->
+        <div class="relative flex justify-center items-center h-32 mb-6">
+            <div class="absolute text-blue-400 opacity-80 cog-slow" style="font-size: 5rem; top: 10px; left: 50%; margin-left: -55px;">
+                <i class="fas fa-cog"></i>
+            </div>
+            <div class="absolute text-purple-400 opacity-90 cog-fast" style="font-size: 3.5rem; top: 40px; left: 50%; margin-left: 20px;">
+                <i class="fas fa-cog"></i>
+            </div>
+        </div>
+
+        <div class="inline-flex items-center justify-center px-4 py-1.5 rounded-full bg-white bg-opacity-10 text-blue-300 text-sm font-semibold mb-6 uppercase tracking-wider pulse-glow">
+            <i class="fas fa-tools mr-2"></i> Maintenance Mode
+        </div>
+
+        <h1 class="text-4xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
+            Kami Sedang Kembali!
+        </h1>
+        
+        <p class="text-gray-300 text-lg mb-8 leading-relaxed">
+            Sistem Guest House saat ini sedang dalam proses pemeliharaan untuk meningkatkan performa dan layanan. Silakan kembali dalam beberapa saat lagi.
+        </p>
+
+        <div class="grid grid-cols-2 gap-4 mb-8">
+            <div class="bg-white bg-opacity-5 rounded-xl p-4 border border-white border-opacity-10 hover:bg-opacity-10 transition-colors">
+                <i class="fas fa-server text-blue-400 text-2xl mb-2"></i>
+                <h3 class="font-semibold text-sm">Update Sistem</h3>
+            </div>
+            <div class="bg-white bg-opacity-5 rounded-xl p-4 border border-white border-opacity-10 hover:bg-opacity-10 transition-colors">
+                <i class="fas fa-shield-alt text-purple-400 text-2xl mb-2"></i>
+                <h3 class="font-semibold text-sm">Keamanan Ekstra</h3>
+            </div>
+        </div>
+
+        <!-- Progress Bar Mockup -->
+        <div class="w-full bg-gray-700 rounded-full h-1.5 mb-2 overflow-hidden">
+            <div class="bg-gradient-to-r from-blue-500 to-purple-500 h-1.5 rounded-full w-3/4 relative">
+                <div class="absolute inset-0 bg-white opacity-20" style="animation: shimmer 2s infinite;"></div>
+            </div>
+        </div>
+        <p class="text-xs text-gray-400 text-right">Estimasi selesai: Segera</p>
+
+        <!-- Admin Login Link -->
+        <div class="mt-8 pt-6 border-t border-white border-opacity-10">
+            <a href="/login" class="text-sm text-gray-400 hover:text-white transition-colors duration-200">
+                <i class="fas fa-lock mr-1"></i> Login Administrator
+            </a>
+        </div>
+    </div>
+
+    <style>
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+    </style>
+</body>
+</html>
