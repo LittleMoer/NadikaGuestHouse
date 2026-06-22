@@ -483,6 +483,131 @@ class BookingController extends Controller
     }
 
     /**
+     * Update status of a specific room item in a booking (checkin, checkout)
+     */
+    public function updateItemStatus(Request $request, $id, $itemId)
+    {
+        $booking = BookingOrder::with('items.kamar')->findOrFail($id);
+        $item = BookingOrderItem::where('booking_order_id', $id)->findOrFail($itemId);
+        
+        $action = $request->get('action');
+        $allowed = ['checkin', 'checkout'];
+        if (!in_array($action, $allowed)) {
+            if ($request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'Aksi tidak dikenal'], 422);
+            }
+            return redirect()->back()->with('error', 'Aksi tidak dikenal');
+        }
+
+        switch ($action) {
+            case 'checkin':
+                if ($item->status != 1) {
+                    if ($request->wantsJson()) {
+                        return response()->json(['success' => false, 'message' => 'Kamar tidak dapat check-in'], 422);
+                    }
+                    return redirect()->back()->with('error', 'Kamar tidak dapat check-in');
+                }
+                if ($booking->payment_status !== 'lunas') {
+                    if ($request->wantsJson()) {
+                        return response()->json(['success' => false, 'message' => 'Check-in hanya diizinkan jika pembayaran sudah Lunas'], 422);
+                    }
+                    return redirect()->back()->with('error', 'Check-in hanya diizinkan jika pembayaran sudah Lunas');
+                }
+                
+                $item->status = 2;
+                $item->tanggal_checkin_actual = now();
+                $item->save();
+
+                // Log the checkin
+                BookingCheckLog::create([
+                    'booking_order_id' => $booking->id,
+                    'booking_order_item_id' => $item->id,
+                    'type' => 'checkin',
+                    'recorded_at' => now(),
+                ]);
+
+                // Update parent booking status to Check-in (2) if it is currently dipesan (1)
+                if ($booking->status == 1) {
+                    $booking->status = 2;
+                    $booking->save();
+                    
+                    // Also create a parent level checkin log
+                    BookingCheckLog::create([
+                        'booking_order_id' => $booking->id,
+                        'type' => 'checkin',
+                        'recorded_at' => now(),
+                    ]);
+                }
+                break;
+
+            case 'checkout':
+                if ($item->status == 3 || $item->status == 4) {
+                    if ($request->wantsJson()) {
+                        return response()->json(['success' => false, 'message' => 'Kamar sudah checkout atau dibatalkan'], 422);
+                    }
+                    return redirect()->back()->with('error', 'Kamar sudah checkout atau dibatalkan');
+                }
+
+                $item->status = 3;
+                $item->tanggal_checkout_actual = now();
+                $item->save();
+
+                // Log the checkout
+                BookingCheckLog::create([
+                    'booking_order_id' => $booking->id,
+                    'booking_order_item_id' => $item->id,
+                    'type' => 'checkout',
+                    'recorded_at' => now(),
+                ]);
+
+                // Check if all items in the booking are checked out
+                $allCheckedOut = true;
+                foreach ($booking->items as $it) {
+                    $currentItemStatus = ($it->id == $item->id) ? 3 : (int)$it->status;
+                    if ($currentItemStatus != 3 && $currentItemStatus != 4) {
+                        $allCheckedOut = false;
+                        break;
+                    }
+                }
+
+                if ($allCheckedOut) {
+                    $booking->status = 3;
+                    $booking->payment_status = 'lunas';
+                    $booking->dp_percentage = 100;
+                    $booking->save();
+
+                    // Log parent level checkout
+                    BookingCheckLog::create([
+                        'booking_order_id' => $booking->id,
+                        'type' => 'checkout',
+                        'recorded_at' => now(),
+                    ]);
+                }
+                break;
+        }
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Status kamar berhasil diperbarui',
+                'item' => [
+                    'id' => $item->id,
+                    'status' => $item->status,
+                    'tanggal_checkin_actual' => $item->tanggal_checkin_actual ? $item->tanggal_checkin_actual->toIso8601String() : null,
+                    'tanggal_checkout_actual' => $item->tanggal_checkout_actual ? $item->tanggal_checkout_actual->toIso8601String() : null,
+                ],
+                'booking' => [
+                    'id' => $booking->id,
+                    'status' => $booking->status,
+                    'payment_status' => $booking->payment_status,
+                ]
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'Status kamar berhasil diperbarui');
+    }
+
+    /**
      * Detail booking order (JSON for modal)
      */
     public function show(Request $request, $id)
@@ -563,6 +688,9 @@ class BookingController extends Controller
                         'malam'=>$it->malam,
                         'harga_per_malam'=>$it->harga_per_malam,
                         'subtotal'=>$it->subtotal,
+                        'status'=>$it->status ?? 1,
+                        'actual_checkin'=>$it->tanggal_checkin_actual ? $it->tanggal_checkin_actual->toIso8601String() : null,
+                        'actual_checkout'=>$it->tanggal_checkout_actual ? $it->tanggal_checkout_actual->toIso8601String() : null,
                     ];
                 })->values(),
                 'other_orders'=>$other,

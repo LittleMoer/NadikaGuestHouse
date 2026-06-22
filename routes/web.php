@@ -24,6 +24,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/booking/{id}/edit', [BookingController::class, 'editPage'])->name('booking.edit');
     Route::post('/booking/{id}/update', [BookingController::class, 'update'])->name('booking.update');
     Route::post('/booking/{id}/status', [BookingController::class, 'updateStatus'])->name('booking.status');
+    Route::post('/booking/{id}/item/{itemId}/status', [BookingController::class, 'updateItemStatus'])->name('booking.item_status');
     Route::post('/booking/{id}/prices', [BookingController::class, 'updatePrices'])->name('booking.prices');
     Route::post('/booking/{id}/payment', [BookingController::class, 'updatePaymentStatus'])->name('booking.payment');
     Route::post('/booking/{id}/cashback', [BookingController::class, 'addCashback'])->name('booking.cashback');

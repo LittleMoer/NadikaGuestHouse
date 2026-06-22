@@ -299,3 +299,75 @@ it('can add and remove rooms on an existing booking and recalculate totals', fun
     expect($order->items)->toHaveCount(1);
 });
 
+it('can check-in and check-out specific room items individually', function() {
+    $owner = User::factory()->create(['role' => 'owner']);
+    test()->actingAs($owner);
+    
+    $pelanggan = makeDetPelanggan();
+    $k1 = makeDetKamar(['harga'=>100000]);
+    $k2 = makeDetKamar(['harga'=>200000]);
+
+    // 1) Create booking with 2 rooms and status 1 (dipesan), payment_status = dp
+    test()->post(route('booking.store'), detPayload($pelanggan->id, [$k1->id, $k2->id], [
+        'status' => 1,
+        'payment_status' => 'dp'
+    ]))->assertRedirect();
+    
+    $order = BookingOrder::with('items')->latest('id')->first();
+    expect($order->items)->toHaveCount(2);
+    
+    $itemK1 = $order->items->firstWhere('kamar_id', $k1->id);
+    $itemK2 = $order->items->firstWhere('kamar_id', $k2->id);
+
+    // 2) Try check-in Room 1 when payment is still DP -> should return error / redirect back with error
+    $res = test()->post(route('booking.item_status', [$order->id, $itemK1->id]), ['action' => 'checkin']);
+    $res->assertSessionHas('error');
+    
+    $itemK1->refresh();
+    expect((int)$itemK1->status)->toBe(1); // Still dipesan
+
+    // 3) Set payment status to Lunas
+    $order->payment_status = 'lunas';
+    $order->save();
+
+    // 4) Check-in Room 1 -> should succeed
+    test()->post(route('booking.item_status', [$order->id, $itemK1->id]), ['action' => 'checkin'])->assertRedirect();
+    
+    $itemK1->refresh();
+    expect((int)$itemK1->status)->toBe(2); // Check-in
+    expect($itemK1->tanggal_checkin_actual)->not->toBeNull();
+    
+    // Parent booking status should automatically update to 2 (Check-in)
+    $order->refresh();
+    expect((int)$order->status)->toBe(2);
+
+    // Room 2 should still be 1 (Dipesan)
+    $itemK2->refresh();
+    expect((int)$itemK2->status)->toBe(1);
+
+    // 5) Check-out Room 1 -> should succeed
+    test()->post(route('booking.item_status', [$order->id, $itemK1->id]), ['action' => 'checkout'])->assertRedirect();
+    
+    $itemK1->refresh();
+    expect((int)$itemK1->status)->toBe(3); // Checked-out
+    expect($itemK1->tanggal_checkout_actual)->not->toBeNull();
+
+    // Parent booking should still be 2 (Check-in) because Room 2 is still Dipesan (not checked out)
+    $order->refresh();
+    expect((int)$order->status)->toBe(2);
+
+    // 6) Check-in Room 2
+    test()->post(route('booking.item_status', [$order->id, $itemK2->id]), ['action' => 'checkin'])->assertRedirect();
+    $itemK2->refresh();
+    expect((int)$itemK2->status)->toBe(2);
+
+    // 7) Check-out Room 2 -> this is the last room, so booking should transition to 3 (Checkout)
+    test()->post(route('booking.item_status', [$order->id, $itemK2->id]), ['action' => 'checkout'])->assertRedirect();
+    
+    $itemK2->refresh();
+    expect((int)$itemK2->status)->toBe(3); // Checked-out
+    
+    $order->refresh();
+    expect((int)$order->status)->toBe(3); // Overall Checkout
+});
+

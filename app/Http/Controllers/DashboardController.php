@@ -89,7 +89,7 @@ class DashboardController extends Controller
                 $short = strlen($code) >= 5 ? substr($code, -5) : $code;
                 $items[] = [
                     'kamar_id' => $it->kamar_id,
-                    'status' => $order->status, // 1..4
+                    'status' => $it->status ?? $order->status, // 1..4
                     'booking_order_id' => $order->id,
                     'order_code' => $order->order_code,
                     'order_code_short' => $short,

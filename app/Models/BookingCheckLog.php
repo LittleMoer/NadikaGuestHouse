@@ -13,6 +13,7 @@ class BookingCheckLog extends Model
 
     protected $fillable = [
         'booking_order_id',
+        'booking_order_item_id',
         'type',
         'recorded_at',
     ];
@@ -24,5 +25,10 @@ class BookingCheckLog extends Model
     public function bookingOrder()
     {
         return $this->belongsTo(BookingOrder::class, 'booking_order_id');
+    }
+
+    public function bookingOrderItem()
+    {
+        return $this->belongsTo(BookingOrderItem::class, 'booking_order_item_id');
     }
 }

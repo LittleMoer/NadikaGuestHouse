@@ -369,8 +369,12 @@
                 if(!Array.isArray(items) || !items.length){ EL.itemsBody.innerHTML='<tr><td colspan="5" class="text-center">-</td></tr>'; return; }
                 
                 // Update table head columns if needed
-                const deleteHeader = canDelete ? '<th>Hapus</th>' : '';
-                const tableHeader = `<tr class="table-light"><th>Kamar</th><th>Tipe</th><th class="text-center">Malam</th><th class="text-end">Harga/Mlm</th><th class="text-end">Subtotal</th>${deleteHeader}</tr>`;
+                let tableHeader;
+                if (canDelete) {
+                    tableHeader = `<tr class="table-light"><th>Kamar</th><th>Tipe</th><th class="text-center">Malam</th><th class="text-end">Harga/Mlm</th><th class="text-end">Subtotal</th><th>Hapus</th></tr>`;
+                } else {
+                    tableHeader = `<tr class="table-light"><th>Kamar</th><th>Tipe</th><th class="text-center">Malam</th><th class="text-end">Harga/Mlm</th><th class="text-end">Subtotal</th><th>Status</th><th>Check-In / Out Aktual</th><th class="text-center">Aksi</th></tr>`;
+                }
                 const table = EL.itemsBody.closest('table');
                 if (table) {
                     const thead = table.querySelector('thead');
@@ -379,16 +383,16 @@
                     }
                 }
 
-                EL.itemsBody.innerHTML = items.map(it=>`<tr data-item-id='${it.id}'>
-                    <td>${it.nomor_kamar||'-'}</td>
-                    <td>${it.tipe||'-'}</td>
-                    <td class='text-center'>${it.malam}</td>
-                    <td class='text-end'><input type='number' min='0' class='form-control form-control-sm inp-harga' style='width:90px;' value='${it.harga_per_malam}'></td>
-                    <td class='text-end'><input type='number' min='0' class='form-control form-control-sm inp-subtotal' style='width:110px;' value='${it.subtotal}'></td>
-                    ${canDelete ? `<td class='text-center'><button type='button' class='btn btn-xs btn-danger btn-remove-item' data-item-id='${it.id}'>Hapus</button></td>` : ''}
-                </tr>`).join('');
-
                 if (canDelete) {
+                    EL.itemsBody.innerHTML = items.map(it=>`<tr data-item-id='${it.id}'>
+                        <td>${it.nomor_kamar||'-'}</td>
+                        <td>${it.tipe||'-'}</td>
+                        <td class='text-center'>${it.malam}</td>
+                        <td class='text-end'><input type='number' min='0' class='form-control form-control-sm inp-harga' style='width:90px;' value='${it.harga_per_malam}'></td>
+                        <td class='text-end'><input type='number' min='0' class='form-control form-control-sm inp-subtotal' style='width:110px;' value='${it.subtotal}'></td>
+                        <td class='text-center'><button type='button' class='btn btn-xs btn-danger btn-remove-item' data-item-id='${it.id}'>Hapus</button></td>
+                    </tr>`).join('');
+
                     EL.itemsBody.querySelectorAll('.btn-remove-item').forEach(btn => {
                         btn.addEventListener('click', async function() {
                             const itemId = this.getAttribute('data-item-id');
@@ -422,6 +426,70 @@
                             } catch (e) {
                                 alert('Terjadi kesalahan');
                             }
+                        });
+                    });
+                } else {
+                    // View Mode
+                    const itemStatusMap = {
+                        1: { label: 'Dipesan', bg: '#ffc107', text: '#000' },
+                        2: { label: 'Check-In', bg: '#17a2b8', text: '#fff' },
+                        3: { label: 'Check-Out', bg: '#6c757d', text: '#fff' },
+                        4: { label: 'Dibatalkan', bg: '#555', text: '#fff' }
+                    };
+
+                    EL.itemsBody.innerHTML = items.map(it=> {
+                        const statusVal = parseInt(it.status) || 1;
+                        const statusInfo = itemStatusMap[statusVal] || { label: 'Dipesan', bg: '#ffc107', text: '#000' };
+                        
+                        let badge = `<span class="badge" style="background:${statusInfo.bg};color:${statusInfo.text};padding:4px 8px;font-size:.7rem;">${statusInfo.label}</span>`;
+                        
+                        let actualTimes = [];
+                        if (it.actual_checkin) {
+                            actualTimes.push(`<div class="text-success" style="font-size:.65rem;line-height:1.2;">CI: ${new Date(it.actual_checkin).toLocaleString()}</div>`);
+                        }
+                        if (it.actual_checkout) {
+                            actualTimes.push(`<div class="text-secondary" style="font-size:.65rem;line-height:1.2;">CO: ${new Date(it.actual_checkout).toLocaleString()}</div>`);
+                        }
+                        let actualStr = actualTimes.length ? actualTimes.join('') : '-';
+
+                        let actionBtn = '-';
+                        if (statusVal === 1) {
+                            const isLunas = document.getElementById('bd_payment_badge')?.textContent?.includes('LUNAS') || false;
+                            if (isLunas) {
+                                actionBtn = `<button type="button" class="btn btn-xs btn-info btn-item-checkin" data-item-id="${it.id}">Check-in</button>`;
+                            } else {
+                                actionBtn = `<button type="button" class="btn btn-xs btn-light" disabled title="Pembayaran harus Lunas untuk Check-In">Check-in</button>`;
+                            }
+                        } else if (statusVal === 2) {
+                            actionBtn = `<button type="button" class="btn btn-xs btn-danger btn-item-checkout" data-item-id="${it.id}">Checkout</button>`;
+                        }
+
+                        return `<tr data-item-id='${it.id}'>
+                            <td>${it.nomor_kamar||'-'}</td>
+                            <td>${it.tipe||'-'}</td>
+                            <td class='text-center'>${it.malam}</td>
+                            <td class='text-end'>Rp ${fmt(it.harga_per_malam)}</td>
+                            <td class='text-end'>Rp ${fmt(it.subtotal)}</td>
+                            <td>${badge}</td>
+                            <td>${actualStr}</td>
+                            <td class='text-center'>${actionBtn}</td>
+                        </tr>`;
+                    }).join('');
+
+                    // Add event listeners for item status actions
+                    EL.itemsBody.querySelectorAll('.btn-item-checkin').forEach(btn => {
+                        btn.addEventListener('click', async function() {
+                            const itemId = this.getAttribute('data-item-id');
+                            if (!confirm('Check-in kamar ini?')) return;
+                            await updateItemStatusAction(itemId, 'checkin');
+                        });
+                    });
+
+                    EL.itemsBody.querySelectorAll('.btn-item-checkout').forEach(btn => {
+                        btn.addEventListener('click', async function() {
+                            const itemId = this.getAttribute('data-item-id');
+                            if (!confirm('Checkout kamar ini?')) return;
+                            await updateItemStatusAction(itemId, 'checkout');
                         });
                     });
                 }
@@ -625,9 +693,49 @@
                     if (window.location.pathname.includes('/dashboard')) {
                         window.location.reload();
                     }
-                } catch (error) {
-                    console.error('Update failed:', error);
-                    alert('Gagal mengupdate status booking');
+            }
+
+            async function updateItemStatusAction(itemId, action) {
+                const fd = new FormData();
+                fd.append('action', action);
+                
+                try {
+                    const response = await fetch(`{{ url('/booking') }}/${activeBookingId}/item/${itemId}/status`, {
+                        method: 'POST',
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]')?.content || ''
+                        },
+                        body: fd
+                    });
+
+                    const res = await response.json();
+                    if (res.success) {
+                        alert(res.message || 'Status kamar berhasil diperbarui');
+                        if (activeRow) {
+                            await showDetail(activeRow);
+                        }
+                        
+                        const row = document.querySelector(`#tabel-booking tbody tr[data-booking-id='${activeBookingId}']`);
+                        if (row) {
+                            const r = await fetch(`{{ url('/booking') }}/${activeBookingId}`, {headers:{'Accept':'application/json'}});
+                            const details = await r.json();
+                            if (details.status_meta) {
+                                const badge = row.querySelector('td:nth-child(2) span');
+                                if (badge) {
+                                    badge.style.background = details.status_meta.background || '';
+                                    badge.style.color = details.status_meta.text_color || '';
+                                    badge.textContent = details.status_meta.label || '';
+                                }
+                            }
+                        }
+                    } else {
+                        alert(res.message || 'Gagal mengubah status kamar');
+                    }
+                } catch(e) {
+                    console.error(e);
+                    alert('Terjadi kesalahan koneksi');
                 }
             }
 

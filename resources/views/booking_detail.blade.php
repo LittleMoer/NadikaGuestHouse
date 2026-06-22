@@ -56,13 +56,7 @@
               <button type="submit" class="btn btn-outline-success" title="Tandai pembayaran sebagai Lunas">Set Lunas</button>
             </form>
             @endif
-            @if((int)$order->status !== 3 && (int)$order->status !== 4)
-            <form action="{{ route('booking.status', $order->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Checkout booking ini?');">
-              @csrf
-              <input type="hidden" name="action" value="checkout" />
-              <button type="submit" class="btn btn-danger" title="Ubah status menjadi Checkout">Checkout</button>
-            </form>
-            @endif
+
           </div>
         </div>
       </div>
@@ -197,10 +191,23 @@
                     <th class="text-end">Harga/mlm</th>
                     <th class="text-end">Subtotal</th>
                   @endunless
+                  <th>Status</th>
+                  <th>Check-In / Out Aktual</th>
+                  <th class="text-center">Aksi</th>
                 </tr>
               </thead>
               <tbody>
               @foreach($order->items as $it)
+                @php
+                  $itemStatus = (int)($it->status ?? 1);
+                  $itemStatusMap = [
+                    1 => ['label' => 'Dipesan', 'bg' => '#ffc107', 'text' => '#000'],
+                    2 => ['label' => 'Check-In', 'bg' => '#17a2b8', 'text' => '#fff'],
+                    3 => ['label' => 'Check-Out', 'bg' => '#6c757d', 'text' => '#fff'],
+                    4 => ['label' => 'Dibatalkan', 'bg' => '#555', 'text' => '#fff']
+                  ];
+                  $itemStatusInfo = $itemStatusMap[$itemStatus] ?? ['label' => 'Dipesan', 'bg' => '#ffc107', 'text' => '#000'];
+                @endphp
                 <tr>
                   <td>{{ $it->kamar->nomor_kamar ?? '-' }}</td>
                   <td>{{ $it->kamar->tipe ?? '-' }}</td>
@@ -209,6 +216,43 @@
                     <td class="text-end">{{ number_format($it->harga_per_malam,0,',','.') }}</td>
                     <td class="text-end">{{ number_format($it->subtotal,0,',','.') }}</td>
                   @endunless
+                  <td>
+                    <span class="badge" style="background:{{ $itemStatusInfo['bg'] }};color:{{ $itemStatusInfo['text'] }};padding:4px 8px;font-size:.75rem;">
+                      {{ $itemStatusInfo['label'] }}
+                    </span>
+                  </td>
+                  <td>
+                    @if($it->tanggal_checkin_actual)
+                      <div class="text-success"><small>CI: {{ \Carbon\Carbon::parse($it->tanggal_checkin_actual)->format('d/m/Y H:i') }}</small></div>
+                    @endif
+                    @if($it->tanggal_checkout_actual)
+                      <div class="text-secondary"><small>CO: {{ \Carbon\Carbon::parse($it->tanggal_checkout_actual)->format('d/m/Y H:i') }}</small></div>
+                    @endif
+                    @if(!$it->tanggal_checkin_actual && !$it->tanggal_checkout_actual)
+                      -
+                    @endif
+                  </td>
+                  <td class="text-center">
+                    @if($itemStatus === 1)
+                      @if($order->payment_status === 'lunas')
+                        <form action="{{ route('booking.item_status', [$order->id, $it->id]) }}" method="POST" class="d-inline" onsubmit="return confirm('Check-in kamar {{ $it->kamar->nomor_kamar }}?');">
+                          @csrf
+                          <input type="hidden" name="action" value="checkin" />
+                          <button type="submit" class="btn btn-xs btn-info" title="Check-in Kamar">Check-in</button>
+                        </form>
+                      @else
+                        <button type="button" class="btn btn-xs btn-light" disabled title="Pembayaran harus Lunas untuk Check-In" onclick="alert('Pembayaran harus Lunas untuk Check-In');">Check-in</button>
+                      @endif
+                    @elseif($itemStatus === 2)
+                      <form action="{{ route('booking.item_status', [$order->id, $it->id]) }}" method="POST" class="d-inline" onsubmit="return confirm('Checkout kamar {{ $it->kamar->nomor_kamar }}?');">
+                        @csrf
+                        <input type="hidden" name="action" value="checkout" />
+                        <button type="submit" class="btn btn-xs btn-danger" title="Checkout Kamar">Checkout</button>
+                      </form>
+                    @else
+                      -
+                    @endif
+                  </td>
                 </tr>
               @endforeach
               </tbody>
