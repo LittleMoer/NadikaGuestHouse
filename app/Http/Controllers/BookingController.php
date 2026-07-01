@@ -394,13 +394,32 @@ class BookingController extends Controller
             foreach($kamarList as $k){
                 // Calculate subtotal based on explicit duration
                 $subtotal = (int)$k->harga * $durasi;
-                BookingOrderItem::create([
+                $item = BookingOrderItem::create([
                     'booking_order_id' => $order->id,
                     'kamar_id' => $k->id,
                     'malam' => $days,
                     'harga_per_malam' => (int)$k->harga,
                     'subtotal' => $subtotal,
+                    'status' => $status,
+                    'tanggal_checkin_actual' => $status == 2 ? now() : null,
+                    'tanggal_checkout_actual' => $status == 3 ? now() : null,
                 ]);
+
+                if ($status == 2) {
+                    BookingCheckLog::create([
+                        'booking_order_id' => $order->id,
+                        'booking_order_item_id' => $item->id,
+                        'type' => 'checkin',
+                        'recorded_at' => now(),
+                    ]);
+                } elseif ($status == 3) {
+                    BookingCheckLog::create([
+                        'booking_order_id' => $order->id,
+                        'booking_order_item_id' => $item->id,
+                        'type' => 'checkout',
+                        'recorded_at' => now(),
+                    ]);
+                }
             }
 
             // Cash ledger tidak lagi digunakan - data DP sudah tersimpan di booking
@@ -439,7 +458,16 @@ class BookingController extends Controller
                 if ($booking->status != 1) return redirect()->back()->with('error','Tidak dapat check-in');
                 if ($booking->payment_status !== 'lunas') return redirect()->back()->with('error','Check-in hanya diizinkan jika pembayaran sudah Lunas');
                 $booking->status = 2;
-                // Room status update removed
+                foreach ($booking->items as $it) {
+                    $it->status = 2;
+                    $it->tanggal_checkin_actual = $it->tanggal_checkin_actual ?? now();
+                    $it->save();
+                    BookingCheckLog::firstOrCreate([
+                        'booking_order_id' => $booking->id,
+                        'booking_order_item_id' => $it->id,
+                        'type' => 'checkin',
+                    ], ['recorded_at' => now()]);
+                }
                 break;
             case 'checkout':
                 if ($booking->status == 3 || $booking->status == 4) return redirect()->back()->with('error','Booking sudah checkout atau dibatalkan');
@@ -447,7 +475,16 @@ class BookingController extends Controller
                 // Otomatis set pembayaran menjadi lunas saat checkout
                 $booking->payment_status = 'lunas';
                 $booking->dp_percentage = 100; // tandai sudah lunas penuh
-                // Room status update removed
+                foreach ($booking->items as $it) {
+                    $it->status = 3;
+                    $it->tanggal_checkout_actual = $it->tanggal_checkout_actual ?? now();
+                    $it->save();
+                    BookingCheckLog::firstOrCreate([
+                        'booking_order_id' => $booking->id,
+                        'booking_order_item_id' => $it->id,
+                        'type' => 'checkout',
+                    ], ['recorded_at' => now()]);
+                }
                 break;
         }
         $booking->save();
@@ -868,12 +905,38 @@ class BookingController extends Controller
         if(isset($data['payment_method'])){ $order->payment_method = strtolower($data['payment_method']); }
         // Persist lifecycle status if provided (1..4)
         if(isset($data['status'])){
-            $order->status = (int)$data['status'];
-        }
-        // Jika status menjadi checkout (3), paksa pelunasan
-        if(isset($data['status']) && (int)$data['status'] === 3){
-            $order->payment_status = 'lunas';
-            $order->dp_percentage = 100; // lunas penuh saat checkout
+            $oldStatus = $order->status;
+            $newStatus = (int)$data['status'];
+            $order->status = $newStatus;
+            
+            // Jika status menjadi checkout (3), paksa pelunasan
+            if($newStatus === 3){
+                $order->payment_status = 'lunas';
+                $order->dp_percentage = 100; // lunas penuh saat checkout
+            }
+            
+            // Sinkronkan status kamar jika status utama berubah
+            if ($oldStatus != $newStatus) {
+                foreach ($order->items as $it) {
+                    $it->status = $newStatus;
+                    if ($newStatus == 2) {
+                        $it->tanggal_checkin_actual = $it->tanggal_checkin_actual ?? now();
+                        BookingCheckLog::firstOrCreate([
+                            'booking_order_id' => $order->id,
+                            'booking_order_item_id' => $it->id,
+                            'type' => 'checkin',
+                        ], ['recorded_at' => now()]);
+                    } elseif ($newStatus == 3) {
+                        $it->tanggal_checkout_actual = $it->tanggal_checkout_actual ?? now();
+                        BookingCheckLog::firstOrCreate([
+                            'booking_order_id' => $order->id,
+                            'booking_order_item_id' => $it->id,
+                            'type' => 'checkout',
+                        ], ['recorded_at' => now()]);
+                    }
+                    $it->save();
+                }
+            }
         }
         if($dpPct!==null && $dpPct!==''){ $order->dp_percentage = max(0,min(100,(int)$dpPct)); }
         $order->save();

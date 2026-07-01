@@ -251,8 +251,8 @@ it('creates check-in and check-out logs when booking status transitions', functi
     ]))->assertRedirect();
     
     $order->refresh();
-    expect($order->checkLogs)->toHaveCount(1);
-    expect($order->checkLogs->first()->type)->toBe('checkin');
+    expect($order->checkLogs->where('booking_order_item_id', null))->toHaveCount(1);
+    expect($order->checkLogs->where('booking_order_item_id', null)->first()->type)->toBe('checkin');
 
     // 3) Transition to Check-Out (status 3)
     test()->post(route('booking.update', $order->id), array_merge(detPayload($pelanggan->id, [$k->id]), [
@@ -260,8 +260,8 @@ it('creates check-in and check-out logs when booking status transitions', functi
     ]))->assertRedirect();
     
     $order->refresh();
-    expect($order->checkLogs)->toHaveCount(2);
-    expect($order->checkLogs->last()->type)->toBe('checkout');
+    expect($order->checkLogs->where('booking_order_item_id', null))->toHaveCount(2);
+    expect($order->checkLogs->where('booking_order_item_id', null)->last()->type)->toBe('checkout');
 });
 
 it('can add and remove rooms on an existing booking and recalculate totals', function() {
@@ -369,5 +369,61 @@ it('can check-in and check-out specific room items individually', function() {
     
     $order->refresh();
     expect((int)$order->status)->toBe(3); // Overall Checkout
+});
+
+it('sets item status to match walk-in creation (status 2)', function() {
+    $owner = User::factory()->create(['role' => 'owner']);
+    test()->actingAs($owner);
+    
+    $pelanggan = makeDetPelanggan();
+    $k = makeDetKamar(['harga'=>100000]);
+
+    // Walk-in creation defaults to status 2 (checkin)
+    test()->post(route('booking.store'), detPayload($pelanggan->id, [$k->id], [
+        'pemesanan' => 0, // Walk-in
+        'status' => 2
+    ]))->assertRedirect();
+    
+    $order = BookingOrder::with('items')->latest('id')->first();
+    expect((int)$order->status)->toBe(2);
+    expect((int)$order->items->first()->status)->toBe(2);
+    expect($order->items->first()->tanggal_checkin_actual)->not->toBeNull();
+});
+
+it('syncs item status when parent status is updated to check-in or checkout', function() {
+    $owner = User::factory()->create(['role' => 'owner']);
+    test()->actingAs($owner);
+    
+    $pelanggan = makeDetPelanggan();
+    $k = makeDetKamar(['harga'=>100000]);
+
+    // Create booking with status 1 (dipesan)
+    test()->post(route('booking.store'), detPayload($pelanggan->id, [$k->id], [
+        'status' => 1
+    ]))->assertRedirect();
+    
+    $order = BookingOrder::with('items')->latest('id')->first();
+    expect((int)$order->status)->toBe(1);
+    expect((int)$order->items->first()->status)->toBe(1);
+
+    // Update parent booking status to 2 (Check-in) via update route
+    test()->post(route('booking.update', $order->id), array_merge(detPayload($pelanggan->id, [$k->id]), [
+        'status' => 2
+    ]))->assertRedirect();
+
+    $order->refresh();
+    expect((int)$order->status)->toBe(2);
+    expect((int)$order->items->first()->status)->toBe(2);
+    expect($order->items->first()->tanggal_checkin_actual)->not->toBeNull();
+
+    // Update parent booking status to 3 (Check-out) via update route
+    test()->post(route('booking.update', $order->id), array_merge(detPayload($pelanggan->id, [$k->id]), [
+        'status' => 3
+    ]))->assertRedirect();
+
+    $order->refresh();
+    expect((int)$order->status)->toBe(3);
+    expect((int)$order->items->first()->status)->toBe(3);
+    expect($order->items->first()->tanggal_checkout_actual)->not->toBeNull();
 });
 
