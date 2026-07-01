@@ -94,50 +94,52 @@
     </div>
     <!-- End Modal Overlay -->
     <!-- Table -->
-         <table id="tabel-pelanggan" class="min-w-full border rounded-lg shadow-lg bg-white">
-      <thead class="bg-blue-200">
-        <tr>
-          <th class="border px-4 py-2">Nama</th>
-          <th class="border px-4 py-2">Telepon</th>
-          <th class="border px-4 py-2">Alamat</th>
-          <th class="border px-4 py-2">Jenis Identitas</th>
-          <th class="border px-4 py-2">Nomor Identitas</th>
-          <th class="border px-4 py-2">Aksi</th>
-        </tr>
-      </thead>
-      <tbody>
-        @foreach ($penginap as $p)
-        <tr>
-          <td class="border px-4 py-2">{{ $p->nama }}</td>
-          <td class="border px-4 py-2">{{ $p->telepon }}</td>
-          <td class="border px-4 py-2">{{ $p->alamat }}</td>
-          <td class="border px-4 py-2">{{ $p->jenis_identitas }}</td>
-          <td class="border px-4 py-2">{{ $p->nomor_identitas }}</td>
-          <td class="border px-4 py-2">
-            <button
-              type="button"
-              class="btn btn-warning text-white px-2 py-1 rounded hover:bg-yellow-500 btn-edit-pelanggan"
-              data-id="{{ $p->id }}"
-              data-nama="{{ $p->nama }}"
-              data-email="{{ $p->email }}"
-              data-telepon="{{ $p->telepon }}"
-              data-alamat="{{ $p->alamat }}"
-              data-jenis_identitas="{{ $p->jenis_identitas }}"
-              data-nomor_identitas="{{ $p->nomor_identitas }}"
-              data-tempat_lahir="{{ $p->tempat_lahir }}"
-              data-tanggal_lahir="{{ $p->tanggal_lahir }}"
-              data-kewarganegaraan="{{ $p->kewarganegaraan }}"
-            >Edit</button>
-            <form action="{{ route('penginap.destroy', $p->id) }}" method="POST" style="display:inline;">
-              @csrf
-              @method('DELETE')
-              <button type="submit" class="btn btn-danger text-white px-2 py-1 rounded hover:bg-red-600" onclick="return confirm('Yakin ingin menghapus?')">Hapus</button>
-            </form>
-          </td>
-        </tr>
-        @endforeach
-      </tbody>
-    </table>
+        <div class="table-responsive">
+        <table id="tabel-pelanggan" class="min-w-full border rounded-lg shadow-lg bg-white">
+          <thead class="bg-blue-200">
+            <tr>
+              <th class="border px-4 py-2">Nama</th>
+              <th class="border px-4 py-2">Telepon</th>
+              <th class="border px-4 py-2">Alamat</th>
+              <th class="border px-4 py-2">Jenis Identitas</th>
+              <th class="border px-4 py-2">Nomor Identitas</th>
+              <th class="border px-4 py-2">Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            @foreach ($penginap as $p)
+            <tr>
+              <td class="border px-4 py-2">{{ $p->nama }}</td>
+              <td class="border px-4 py-2">{{ $p->telepon }}</td>
+              <td class="border px-4 py-2">{{ $p->alamat }}</td>
+              <td class="border px-4 py-2">{{ $p->jenis_identitas }}</td>
+              <td class="border px-4 py-2">{{ $p->nomor_identitas }}</td>
+              <td class="border px-4 py-2">
+                <button
+                  type="button"
+                  class="btn btn-warning text-white px-2 py-1 rounded hover:bg-yellow-500 btn-edit-pelanggan"
+                  data-id="{{ $p->id }}"
+                  data-nama="{{ $p->nama }}"
+                  data-email="{{ $p->email }}"
+                  data-telepon="{{ $p->telepon }}"
+                  data-alamat="{{ $p->alamat }}"
+                  data-jenis_identitas="{{ $p->jenis_identitas }}"
+                  data-nomor_identitas="{{ $p->nomor_identitas }}"
+                  data-tempat_lahir="{{ $p->tempat_lahir }}"
+                  data-tanggal_lahir="{{ $p->tanggal_lahir }}"
+                  data-kewarganegaraan="{{ $p->kewarganegaraan }}"
+                >Edit</button>
+                <form action="{{ route('penginap.destroy', $p->id) }}" method="POST" style="display:inline;">
+                  @csrf
+                  @method('DELETE')
+                  <button type="submit" class="btn btn-danger text-white px-2 py-1 rounded hover:bg-red-600" onclick="return confirm('Yakin ingin menghapus?')">Hapus</button>
+                </form>
+              </td>
+            </tr>
+            @endforeach
+          </tbody>
+        </table>
+    </div>
     <div class="mt-4 p-3 rounded bg-gray-50">
       {{ $penginap->onEachSide(1)->links('pagination::bootstrap-5') }}
     </div>

@@ -26,44 +26,46 @@
         <div class="flex justify-between items-center mb-4">
             <button type="button" id="btnTambahKamar" class="btn btn-primary text-white px-4 py-2 rounded shadow hover:bg-blue-700">+ Tambah Kamar</button>
         </div>
-        <table id="tabel-kamar" class="min-w-full border rounded-lg shadow-lg bg-white">
-            <thead class="bg-blue-200">
-                <tr>
-                    <th class="border px-4 py-2">Nomor Kamar</th>
-                    <th class="border px-4 py-2">Tipe</th>
-                    <th class="border px-4 py-2">Kapasitas</th>
-                    <th class="border px-4 py-2">Harga</th>
-                                        <th class="border px-4 py-2">Aksi</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach ($kamar as $k)
-                <tr>
-                    <td class="border px-4 py-2">{{ $k->nomor_kamar }}</td>
-                    <td class="border px-4 py-2">{{ $k->tipe }}</td>
-                    <td class="border px-4 py-2">{{ $k->kapasitas }}</td>
-                    <td class="border px-4 py-2">Rp {{ number_format($k->harga, 0, ',', '.') }}</td>
-                                        <td class="border px-4 py-2">
-                        <button type="button"
-                            class="btn btn-warning text-white px-2 py-1 rounded hover:bg-yellow-500 btn-edit-kamar"
-                            data-id="{{ $k->id }}"
-                            data-nomor_kamar="{{ $k->nomor_kamar }}"
-                            data-tipe="{{ $k->tipe }}"
-                            data-kapasitas="{{ $k->kapasitas }}"
-                            data-harga="{{ $k->harga }}"
-                                                        data-deskripsi="{{ $k->deskripsi }}"
-                        >Edit</button>
-                        <form action="{{ route('kamar.destroy', $k->id) }}" method="POST" style="display:inline;">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="btn btn-danger text-white px-2 py-1 rounded hover:bg-red-600"
-                                onclick="return confirm('Yakin ingin menghapus kamar?')">Hapus</button>
-                        </form>
-                    </td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
+        <div class="table-responsive">
+            <table id="tabel-kamar" class="min-w-full border rounded-lg shadow-lg bg-white">
+                <thead class="bg-blue-200">
+                    <tr>
+                        <th class="border px-4 py-2">Nomor Kamar</th>
+                        <th class="border px-4 py-2">Tipe</th>
+                        <th class="border px-4 py-2">Kapasitas</th>
+                        <th class="border px-4 py-2">Harga</th>
+                                            <th class="border px-4 py-2">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach ($kamar as $k)
+                    <tr>
+                        <td class="border px-4 py-2">{{ $k->nomor_kamar }}</td>
+                        <td class="border px-4 py-2">{{ $k->tipe }}</td>
+                        <td class="border px-4 py-2">{{ $k->kapasitas }}</td>
+                        <td class="border px-4 py-2">Rp {{ number_format($k->harga, 0, ',', '.') }}</td>
+                                            <td class="border px-4 py-2">
+                            <button type="button"
+                                class="btn btn-warning text-white px-2 py-1 rounded hover:bg-yellow-500 btn-edit-kamar"
+                                data-id="{{ $k->id }}"
+                                data-nomor_kamar="{{ $k->nomor_kamar }}"
+                                data-tipe="{{ $k->tipe }}"
+                                data-kapasitas="{{ $k->kapasitas }}"
+                                data-harga="{{ $k->harga }}"
+                                                            data-deskripsi="{{ $k->deskripsi }}"
+                            >Edit</button>
+                            <form action="{{ route('kamar.destroy', $k->id) }}" method="POST" style="display:inline;">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn btn-danger text-white px-2 py-1 rounded hover:bg-red-600"
+                                    onclick="return confirm('Yakin ingin menghapus kamar?')">Hapus</button>
+                            </form>
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
         <!-- Laravel pagination removed because DataTables provides client-side pagination -->
         <!-- Create Modal for Kamar -->
         <div id="modalCreateKamar" class="modal-overlay" aria-hidden="true">

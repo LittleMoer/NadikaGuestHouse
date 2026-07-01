@@ -395,6 +395,35 @@
             .table-dashboard tbody tr.day-row td:last-child {
                 border-right: 1px solid rgb(0, 0, 0) !important;
             }
+
+            @media (max-width: 991px) {
+                .page-header {
+                    flex-direction: column !important;
+                    align-items: stretch !important;
+                    gap: 15px !important;
+                }
+                .dashboard-title {
+                    text-align: center;
+                }
+                .dash-month-nav {
+                    justify-content: center !important;
+                    width: 100% !important;
+                }
+                .dash-method-summary {
+                    width: 100% !important;
+                    justify-content: center !important;
+                }
+                .method-card {
+                    width: 100% !important;
+                    box-sizing: border-box;
+                }
+                .dash-legend {
+                    justify-content: center;
+                }
+                .legend-items {
+                    justify-content: center;
+                }
+            }
         </style>
         
         <script>

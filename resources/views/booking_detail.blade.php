@@ -34,7 +34,7 @@
 
     <div class="card mb-3">
       <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
           <div>
             <div class="mb-2">
               <strong>Status:</strong> 
@@ -44,7 +44,7 @@
             </div>
             <div><strong>Pembayaran:</strong> {{ strtoupper($order->payment_status ?? 'dp') }} @if($order->dp_percentage) ({{ $order->dp_percentage }}%) @endif</div>
           </div>
-          <div class="d-flex gap-2">
+          <div class="d-flex gap-2 flex-wrap">
             <a class="btn btn-warning text-white" href="{{ route('booking.edit', $order->id) }}">Edit</a>
             <a class="btn btn-info" target="_blank" href="{{ route('booking.printout', $order->id) }}">Print Out</a>
             <a class="btn btn-primary" target="_blank" href="{{ route('booking.nota', $order->id) }}">Nota</a>
@@ -180,7 +180,7 @@
       <div class="col-lg-6">
         <div class="card mb-3">
           <div class="card-header">Kamar</div>
-          <div class="card-body p-0">
+          <div class="card-body p-0 table-responsive">
             <table class="table table-sm mb-0">
               <thead class="table-light">
                 <tr>
@@ -288,7 +288,7 @@
         @if($otherOrders->count())
         <div class="card mb-3">
           <div class="card-header">Riwayat Lain Pelanggan</div>
-          <div class="card-body p-0">
+          <div class="card-body p-0 table-responsive">
             <table class="table table-sm mb-0">
               <thead class="table-light">
                 <tr>
@@ -317,7 +317,7 @@
         @if(isset($roomTransfers) && $roomTransfers->count())
         <div class="card mb-3">
           <div class="card-header">Riwayat Pemindahan/Upgrade Kamar</div>
-          <div class="card-body p-0">
+          <div class="card-body p-0 table-responsive">
             <table class="table table-sm mb-0">
               <thead class="table-light">
                 <tr>
