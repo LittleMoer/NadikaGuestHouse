@@ -1,7 +1,7 @@
 @extends('layouts.app_layout')
 
 @section('dashboard')
-    <div class="container">
+    <div class="container-fluid">
       <div class="page-inner">
                 <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
                     <h1 class="h1 dashboard-title" style="margin:0;">Dashboard</h1>
@@ -291,8 +291,25 @@
             .table-dashboard { width: max-content !important; min-width: 100% !important; border-collapse: separate; border-spacing: 0; font-size: .88rem; table-layout: fixed; border: 2px solid #000000; }
             .table-dashboard th, .table-dashboard td { vertical-align: middle; text-align: center; overflow: hidden; text-overflow: ellipsis; }
             .table-dashboard thead th { background: #fff9db; color:#1f2937; font-weight:700; border-bottom: 3px solid rgba(0, 0, 0, .6); padding: 6px 4px; white-space: nowrap; border-right: 2px solid #000000; border-left: 2px solid #000000; }
-            /* Sticky headers */
-            .dash-table-wrap { position: relative; height: 70vh; overflow: auto; }
+            /* Sticky headers and responsive viewport height optimization */
+            .dash-table-wrap { 
+                position: relative; 
+                height: calc(100vh - 250px) !important; 
+                min-height: 380px; 
+                overflow: auto; 
+            }
+            @media (max-height: 768px) {
+                .dash-table-wrap {
+                    height: calc(100vh - 310px) !important;
+                    min-height: 280px;
+                }
+            }
+            @media (max-width: 1200px) {
+                .page-inner {
+                    padding-left: 15px !important;
+                    padding-right: 15px !important;
+                }
+            }
             .table-dashboard thead tr.first-header th { position: sticky; top: 0; z-index: 20; background: #fff9db; }
             /* second header sits just below the first; JS sets --hdr1h dynamically */
             .table-dashboard thead tr.second-header th { position: sticky; top: var(--hdr1h, 40px); z-index: 19; background: #fff3bf; }
