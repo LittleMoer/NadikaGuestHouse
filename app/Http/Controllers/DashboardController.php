@@ -65,26 +65,35 @@ class DashboardController extends Controller
         $items = [];
         foreach($activeOrders as $order){
             $meta = $order->status_meta; // unified
-            // Normalize to day-level range. If check-in and check-out are the same calendar day,
-            // extend checkout to next day's 00:00 so the day is included in [checkin, checkout).
-            $ciDay = Carbon::parse($order->tanggal_checkin)->startOfDay();
-            $coDay = Carbon::parse($order->tanggal_checkout)->startOfDay();
-            $ciAt = Carbon::parse($order->tanggal_checkin);
-            $coAt = Carbon::parse($order->tanggal_checkout);
-            // If checkout has any time after 00:00 on its calendar day, include that day
-            // so the morning half-day (e.g., 06:00-12:00) can be rendered.
-            // EXCEPTION: exact noon-to-noon (12:00 → next day 12:00) should NOT include checkout day.
-            $includeCheckoutDay = false;
-            if ($coDay->equalTo($ciDay)) {
-                $includeCheckoutDay = true;
-            } elseif ($coAt->gt($coDay)) {
-                $isNoonToNoon = ($ciAt->format('H:i') === '12:00') && $coAt->equalTo($coDay->copy()->addHours(12));
-                $includeCheckoutDay = !$isNoonToNoon;
-            }
-            if ($includeCheckoutDay) {
-                $coDay = $coDay->copy()->addDay();
-            }
             foreach($order->items as $it){
+                // Use actual checkin date if available, keeping the planned checkin time part for slot integrity
+                $plannedCheckin = Carbon::parse($order->tanggal_checkin);
+                $ciAt = $it->tanggal_checkin_actual
+                    ? $it->tanggal_checkin_actual->copy()->setTime($plannedCheckin->hour, $plannedCheckin->minute, $plannedCheckin->second)
+                    : $plannedCheckin;
+
+                // Use actual checkout date if available, keeping the planned checkout time part for slot integrity
+                $plannedCheckout = Carbon::parse($order->tanggal_checkout);
+                $coAt = $it->tanggal_checkout_actual
+                    ? $it->tanggal_checkout_actual->copy()->setTime($plannedCheckout->hour, $plannedCheckout->minute, $plannedCheckout->second)
+                    : $plannedCheckout;
+
+                $ciDay = $ciAt->copy()->startOfDay();
+                $coDay = $coAt->copy()->startOfDay();
+
+                // Normalize to day-level range. If check-in and check-out are the same calendar day,
+                // extend checkout to next day's 00:00 so the day is included in [checkin, checkout).
+                $includeCheckoutDay = false;
+                if ($coDay->equalTo($ciDay)) {
+                    $includeCheckoutDay = true;
+                } elseif ($coAt->gt($coDay)) {
+                    $isNoonToNoon = ($ciAt->format('H:i') === '12:00') && $coAt->equalTo($coDay->copy()->addHours(12));
+                    $includeCheckoutDay = !$isNoonToNoon;
+                }
+                if ($includeCheckoutDay) {
+                    $coDay = $coDay->copy()->addDay();
+                }
+
                 $code = (string)($order->order_code ?? '');
                 $short = strlen($code) >= 5 ? substr($code, -5) : $code;
                 $items[] = [
