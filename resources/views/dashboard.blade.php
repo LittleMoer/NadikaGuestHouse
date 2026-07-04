@@ -80,6 +80,15 @@
                     @php $loopJenis = isset($orderedJenisKamar) ? $orderedJenisKamar : $jenisKamar; @endphp
                     <div class="dash-table-wrap">
                         <table class="table table-bordered table-dashboard ">
+                            <colgroup>
+                                <col style="width: 130px; min-width: 130px;">
+                                @foreach ($loopJenis as $jenis)
+                                    @foreach (($kamarGrouped[$jenis] ?? collect()) as $kamar)
+                                        <col style="width: 90px; min-width: 90px;">
+                                    @endforeach
+                                @endforeach
+                                <col style="width: 96px; min-width: 96px;">
+                            </colgroup>
                             <thead>
                                 <tr class="first-header">
                                     <th class="group-header">Jenis Kamar</th>
@@ -279,8 +288,7 @@
     </div>
         {{-- Removed modals: direct cell click will go to create booking --}}
         <style>
-            /* Dashboard table - refined look */
-            .table-dashboard { width: 100%; border-collapse: separate; border-spacing: 0; font-size: .88rem; table-layout: fixed; border: 2px solid #000000; }
+            .table-dashboard { width: max-content; min-width: 100%; border-collapse: separate; border-spacing: 0; font-size: .88rem; table-layout: fixed; border: 2px solid #000000; }
             .table-dashboard th, .table-dashboard td { vertical-align: middle; text-align: center; overflow: hidden; text-overflow: ellipsis; }
             .table-dashboard thead th { background: #fff9db; color:#1f2937; font-weight:700; border-bottom: 3px solid rgba(0, 0, 0, .6); padding: 6px 4px; white-space: nowrap; border-right: 2px solid #000000; border-left: 2px solid #000000; }
             /* Sticky headers */
