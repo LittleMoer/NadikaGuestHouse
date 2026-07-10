@@ -1,7 +1,7 @@
 @extends('layouts.app_layout')
 
 @section('dashboard')
-    <div class="container-fluid">
+    <div class="container">
       <div class="page-inner">
                 <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
                     <h1 class="h1 dashboard-title" style="margin:0;">Dashboard</h1>
@@ -285,7 +285,6 @@
                     </div>
         </div>
       </div>
-    </div>
         {{-- Removed modals: direct cell click will go to create booking --}}
         <style>
             .table-dashboard { width: max-content !important; min-width: 100% !important; border-collapse: separate; border-spacing: 0; font-size: .88rem; table-layout: fixed; border: 2px solid #000000; }
