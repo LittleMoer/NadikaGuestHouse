@@ -23,9 +23,24 @@
             </ul>
         </div>
         <!-- isi -->
-    <!-- Header + Button -->
-    <div class="flex justify-between items-center mb-4">
-      <button type="button" id="btnTambahPelanggan" class="btn btn-primary">
+    <!-- Header + Button & Search -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+      <form action="{{ route('penginap') }}" method="GET" class="d-flex align-items-center gap-1 mb-0">
+        <input type="text" name="search" class="form-control form-control-sm" placeholder="Cari penginap..." value="{{ request('search') }}" style="width: 180px; height: 35px; display: inline-block;">
+        <select name="sort_by" class="form-select form-select-sm" style="width: 130px; height: 35px; font-size: 0.75rem; border: 1px solid #d1d5db; border-radius: 8px; padding: 2px 8px;" onchange="this.form.submit()">
+            <option value="nama" {{ request('sort_by', 'nama') == 'nama' ? 'selected' : '' }}>Sort: Nama</option>
+            <option value="created_at" {{ request('sort_by') == 'created_at' ? 'selected' : '' }}>Sort: Tgl Daftar</option>
+        </select>
+        <select name="sort_dir" class="form-select form-select-sm" style="width: 80px; height: 35px; font-size: 0.75rem; border: 1px solid #d1d5db; border-radius: 8px; padding: 2px 8px;" onchange="this.form.submit()">
+            <option value="asc" {{ request('sort_dir', 'asc') == 'asc' ? 'selected' : '' }}>ASC</option>
+            <option value="desc" {{ request('sort_dir') == 'desc' ? 'selected' : '' }}>DESC</option>
+        </select>
+        @if(request('search') || request('sort_by') || request('sort_dir'))
+            <a href="{{ route('penginap') }}" class="btn btn-outline-secondary btn-sm d-flex align-items-center justify-content-center" style="height: 35px; width: 35px;" title="Reset">✕</a>
+        @endif
+        <button type="submit" class="btn btn-primary btn-sm" style="height: 35px; padding: 0 15px;">Cari</button>
+      </form>
+      <button type="button" id="btnTambahPelanggan" class="btn btn-primary" style="height: 35px; padding: 0 15px;">
         + Tambah Pelanggan
       </button>
     </div>

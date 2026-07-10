@@ -120,10 +120,34 @@ class BookingController extends Controller
 
         $pelangganList = Pelanggan::orderBy('nama')->get();
 
-        // Server-side pagination
-        $orders = BookingOrder::with(['pelanggan','items.kamar','creator'])
-            ->orderByDesc('tanggal_checkin')
-            ->paginate(15);
+        // Server-side pagination with search & sort
+        $search = $request->get('search');
+        $sortBy = $request->get('sort_by', 'tanggal_checkin');
+        $sortDir = $request->get('sort_dir', 'desc');
+
+        // Validate sort parameters to prevent SQL injection or unexpected columns
+        $allowedSortBy = ['tanggal_checkin', 'tanggal_checkout', 'created_at', 'total_harga'];
+        if (!in_array($sortBy, $allowedSortBy)) {
+            $sortBy = 'tanggal_checkin';
+        }
+        $sortDir = strtolower($sortDir) === 'asc' ? 'asc' : 'desc';
+
+        $query = BookingOrder::with(['pelanggan','items.kamar','creator']);
+        if ($search) {
+            $query->where(function($q) use ($search) {
+                $q->where('booking_number', 'like', "%{$search}%")
+                  ->orWhereHas('pelanggan', function($pq) use ($search) {
+                      $pq->where('nama', 'like', "%{$search}%")
+                         ->orWhere('telepon', 'like', "%{$search}%");
+                  })
+                  ->orWhereHas('items.kamar', function($kq) use ($search) {
+                      $kq->where('nomor_kamar', 'like', "%{$search}%");
+                  });
+            });
+        }
+        $orders = $query->orderBy($sortBy, $sortDir)
+            ->paginate(15)
+            ->withQueryString();
 
         return view('booking', [
             'orders'=>$orders,
@@ -1279,10 +1303,30 @@ class BookingController extends Controller
         return view('booking_create', compact('pelangganList', 'availableKamar'));
     }
 
-    public function penginap()
+    public function penginap(Request $request)
     {
         // Use pagination so the view can call onEachSide()->links()
-        $penginap = Pelanggan::orderBy('nama')->paginate(10);
+        $search = $request->get('search');
+        $sortBy = $request->get('sort_by', 'nama');
+        $sortDir = $request->get('sort_dir', 'asc');
+
+        // Validate sort parameters
+        $allowedSortBy = ['nama', 'created_at'];
+        if (!in_array($sortBy, $allowedSortBy)) {
+            $sortBy = 'nama';
+        }
+        $sortDir = strtolower($sortDir) === 'desc' ? 'desc' : 'asc';
+
+        $query = Pelanggan::query();
+        if ($search) {
+            $query->where(function($q) use ($search) {
+                $q->where('nama', 'like', "%{$search}%")
+                  ->orWhere('telepon', 'like', "%{$search}%")
+                  ->orWhere('alamat', 'like', "%{$search}%")
+                  ->orWhere('nomor_identitas', 'like', "%{$search}%");
+            });
+        }
+        $penginap = $query->orderBy($sortBy, $sortDir)->paginate(10)->withQueryString();
         return view('penginap', compact('penginap'));
     }
 

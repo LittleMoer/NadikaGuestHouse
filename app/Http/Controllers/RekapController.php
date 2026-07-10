@@ -27,6 +27,14 @@ class RekapController extends Controller
         $channel = $request->get('channel'); // null|'walkin'|'traveloka'|'agent1'|'agent2'
         $discount = $request->get('discount'); // null|'with'|'without'
         $paymentStatus = $request->get('payment_status'); // null|'dp'|'lunas'|'dp_cancel'
+        $sortBy = $request->get('sort_by', 'created_at');
+        $sortDir = $request->get('sort_dir', 'desc');
+
+        $allowedSortBy = ['created_at', 'tanggal_checkin', 'tanggal_checkout', 'amount'];
+        if (!in_array($sortBy, $allowedSortBy)) {
+            $sortBy = 'created_at';
+        }
+        $sortDir = strtolower($sortDir) === 'asc' ? 'asc' : 'desc';
 
         // Generate entries dari BookingOrder secara real-time
         $bookingQuery = BookingOrder::with(['pelanggan', 'items.kamar'])
@@ -62,6 +70,19 @@ class RekapController extends Controller
                 $q->where(function($qq){ $qq->whereNull('diskon')->orWhere('diskon','=',0); })
                   ->where(function($qq){ $qq->whereNull('discount_review')->orWhere('discount_review', false); })
                   ->where(function($qq){ $qq->whereNull('discount_follow')->orWhere('discount_follow', false); });
+            });
+        }
+
+        $search = $request->get('search');
+        if ($search) {
+            $bookingQuery->where(function($q) use ($search) {
+                $q->where('booking_number', 'like', "%{$search}%")
+                  ->orWhereHas('pelanggan', function($pq) use ($search) {
+                      $pq->where('nama', 'like', "%{$search}%");
+                  })
+                  ->orWhereHas('items.kamar', function($kq) use ($search) {
+                      $kq->where('nomor_kamar', 'like', "%{$search}%");
+                  });
             });
         }
 
@@ -141,8 +162,12 @@ class RekapController extends Controller
             }
         }
 
-        // Sort entries by created_at
-        $entries = $entries->sortByDesc('created_at')->values();
+        // Sort entries dynamically
+        if ($sortDir === 'asc') {
+            $entries = $entries->sortBy($sortBy)->values();
+        } else {
+            $entries = $entries->sortByDesc($sortBy)->values();
+        }
 
         // Calculate grand total
         $cashGrand = $totalKamar + $totalCafe;
@@ -161,6 +186,8 @@ class RekapController extends Controller
             'filter_channel' => $channel,
             'filter_discount' => $discount,
             'filter_payment_status' => $paymentStatus,
+            'filter_sort_by' => $sortBy,
+            'filter_sort_dir' => $sortDir,
         ]);
     }
 

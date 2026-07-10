@@ -62,6 +62,26 @@
           <option value="dp_cancel" {{ $ps==='dp_cancel' ? 'selected' : '' }}>DP Batal</option>
         </select>
       </div>
+      <div>
+        <label for="search" style="display:block;font-size:.8rem;color:#555;">Cari</label>
+        <input id="search" type="text" name="search" value="{{ request('search') }}" class="form-control" placeholder="Cari rekap..." style="min-width: 180px;" />
+      </div>
+      <div>
+        <label for="sort_by" style="display:block;font-size:.8rem;color:#555;">Urutkan</label>
+        <select id="sort_by" name="sort_by" class="form-control">
+          <option value="created_at" {{ request('sort_by', 'created_at') == 'created_at' ? 'selected' : '' }}>Tgl Transaksi</option>
+          <option value="tanggal_checkin" {{ request('sort_by') == 'tanggal_checkin' ? 'selected' : '' }}>Check-In</option>
+          <option value="tanggal_checkout" {{ request('sort_by') == 'tanggal_checkout' ? 'selected' : '' }}>Check-Out</option>
+          <option value="amount" {{ request('sort_by') == 'amount' ? 'selected' : '' }}>Nominal Masuk</option>
+        </select>
+      </div>
+      <div>
+        <label for="sort_dir" style="display:block;font-size:.8rem;color:#555;">Arah</label>
+        <select id="sort_dir" name="sort_dir" class="form-control">
+          <option value="desc" {{ request('sort_dir', 'desc') == 'desc' ? 'selected' : '' }}>DESC</option>
+          <option value="asc" {{ request('sort_dir') == 'asc' ? 'selected' : '' }}>ASC</option>
+        </select>
+      </div>
       <div style="display:flex;gap:8px;">
         <button type="submit" class="btn btn-primary" style="margin-top:22px;">Tampilkan</button>
         <a class="btn btn-outline-secondary" style="margin-top:22px;" href="{{ route('rekap.print', ['bulan'=> request('bulan',$bulan), 'tahun'=> request('tahun',$tahun)]) }}" target="_blank">Cetak</a>

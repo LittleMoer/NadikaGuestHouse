@@ -12,11 +12,30 @@
         </div>
 
 
-        <!-- Actions -->
+        <!-- Actions & Search -->
         <div class="card mb-3 shadow-sm">
-            <div class="card-body py-3 d-flex justify-content-between align-items-center">
+            <div class="card-body py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
                 <div class="fw-semibold">Daftar Booking</div>
-                <button type="button" class="btn btn-success btn-sm"><a href="{{ route('booking.create') }}" style="color: white; text-decoration: none;">+ Booking</a></button>
+                <div class="d-flex align-items-center gap-2">
+                    <form action="{{ route('booking.index') }}" method="GET" class="d-flex align-items-center gap-1 mb-0">
+                        <input type="text" name="search" class="form-control form-control-sm" placeholder="Cari booking..." value="{{ request('search') }}" style="width: 180px; height: 31px;">
+                        <select name="sort_by" class="form-select form-select-sm" style="width: 130px; height: 31px; font-size: 0.75rem; padding: 2px 8px;" onchange="this.form.submit()">
+                            <option value="tanggal_checkin" {{ request('sort_by', 'tanggal_checkin') == 'tanggal_checkin' ? 'selected' : '' }}>Sort: Check-In</option>
+                            <option value="tanggal_checkout" {{ request('sort_by') == 'tanggal_checkout' ? 'selected' : '' }}>Sort: Check-Out</option>
+                            <option value="created_at" {{ request('sort_by') == 'created_at' ? 'selected' : '' }}>Sort: Tgl Dibuat</option>
+                            <option value="total_harga" {{ request('sort_by') == 'total_harga' ? 'selected' : '' }}>Sort: Total Harga</option>
+                        </select>
+                        <select name="sort_dir" class="form-select form-select-sm" style="width: 80px; height: 31px; font-size: 0.75rem; padding: 2px 8px;" onchange="this.form.submit()">
+                            <option value="desc" {{ request('sort_dir', 'desc') == 'desc' ? 'selected' : '' }}>DESC</option>
+                            <option value="asc" {{ request('sort_dir') == 'asc' ? 'selected' : '' }}>ASC</option>
+                        </select>
+                        @if(request('search') || request('sort_by') || request('sort_dir'))
+                            <a href="{{ route('booking.index') }}" class="btn btn-outline-secondary btn-sm d-flex align-items-center justify-content-center" style="height: 31px; width: 31px;" title="Reset">✕</a>
+                        @endif
+                        <button type="submit" class="btn btn-primary btn-sm" style="height: 31px;">Cari</button>
+                    </form>
+                    <button type="button" class="btn btn-success btn-sm" style="height: 31px;"><a href="{{ route('booking.create') }}" style="color: white; text-decoration: none;">+ Booking</a></button>
+                </div>
             </div>
         </div>
 
