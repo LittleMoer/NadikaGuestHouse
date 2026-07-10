@@ -114,6 +114,15 @@
             </table>
         </div>
         
+        <div class="d-flex justify-content-between align-items-center mt-2 mb-4">
+            <div class="small text-muted">
+                Menampilkan {{ $orders->firstItem() ?? 0 }}-{{ $orders->lastItem() ?? 0 }} dari {{ $orders->total() }} data
+            </div>
+            <div>
+                {{ $orders->links() }}
+            </div>
+        </div>
+        
 
         <!-- Detail Modal (Enhanced unified) -->
         
@@ -308,7 +317,8 @@
                     t.show();
                 });
             } catch(e) { /* ignore */ }
-            // Enable client-side pagination with DataTables if available
+            // Client-side DataTables disabled in favor of server-side pagination
+            /*
             if(window.jQuery && jQuery.fn.DataTable){
                 jQuery('#tabel-booking').DataTable({
                     pageLength: 10,
@@ -319,6 +329,7 @@
                     ]
                 });
             }
+            */
             // ================== UTIL ==================
             const FMT = new Intl.NumberFormat('id-ID');
             const qs = sel=> document.querySelector(sel);
