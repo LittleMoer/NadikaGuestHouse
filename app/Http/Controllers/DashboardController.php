@@ -72,11 +72,9 @@ class DashboardController extends Controller
                     ? $it->tanggal_checkin_actual->copy()->setTime($plannedCheckin->hour, $plannedCheckin->minute, $plannedCheckin->second)
                     : $plannedCheckin;
 
-                // Use actual checkout date if available, keeping the planned checkout time part for slot integrity
+                // Checkout aktual per-kamar disembunyikan; pakai checkout terjadwal (biasa)
                 $plannedCheckout = Carbon::parse($order->tanggal_checkout);
-                $coAt = $it->tanggal_checkout_actual
-                    ? $it->tanggal_checkout_actual->copy()->setTime($plannedCheckout->hour, $plannedCheckout->minute, $plannedCheckout->second)
-                    : $plannedCheckout;
+                $coAt = $plannedCheckout;
 
                 $ciDay = $ciAt->copy()->startOfDay();
                 $coDay = $coAt->copy()->startOfDay();

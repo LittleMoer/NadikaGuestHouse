@@ -602,49 +602,14 @@ class BookingController extends Controller
                 break;
 
             case 'checkout':
-                if ($item->status == 3 || $item->status == 4) {
-                    if ($request->wantsJson()) {
-                        return response()->json(['success' => false, 'message' => 'Kamar sudah checkout atau dibatalkan'], 422);
-                    }
-                    return redirect()->back()->with('error', 'Kamar sudah checkout atau dibatalkan');
+                // Checkout aktual per-kamar dinonaktifkan; gunakan Check-out booking biasa
+                if ($request->wantsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Checkout per kamar dinonaktifkan. Gunakan Check-out pada booking.',
+                    ], 422);
                 }
-
-                $item->status = 3;
-                $item->tanggal_checkout_actual = now();
-                $item->save();
-
-                // Log the checkout
-                BookingCheckLog::create([
-                    'booking_order_id' => $booking->id,
-                    'booking_order_item_id' => $item->id,
-                    'type' => 'checkout',
-                    'recorded_at' => now(),
-                ]);
-
-                // Check if all items in the booking are checked out
-                $allCheckedOut = true;
-                foreach ($booking->items as $it) {
-                    $currentItemStatus = ($it->id == $item->id) ? 3 : (int)$it->status;
-                    if ($currentItemStatus != 3 && $currentItemStatus != 4) {
-                        $allCheckedOut = false;
-                        break;
-                    }
-                }
-
-                if ($allCheckedOut) {
-                    $booking->status = 3;
-                    $booking->payment_status = 'lunas';
-                    $booking->dp_percentage = 100;
-                    $booking->save();
-
-                    // Log parent level checkout
-                    BookingCheckLog::create([
-                        'booking_order_id' => $booking->id,
-                        'type' => 'checkout',
-                        'recorded_at' => now(),
-                    ]);
-                }
-                break;
+                return redirect()->back()->with('error', 'Checkout per kamar dinonaktifkan. Gunakan Check-out pada booking.');
         }
 
         if ($request->wantsJson()) {

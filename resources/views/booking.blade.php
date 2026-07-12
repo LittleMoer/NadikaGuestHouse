@@ -175,7 +175,7 @@
                             <dt>Check-In</dt><dd id="bd_checkin">-</dd>
                             <dt>Check-Out</dt><dd id="bd_checkout">-</dd>
                             <dt>Check-In Aktual</dt><dd id="bd_actual_checkin">-</dd>
-                            <dt>Check-Out Aktual</dt><dd id="bd_actual_checkout">-</dd>
+                            <dt class="d-none">Check-Out Aktual</dt><dd id="bd_actual_checkout" class="d-none">-</dd>
                             <dt>Metode</dt><dd id="bd_metode">-</dd>
                                 <dt>Total Kamar</dt><dd id="bd_total">-</dd>
                             <dt>Total Cafe</dt><dd id="bd_total_cafe">-</dd>
@@ -403,7 +403,7 @@
                 if (canDelete) {
                     tableHeader = `<tr class="table-light"><th>Kamar</th><th>Tipe</th><th class="text-center">Malam</th><th class="text-end">Harga/Mlm</th><th class="text-end">Subtotal</th><th>Hapus</th></tr>`;
                 } else {
-                    tableHeader = `<tr class="table-light"><th>Kamar</th><th>Tipe</th><th class="text-center">Malam</th><th class="text-end">Harga/Mlm</th><th class="text-end">Subtotal</th><th>Status</th><th>Check-In / Out Aktual</th><th class="text-center">Aksi</th></tr>`;
+                    tableHeader = `<tr class="table-light"><th>Kamar</th><th>Tipe</th><th class="text-center">Malam</th><th class="text-end">Harga/Mlm</th><th class="text-end">Subtotal</th><th>Status</th><th>Check-In Aktual</th><th class="text-center">Aksi</th></tr>`;
                 }
                 const table = EL.itemsBody.closest('table');
                 if (table) {
@@ -473,14 +473,10 @@
                         
                         let badge = `<span class="badge" style="background:${statusInfo.bg};color:${statusInfo.text};padding:4px 8px;font-size:.7rem;">${statusInfo.label}</span>`;
                         
-                        let actualTimes = [];
-                        if (it.actual_checkin) {
-                            actualTimes.push(`<div class="text-success" style="font-size:.65rem;line-height:1.2;">CI: ${new Date(it.actual_checkin).toLocaleString()}</div>`);
-                        }
-                        if (it.actual_checkout) {
-                            actualTimes.push(`<div class="text-secondary" style="font-size:.65rem;line-height:1.2;">CO: ${new Date(it.actual_checkout).toLocaleString()}</div>`);
-                        }
-                        let actualStr = actualTimes.length ? actualTimes.join('') : '-';
+                        // Checkout aktual per-kamar disembunyikan; gunakan Check-out booking biasa
+                        let actualStr = it.actual_checkin
+                            ? `<div class="text-success" style="font-size:.65rem;line-height:1.2;">${new Date(it.actual_checkin).toLocaleString()}</div>`
+                            : '-';
 
                         let actionBtn = '-';
                         if (statusVal === 1) {
@@ -490,8 +486,6 @@
                             } else {
                                 actionBtn = `<button type="button" class="btn btn-xs btn-light" disabled title="Pembayaran harus Lunas untuk Check-In">Check-in</button>`;
                             }
-                        } else if (statusVal === 2) {
-                            actionBtn = `<button type="button" class="btn btn-xs btn-danger btn-item-checkout" data-item-id="${it.id}">Checkout</button>`;
                         }
 
                         return `<tr data-item-id='${it.id}'>
@@ -512,14 +506,6 @@
                             const itemId = this.getAttribute('data-item-id');
                             if (!confirm('Check-in kamar ini?')) return;
                             await updateItemStatusAction(itemId, 'checkin');
-                        });
-                    });
-
-                    EL.itemsBody.querySelectorAll('.btn-item-checkout').forEach(btn => {
-                        btn.addEventListener('click', async function() {
-                            const itemId = this.getAttribute('data-item-id');
-                            if (!confirm('Checkout kamar ini?')) return;
-                            await updateItemStatusAction(itemId, 'checkout');
                         });
                     });
                 }

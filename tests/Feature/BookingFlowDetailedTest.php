@@ -299,7 +299,7 @@ it('can add and remove rooms on an existing booking and recalculate totals', fun
     expect($order->items)->toHaveCount(1);
 });
 
-it('can check-in and check-out specific room items individually', function() {
+it('can check-in room items individually and check-out via booking', function() {
     $owner = User::factory()->create(['role' => 'owner']);
     test()->actingAs($owner);
     
@@ -345,30 +345,27 @@ it('can check-in and check-out specific room items individually', function() {
     $itemK2->refresh();
     expect((int)$itemK2->status)->toBe(1);
 
-    // 5) Check-out Room 1 -> should succeed
-    test()->post(route('booking.item_status', [$order->id, $itemK1->id]), ['action' => 'checkout'])->assertRedirect();
+    // 5) Per-room checkout is disabled; should error
+    test()->post(route('booking.item_status', [$order->id, $itemK1->id]), ['action' => 'checkout'])
+        ->assertSessionHas('error');
     
     $itemK1->refresh();
-    expect((int)$itemK1->status)->toBe(3); // Checked-out
-    expect($itemK1->tanggal_checkout_actual)->not->toBeNull();
-
-    // Parent booking should still be 2 (Check-in) because Room 2 is still Dipesan (not checked out)
-    $order->refresh();
-    expect((int)$order->status)->toBe(2);
+    expect((int)$itemK1->status)->toBe(2);
 
     // 6) Check-in Room 2
     test()->post(route('booking.item_status', [$order->id, $itemK2->id]), ['action' => 'checkin'])->assertRedirect();
     $itemK2->refresh();
     expect((int)$itemK2->status)->toBe(2);
 
-    // 7) Check-out Room 2 -> this is the last room, so booking should transition to 3 (Checkout)
-    test()->post(route('booking.item_status', [$order->id, $itemK2->id]), ['action' => 'checkout'])->assertRedirect();
+    // 7) Regular booking checkout checks out all rooms
+    test()->post(route('booking.status', $order->id), ['action' => 'checkout'])->assertRedirect();
     
+    $itemK1->refresh();
     $itemK2->refresh();
-    expect((int)$itemK2->status)->toBe(3); // Checked-out
-    
     $order->refresh();
-    expect((int)$order->status)->toBe(3); // Overall Checkout
+    expect((int)$itemK1->status)->toBe(3);
+    expect((int)$itemK2->status)->toBe(3);
+    expect((int)$order->status)->toBe(3);
 });
 
 it('sets item status to match walk-in creation (status 2)', function() {

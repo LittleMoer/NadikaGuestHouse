@@ -75,10 +75,9 @@
               <dt class="col-4">Check-Out</dt><dd class="col-8">{{ \Carbon\Carbon::parse($order->tanggal_checkout)->format('d/m/Y H:i') }}</dd>
               @php
                 $actualCheckin = $order->checkLogs->where('type', 'checkin')->last()?->recorded_at;
-                $actualCheckout = $order->checkLogs->where('type', 'checkout')->last()?->recorded_at;
               @endphp
               <dt class="col-4">Check-In Aktual</dt><dd class="col-8">{{ $actualCheckin ? \Carbon\Carbon::parse($actualCheckin)->format('d/m/Y H:i:s') : '-' }}</dd>
-              <dt class="col-4">Check-Out Aktual</dt><dd class="col-8">{{ $actualCheckout ? \Carbon\Carbon::parse($actualCheckout)->format('d/m/Y H:i:s') : '-' }}</dd>
+              {{-- Check-Out Aktual disembunyikan; gunakan Check-Out terjadwal --}}
               <dt class="col-4">Jumlah Tamu</dt><dd class="col-8">{{ $order->jumlah_tamu_total ?? '-' }}</dd>
               <dt class="col-4">Metode Bayar</dt><dd class="col-8">{{ strtoupper($order->payment_method ?? '-') }}</dd>
               <dt class="col-4">Catatan</dt><dd class="col-8">{{ $order->catatan ?? '-' }}</dd>
@@ -192,7 +191,7 @@
                     <th class="text-end">Subtotal</th>
                   @endunless
                   <th>Status</th>
-                  <th>Check-In / Out Aktual</th>
+                  <th>Check-In Aktual</th>
                   <th class="text-center">Aksi</th>
                 </tr>
               </thead>
@@ -223,12 +222,8 @@
                   </td>
                   <td>
                     @if($it->tanggal_checkin_actual)
-                      <div class="text-success"><small>CI: {{ \Carbon\Carbon::parse($it->tanggal_checkin_actual)->format('d/m/Y H:i') }}</small></div>
-                    @endif
-                    @if($it->tanggal_checkout_actual)
-                      <div class="text-secondary"><small>CO: {{ \Carbon\Carbon::parse($it->tanggal_checkout_actual)->format('d/m/Y H:i') }}</small></div>
-                    @endif
-                    @if(!$it->tanggal_checkin_actual && !$it->tanggal_checkout_actual)
+                      <div class="text-success"><small>{{ \Carbon\Carbon::parse($it->tanggal_checkin_actual)->format('d/m/Y H:i') }}</small></div>
+                    @else
                       -
                     @endif
                   </td>
@@ -243,12 +238,6 @@
                       @else
                         <button type="button" class="btn btn-xs btn-light" disabled title="Pembayaran harus Lunas untuk Check-In" onclick="alert('Pembayaran harus Lunas untuk Check-In');">Check-in</button>
                       @endif
-                    @elseif($itemStatus === 2)
-                      <form action="{{ route('booking.item_status', [$order->id, $it->id]) }}" method="POST" class="d-inline" onsubmit="return confirm('Checkout kamar {{ $it->kamar->nomor_kamar }}?');">
-                        @csrf
-                        <input type="hidden" name="action" value="checkout" />
-                        <button type="submit" class="btn btn-xs btn-danger" title="Checkout Kamar">Checkout</button>
-                      </form>
                     @else
                       -
                     @endif
