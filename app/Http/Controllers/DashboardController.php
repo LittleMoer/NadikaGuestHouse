@@ -66,11 +66,11 @@ class DashboardController extends Controller
         foreach($activeOrders as $order){
             $meta = $order->status_meta; // unified
             foreach($order->items as $it){
-                // Use actual checkin date if available, keeping the planned checkin time part for slot integrity
+                // Always use planned checkin for day-range calculation on the dashboard.
+                // Using tanggal_checkin_actual would shift the day range (e.g. actual
+                // check-in on 28/07 for a booking planned from 27/07 would drop 27/07).
                 $plannedCheckin = Carbon::parse($order->tanggal_checkin);
-                $ciAt = $it->tanggal_checkin_actual
-                    ? $it->tanggal_checkin_actual->copy()->setTime($plannedCheckin->hour, $plannedCheckin->minute, $plannedCheckin->second)
-                    : $plannedCheckin;
+                $ciAt = $plannedCheckin;
 
                 // Checkout aktual per-kamar disembunyikan; pakai checkout terjadwal (biasa)
                 $plannedCheckout = Carbon::parse($order->tanggal_checkout);
