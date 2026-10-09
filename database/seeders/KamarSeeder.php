@@ -11,9 +11,15 @@ class KamarSeeder extends Seeder
         $data = [
             ['nomor_kamar'=>'101','tipe'=>'Standard','kapasitas'=>2,'harga'=>150000,'deskripsi'=>'Standard Fan'],
             ['nomor_kamar'=>'102','tipe'=>'Standard','kapasitas'=>2,'harga'=>170000,'deskripsi'=>'Standard AC'],
+            ['nomor_kamar'=>'103','tipe'=>'Standard','kapasitas'=>2,'harga'=>170000,'deskripsi'=>'Standard AC'],
+            ['nomor_kamar'=>'104','tipe'=>'Standard','kapasitas'=>2,'harga'=>180000,'deskripsi'=>'Standard Twin AC'],
             ['nomor_kamar'=>'201','tipe'=>'Deluxe','kapasitas'=>3,'harga'=>250000,'deskripsi'=>'Deluxe Queen'],
             ['nomor_kamar'=>'202','tipe'=>'Deluxe','kapasitas'=>3,'harga'=>260000,'deskripsi'=>'Deluxe Twin'],
+            ['nomor_kamar'=>'203','tipe'=>'Deluxe','kapasitas'=>3,'harga'=>250000,'deskripsi'=>'Deluxe Queen'],
+            ['nomor_kamar'=>'204','tipe'=>'Deluxe','kapasitas'=>3,'harga'=>280000,'deskripsi'=>'Deluxe Balcony'],
             ['nomor_kamar'=>'301','tipe'=>'Suite','kapasitas'=>4,'harga'=>400000,'deskripsi'=>'Suite Family'],
+            ['nomor_kamar'=>'302','tipe'=>'Suite','kapasitas'=>4,'harga'=>420000,'deskripsi'=>'Suite Family View'],
+            ['nomor_kamar'=>'303','tipe'=>'Suite','kapasitas'=>3,'harga'=>350000,'deskripsi'=>'Junior Suite'],
         ];
         foreach($data as $row){
             Kamar::updateOrCreate(['nomor_kamar'=>$row['nomor_kamar']], $row);

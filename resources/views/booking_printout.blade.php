@@ -41,7 +41,7 @@
     }
     .wifi-info {
       text-align: right;
-      font-size: 12px;
+      font-size: 20px;
       color: #666;
       margin-bottom: 10px;
     }
@@ -134,7 +134,7 @@
       }
       .header h1 { font-size: 24px; }
       .header .address, .header .contact { font-size: 12px; }
-      .wifi-info { font-size: 10px; margin-bottom: 6px; }
+      .wifi-info { font-size: 20px; margin-bottom: 6px; }
       .booking-info { padding: 6px 8px; margin: 6px 0; }
       .columns { gap: 6px; }
       .col-left { flex-basis: 62%; }
@@ -177,7 +177,7 @@
     </div>
 
     <div class="wifi-info">
-      <span style="color: red; font-size: 1.5rem; font-weight: bold;">ID:{{ ($order->formatted_id) }}</span><br>
+      <span style="color: red; font-size: 2 rem; font-weight: bold;">ID:{{ ($order->formatted_id) }}</span><br>
       PASSWORD WIFI ATAS: nginapdulu<br>
       Gedung belakang: nadikagedungb2025
     </div>
@@ -300,7 +300,7 @@
     </div>
 
     <div class="wifi-info">
-      <span style="color: red; font-size: 1.5rem; font-weight: bold;">ID:{{ ($order->formatted_id) }}</span><br>
+      <span style="color: red; font-size: 2 rem; font-weight: bold;">ID:{{ ($order->formatted_id) }}</span><br>
       PASSWORD WIFI ATAS: nginapdulu<br>
       Gedung belakang: nadikaguestb2025
     </div>
