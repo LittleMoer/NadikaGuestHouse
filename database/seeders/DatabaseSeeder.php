@@ -13,22 +13,21 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
-
-        User::factory()->create([
-            'name' => 'Owner',
-            'email' => 'owner@example.com',
-            'role' => 'owner',
-        ]);
-        User::factory()->create([
-            'name' => 'Admin',
-            'email' => 'admin@example.com',
-            'role' => 'admin',
-        ]);
+        $users = [
+            ['name' => 'Owner', 'email' => 'owner@example.com', 'role' => 'owner'],
+            ['name' => 'Admin', 'email' => 'admin@example.com', 'role' => 'admin'],
+            ['name' => 'Resepsionis', 'email' => 'resepsionis@example.com', 'role' => 'admin'],
+        ];
+        foreach ($users as $u) {
+            if (!User::where('email', $u['email'])->exists()) {
+                User::factory()->create($u);
+            }
+        }
 
         $this->call([
             KamarSeeder::class,
             PelangganSeeder::class,
+            CafeProductSeeder::class,
             BookingOrderSeeder::class,
         ]);
     }

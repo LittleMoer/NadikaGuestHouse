@@ -7,7 +7,7 @@
   <style>
     body{font-family:Arial, sans-serif; margin:16px; color:#111;}
     .wrap{max-width:600px;margin:0 auto;}
-    .wifi-info { text-align: right; font-size: 12px; color: #666; margin-bottom: 10px; }
+    .wifi-info { text-align: right; font-size: 19px; color: #666; margin-bottom: 10px; }
     .header { text-align: center; margin-bottom: 20px; }
     .header h1 { color: #d32f2f; font-size: 24px; margin: 0; font-weight: bold; }
     .header .syariah { color: #388e3c; font-style: italic; margin-top: -5px; }
