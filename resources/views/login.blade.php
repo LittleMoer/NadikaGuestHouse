@@ -41,7 +41,7 @@
             <div class="inline-flex items-center justify-center w-16 h-16 bg-white bg-opacity-20 rounded-full mb-4">
                 <i class="fas fa-home text-white text-4xl"></i>
             </div>
-            <h1 class="text-2xl font-bold text-white mb-2">Guest House System</h1>
+            <h1 class="text-2xl font-bold text-white mb-2">Guest House System m</h1>
             <p class="text-white text-opacity-80 text-sm">Sistem Manajemen Operasional</p>
         </div>
 
